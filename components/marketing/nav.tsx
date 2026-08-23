@@ -22,7 +22,7 @@ export function MarketingNav() {
     <motion.header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-white/80 backdrop-blur-xl border-b border-gray-200/60 shadow-lg shadow-black/5"
+          ? "glass border-b border-white/[0.06] shadow-lg shadow-black/20"
           : "bg-transparent"
       }`}
       initial={{ y: -100 }}
@@ -34,7 +34,7 @@ export function MarketingNav() {
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="relative w-8 h-8">
             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue to-purple opacity-80 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute inset-[2px] rounded-[6px] bg-white flex items-center justify-center">
+            <div className="absolute inset-[2px] rounded-[6px] bg-background flex items-center justify-center">
               <span className="text-blue font-bold text-sm">P</span>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function MarketingNav() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="md:hidden bg-white/90 backdrop-blur-xl border-t border-gray-200/60"
+            className="md:hidden glass border-t border-white/[0.06]"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -104,14 +104,14 @@ export function MarketingNav() {
                 >
                   <Link
                     href={item.href}
-                    className="block text-sm text-text-secondary hover:text-text-primary py-3 px-2 rounded-lg hover:bg-surface-elevated transition-colors"
+                    className="block text-sm text-text-secondary hover:text-text-primary py-3 px-2 rounded-lg hover:bg-white/[0.04] transition-colors"
                     onClick={() => setOpen(false)}
                   >
                     {item.label}
                   </Link>
                 </motion.div>
               ))}
-              <div className="pt-4 border-t border-border flex flex-col gap-2">
+              <div className="pt-4 border-t border-white/[0.06] flex flex-col gap-2">
                 <Link href="/sign-in">
                   <Button variant="ghost" className="w-full">
                     Sign In

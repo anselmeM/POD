@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
@@ -15,15 +15,15 @@ export function DashboardPreview() {
       <motion.div ref={ref} className="relative max-w-5xl mx-auto px-4" initial={{ opacity: 0, y: 60 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}>
         <div className="absolute -inset-8 bg-gradient-to-b from-blue/5 via-purple/3 to-transparent rounded-3xl blur-2xl" />
         <TiltCard className="relative" tiltAmount={3}>
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl shadow-black/8">
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50/80">
+          <div className="glass border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red/50" />
                 <div className="w-3 h-3 rounded-full bg-amber/50" />
                 <div className="w-3 h-3 rounded-full bg-green/50" />
               </div>
               <div className="flex-1 mx-4">
-                <div className="bg-gray-100 rounded-lg px-4 py-1.5 text-xs text-gray-400 text-center max-w-md mx-auto font-mono">app.proofofdemand.dev/dashboard</div>
+                <div className="bg-white/[0.04] rounded-lg px-4 py-1.5 text-xs text-text-tertiary text-center max-w-md mx-auto font-mono">app.proofofdemand.dev/dashboard</div>
               </div>
             </div>
             <DashboardContent isInView={isInView} />
@@ -51,7 +51,7 @@ function DashboardContent({ isInView }: { isInView: boolean }) {
           { label: "Visitors", value: "1,842", sub: "Last 7 days" },
           { label: "High-Intent", value: "127", sub: "6.9% of visitors", positive: true },
         ].map((m, i) => (
-          <motion.div key={m.label} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-blue/20 transition-colors" initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.3 + i * 0.1 }}>
+          <motion.div key={m.label} className="glass rounded-xl p-4 hover:border-blue/20 transition-colors" initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.3 + i * 0.1 }}>
             <p className="text-xs text-text-tertiary mb-1">{m.label}</p>
             <p className="text-2xl font-bold font-mono">{m.value}</p>
             {"change" in m && m.change && <p className={`text-xs mt-1 ${m.positive ? "text-green" : "text-red"}`}>{m.change}</p>}
@@ -67,7 +67,7 @@ function DashboardContent({ isInView }: { isInView: boolean }) {
 
 function ChartSection({ isInView }: { isInView: boolean }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+    <div className="glass rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium">Demand Signal Over Time</span>
         <Badge variant="blue">7 days</Badge>
@@ -86,9 +86,9 @@ function ChartSection({ isInView }: { isInView: boolean }) {
 
 function AIRecommendation({ isInView }: { isInView: boolean }) {
   return (
-    <motion.div className="mt-4 bg-blue/4 border border-blue/8 rounded-xl p-4" initial={{ opacity: 0, y: 10 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 1.2 }}>
+    <motion.div className="mt-4 glass border border-blue/10 rounded-xl p-4" initial={{ opacity: 0, y: 10 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 1.2 }}>
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-blue/8 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-full bg-blue/10 flex items-center justify-center shrink-0">
           <span className="text-blue text-sm font-bold">AI</span>
         </div>
         <div>

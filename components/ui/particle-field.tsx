@@ -11,7 +11,7 @@ interface ParticleFieldProps {
 export function ParticleField({
   className = "",
   particleCount = 60,
-  color = "37, 99, 235",
+  color = "88, 166, 255",
 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 

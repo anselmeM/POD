@@ -31,7 +31,7 @@ export function PageLoader() {
     <AnimatePresence>
       {loading && (
         <motion.div
-          className="fixed inset-0 z-[100000] flex items-center justify-center bg-white"
+          className="fixed inset-0 z-[100000] flex items-center justify-center bg-background"
           exit={{ opacity: 0 }}
           transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
         >
@@ -40,7 +40,7 @@ export function PageLoader() {
             <motion.div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
               style={{
-                background: "radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%)",
+                background: "radial-gradient(circle, rgba(88, 166, 255, 0.12) 0%, transparent 70%)",
                 filter: "blur(80px)",
               }}
               animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
@@ -57,7 +57,7 @@ export function PageLoader() {
               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
             >
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue to-purple opacity-80" />
-              <div className="absolute inset-[3px] rounded-[13px] bg-white flex items-center justify-center">
+              <div className="absolute inset-[3px] rounded-[13px] bg-background flex items-center justify-center">
                 <span className="text-blue font-bold text-2xl">P</span>
               </div>
             </motion.div>

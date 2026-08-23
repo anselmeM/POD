@@ -5,7 +5,8 @@ import { motion, useInView } from "framer-motion";
 import { Brain, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TiltCard } from "@/components/ui/tilt-card";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { TextReveal } from "@/components/ui/text-reveal";
 
 export function AIAnalysisSection() {
@@ -14,8 +15,7 @@ export function AIAnalysisSection() {
 
   return (
     <section className="py-32 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gray-50/50" />
-      <div className="absolute inset-0 dot-grid opacity-10" />
+      <div className="absolute inset-0 dot-grid opacity-8" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" ref={ref}>
         <div className="text-center mb-16">
           <TextReveal as="h2" className="text-4xl sm:text-5xl font-bold tracking-tight mb-6" delay={0.1}>
@@ -27,15 +27,15 @@ export function AIAnalysisSection() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.3, duration: 0.7, ease: [0.23, 1, 0.32, 1] }}>
-          <TiltCard className="max-w-3xl mx-auto" tiltAmount={4}>
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl shadow-black/8">
+          <SpotlightCard className="max-w-3xl mx-auto">
+            <GlassCard className="overflow-hidden">
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-blue/8 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-blue/10 flex items-center justify-center">
                     <Brain className="w-5 h-5 text-blue" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">AI Demand Analysis</h3>
+                    <h3 className="font-semibold text-text-primary">AI Demand Analysis</h3>
                     <Badge variant="green">Confidence: 84%</Badge>
                   </div>
                 </div>
@@ -65,7 +65,7 @@ export function AIAnalysisSection() {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {["11.4% conversion on Variant B", "7.7% high-intent rate", "2.1x stronger pricing interaction"].map((e) => (
-                      <span key={e} className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-100">
+                      <span key={e} className="flex items-center gap-1.5 text-xs text-text-secondary bg-white/[0.04] rounded-lg px-3 py-1.5 border border-white/[0.06]">
                         <CheckCircle2 className="w-3 h-3 text-green" />
                         {e}
                       </span>
@@ -78,8 +78,8 @@ export function AIAnalysisSection() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>
-            </div>
-          </TiltCard>
+            </GlassCard>
+          </SpotlightCard>
         </motion.div>
       </div>
     </section>

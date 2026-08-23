@@ -40,7 +40,7 @@ export default function LandingPage() {
       <main>
         <HeroSection />
         <DashboardPreview />
-        <Marquee items={marqueeItems} speed={35} className="py-6 border-y border-border/20" />
+        <Marquee items={marqueeItems} speed={35} className="py-6 border-y border-white/[0.06]" />
         <ProblemSection />
         <FrameworkSection />
         <SignalLadderSection />

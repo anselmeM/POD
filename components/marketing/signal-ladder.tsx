@@ -39,9 +39,9 @@ export function SignalLadderSection() {
           <motion.div className="space-y-2" initial={{ opacity: 0, x: 30 }} animate={isInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}>
             {signals.map((s, i) => {
               const intensity = s.strength / 8;
-              const bgColor = `rgba(37, 99, 235, ${0.02 + intensity * 0.05})`;
-              const borderColor = `rgba(37, 99, 235, ${0.04 + intensity * 0.12})`;
-              const barColor = i >= 5 ? "#16A34A" : i >= 3 ? "#2563EB" : i >= 1 ? "#D97706" : "#9CA3AF";
+              const bgColor = `rgba(88, 166, 255, ${0.02 + intensity * 0.04})`;
+              const borderColor = `rgba(88, 166, 255, ${0.04 + intensity * 0.1})`;
+              const barColor = i >= 5 ? "#3FB950" : i >= 3 ? "#58A6FF" : i >= 1 ? "#D29922" : "#484F58";
 
               return (
                 <motion.div
@@ -54,7 +54,7 @@ export function SignalLadderSection() {
                 >
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: barColor }} />
                   <span className="text-sm flex-1 font-medium">{s.label}</span>
-                  <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-24 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
                       style={{ backgroundColor: barColor }}

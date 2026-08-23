@@ -105,7 +105,7 @@ export function CustomCursor() {
         style={{
           width: 40,
           height: 40,
-          border: `1.5px solid rgba(88, 166, 255, ${hovering ? 0.8 : 0.4})`,
+          border: `1.5px solid rgba(88, 166, 255, ${hovering ? 0.9 : 0.5})`,
           borderRadius: "50%",
           transition: "width 0.3s cubic-bezier(0.23,1,0.32,1), height 0.3s cubic-bezier(0.23,1,0.32,1), border-color 0.3s ease",
         }}

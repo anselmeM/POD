@@ -23,13 +23,13 @@ export function CTASection() {
         >
           {/* Animated gradient border */}
           <div className="gradient-border rounded-3xl">
-            <div className="relative bg-white rounded-3xl shadow-xl">
+            <div className="relative glass-strong rounded-3xl">
               {/* Gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue/5 via-transparent to-purple/3 rounded-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue/5 via-transparent to-purple/5 rounded-3xl" />
               <div className="absolute inset-0 grid-pattern opacity-15 rounded-3xl" />
 
               {/* Animated glow */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue/3 rounded-full blur-3xl" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue/5 rounded-full blur-3xl" />
 
               <div className="relative p-12 sm:p-16 lg:p-20 text-center">
                 <TextReveal as="h2" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6" delay={0.1}>

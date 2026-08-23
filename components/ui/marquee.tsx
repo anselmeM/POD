@@ -22,7 +22,7 @@ export function Marquee({ items, speed = 30, className = "" }: MarqueeProps) {
             key={i}
             className="flex items-center gap-3 text-text-tertiary whitespace-nowrap text-sm font-medium"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue/25" />
+            <span className="w-1.5 h-1.5 rounded-full bg-blue/40" />
             {item}
           </span>
         ))}

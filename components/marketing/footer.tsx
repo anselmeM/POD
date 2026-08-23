@@ -3,7 +3,7 @@ import { BRAND } from "@/lib/constants";
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-gray-200 bg-white/50 relative overflow-hidden">
+    <footer className="border-t border-white/[0.06] relative overflow-hidden">
       <div className="absolute inset-0 grid-pattern opacity-10" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
@@ -11,7 +11,7 @@ export function MarketingFooter() {
             <div className="flex items-center gap-2.5 mb-6">
               <div className="relative w-8 h-8">
                 <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue to-purple opacity-80" />
-                <div className="absolute inset-[2px] rounded-[6px] bg-white flex items-center justify-center">
+                <div className="absolute inset-[2px] rounded-[6px] bg-background flex items-center justify-center">
                   <span className="text-blue font-bold text-sm">P</span>
                 </div>
               </div>
@@ -42,7 +42,7 @@ export function MarketingFooter() {
           ))}
         </div>
 
-        <div className="border-t border-gray-200 mt-16 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="border-t border-white/[0.06] mt-16 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-text-tertiary">
             &copy; {new Date().getFullYear()} {BRAND.name}. All rights reserved.
           </p>

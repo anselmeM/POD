@@ -39,7 +39,7 @@ function SignalPulse() {
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue/8"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue/15"
           initial={{ width: 200, height: 200, opacity: 0.3 }}
           animate={{ width: [200, 800], height: [200, 800], opacity: [0.3, 0] }}
           transition={{ duration: 4, repeat: Infinity, delay: i * 1.3, ease: "easeOut" }}
@@ -61,7 +61,7 @@ export function HeroSection() {
       <GradientMesh />
       <ParticleField particleCount={50} />
       <SignalPulse />
-      <div className="absolute inset-0 grid-pattern opacity-20" />
+      <div className="absolute inset-0 grid-pattern opacity-[0.07]" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
       <motion.div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 w-full" style={{ y, opacity, scale }}>
@@ -74,12 +74,12 @@ export function HeroSection() {
           </motion.div>
 
           <div className="text-center mb-8">
-            <TextReveal as="h1" className="text-5xl sm:text-6xl lg:text-8xl font-bold tracking-tight leading-[0.95]" delay={0.3} staggerChildren={0.04}>
+            <TextReveal as="h1" className="text-5xl sm:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[0.9] gradient-text-blue" delay={0.3} staggerChildren={0.04}>
               Prove demand before you build.
             </TextReveal>
           </div>
 
-          <motion.p className="text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto text-center mb-12 leading-relaxed" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.8 }}>
+          <motion.p className="text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto text-center mb-12 leading-relaxed text-glow" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.8 }}>
             PoD Engine turns startup ideas into measurable demand experiments—combining AI-generated positioning, multi-variant landing pages, targeted ad tests, and willingness-to-pay analysis.
           </motion.p>
 
@@ -114,7 +114,7 @@ export function HeroSection() {
                 <p className="text-2xl sm:text-3xl font-bold gradient-text-blue">
                   <AnimatedCounter target={stat.value} suffix={stat.suffix} />
                 </p>
-                <p className="text-xs text-text-tertiary mt-1">{stat.label}</p>
+                <p className="text-xs text-text-tertiary mt-1 font-medium">{stat.label}</p>
               </div>
             ))}
           </motion.div>
@@ -122,7 +122,7 @@ export function HeroSection() {
 
         <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
           <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary">Scroll</span>
-          <motion.div className="w-[1px] h-8 bg-gradient-to-b from-blue/30 to-transparent" animate={{ scaleY: [0, 1, 0] }} transition={{ duration: 2, repeat: Infinity }} />
+          <motion.div className="w-[1px] h-8 bg-gradient-to-b from-blue/50 to-transparent" animate={{ scaleY: [0, 1, 0] }} transition={{ duration: 2, repeat: Infinity }} />
         </motion.div>
       </motion.div>
     </section>

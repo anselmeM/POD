@@ -4,7 +4,8 @@ import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { TextReveal } from "@/components/ui/text-reveal";
-import { TiltCard } from "@/components/ui/tilt-card";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
+import { GlassCard } from "@/components/ui/glass-card";
 
 const problems = [
   { myth: "\u201cPeople will want it.\u201d", reality: "But nobody has actually demonstrated demand." },
@@ -29,15 +30,15 @@ export function ProblemSection() {
         <div className="grid md:grid-cols-3 gap-6 mb-16">
           {problems.map((p, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.2 + i * 0.15, duration: 0.6, ease: [0.23, 1, 0.32, 1] }}>
-              <TiltCard className="h-full">
-                <div className="bg-white border border-gray-200 rounded-2xl p-8 h-full hover:border-amber/30 transition-colors group shadow-sm">
-                  <div className="w-12 h-12 rounded-xl bg-amber/8 flex items-center justify-center mb-6 group-hover:bg-amber/12 transition-colors">
+              <SpotlightCard className="h-full">
+                <GlassCard className="p-8 h-full group">
+                  <div className="w-12 h-12 rounded-xl bg-amber/10 flex items-center justify-center mb-6 group-hover:bg-amber/15 transition-colors">
                     <AlertTriangle className="w-6 h-6 text-amber" />
                   </div>
-                  <p className="text-xl font-semibold mb-3">{p.myth}</p>
+                  <p className="text-xl font-semibold mb-3 text-text-primary">{p.myth}</p>
                   <p className="text-sm text-text-secondary leading-relaxed">{p.reality}</p>
-                </div>
-              </TiltCard>
+                </GlassCard>
+              </SpotlightCard>
             </motion.div>
           ))}
         </div>
@@ -48,9 +49,9 @@ export function ProblemSection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.6 }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue/3 to-transparent rounded-2xl" />
-          <div className="relative bg-blue/5 border border-blue/10 rounded-2xl p-10">
-            <p className="text-xl sm:text-2xl font-semibold text-blue-bright">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue/5 to-transparent rounded-2xl" />
+          <div className="relative glass border border-blue/10 rounded-2xl p-10">
+            <p className="text-xl sm:text-2xl font-semibold gradient-text-blue">
               Test the riskiest assumptions while they&apos;re still cheap to change.
             </p>
           </div>

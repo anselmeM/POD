@@ -32,7 +32,7 @@ export function TiltCard({
 
       if (glareRef.current && glareEnabled) {
         glareRef.current.style.opacity = "1";
-        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(37, 99, 235, 0.06), transparent 60%)`;
+        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(88, 166, 255, 0.08), transparent 60%)`;
       }
     },
     [tiltAmount, glareEnabled]

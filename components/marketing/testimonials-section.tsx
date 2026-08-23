@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
@@ -31,7 +31,7 @@ export function TestimonialsSection() {
 
   return (
     <section className="py-32 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gray-50/50" />
+      <div className="absolute inset-0 dot-grid opacity-8" />
       <div className="absolute inset-0 dot-grid opacity-8" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" ref={ref}>
@@ -59,7 +59,7 @@ export function TestimonialsSection() {
             >
               <div className="relative group h-full">
                 <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-blue/10 via-transparent to-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative bg-white border border-gray-200 rounded-2xl p-8 h-full flex flex-col shadow-sm">
+                <div className="relative glass rounded-2xl p-8 h-full flex flex-col">
                   {/* Quote */}
                   <div className="flex-1 mb-6">
                     <svg className="w-8 h-8 text-blue/15 mb-4" fill="currentColor" viewBox="0 0 24 24">

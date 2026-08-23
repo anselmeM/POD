@@ -1,0 +1,88 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+/** GET /api/experiments/[id] — get a single experiment with variants */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  try {
+    const experiment = await prisma.experiment.findUnique({
+      where: { id },
+      include: { variants: true },
+    });
+
+    if (!experiment) {
+      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: experiment });
+  } catch (e) {
+    console.error("Failed to fetch experiment:", e);
+    return NextResponse.json({ error: "Failed to fetch experiment" }, { status: 500 });
+  }
+}
+
+/** PATCH /api/experiments/[id] — update an experiment */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const body = await request.json();
+
+  try {
+    const existing = await prisma.experiment.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.status !== undefined) data.status = body.status;
+    if (body.budget !== undefined) data.budget = body.budget;
+    if (body.channel !== undefined) data.channel = JSON.stringify(body.channel);
+    if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
+    if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
+    if (body.traffic !== undefined) data.traffic = body.traffic;
+    if (body.conversions !== undefined) data.conversions = body.conversions;
+    if (body.conversionRate !== undefined) data.conversionRate = body.conversionRate;
+    if (body.highIntentActions !== undefined) data.highIntentActions = body.highIntentActions;
+    if (body.highIntentRate !== undefined) data.highIntentRate = body.highIntentRate;
+    if (body.costPerAction !== undefined) data.costPerAction = body.costPerAction;
+
+    const experiment = await prisma.experiment.update({
+      where: { id },
+      data,
+      include: { variants: true },
+    });
+
+    return NextResponse.json({ data: experiment });
+  } catch (e) {
+    console.error("Failed to update experiment:", e);
+    return NextResponse.json({ error: "Failed to update experiment" }, { status: 500 });
+  }
+}
+
+/** DELETE /api/experiments/[id] — delete an experiment */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  try {
+    const existing = await prisma.experiment.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    }
+
+    await prisma.experiment.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("Failed to delete experiment:", e);
+    return NextResponse.json({ error: "Failed to delete experiment" }, { status: 500 });
+  }
+}

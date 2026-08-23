@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Core models
+// ---------------------------------------------------------------------------
+
+model Project {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String   @default("")
+  status      String   @default("active")
+  podScore    Int      @default(0)
+  confidence  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  experiments   Experiment[]
+  landingPages  LandingPage[]
+}
+
+model Experiment {
+  id               String   @id
+  projectId        String
+  name             String
+  status           String   @default("draft")
+  budget           Int      @default(0)
+  channel          String   @default("[]") // JSON array stored as string for SQLite
+  startDate        DateTime?
+  endDate          DateTime?
+  traffic          Int      @default(0)
+  conversions      Int      @default(0)
+  conversionRate   Float    @default(0)
+  highIntentActions Int     @default(0)
+  highIntentRate   Float    @default(0)
+  costPerAction    Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  variants      Variant[]
+  leads         Lead[]
+  signalEvents  SignalEvent[]
+  insights      AIInsight[]
+  landingPages  LandingPage[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model Variant {
+  id               String   @id
+  experimentId     String
+  name             String
+  headline         String
+  subheadline      String   @default("")
+  positioning      String   @default("")
+  cta              String   @default("")
+  trafficAllocation Int     @default(0)
+  visitors         Int      @default(0)
+  conversions      Int      @default(0)
+  conversionRate   Float    @default(0)
+  highIntent       Int      @default(0)
+  costPerAction    Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId])
+}
+
+model Lead {
+  id                String   @id
+  experimentId      String
+  variantId         String
+  name              String
+  email             String
+  company           String   @default("")
+  role              String   @default("")
+  source            String   @default("")
+  intentScore       Int      @default(0)
+  pricingInteraction Boolean @default(false)
+  status            String   @default("new")
+  events            String   @default("[]") // JSON array stored as string for SQLite
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId])
+  @@index([variantId])
+  @@index([status])
+}
+
+model SignalEvent {
+  id          String   @id
+  experimentId String
+  visitorId   String
+  eventType   String
+  variantId   String   @default("")
+  metadata    String   @default("{}") // JSON object stored as string for SQLite
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+model AIInsight {
+  id             String   @id
+  experimentId   String
+  type           String   // demand | audience | variant | pricing | recommendation
+  title          String
+  content        String
+  confidence     Int      @default(0)
+  recommendation String   @default("")
+  evidence       String   @default("[]") // JSON array stored as string for SQLite
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId])
+  @@index([type])
+}
+
+model LandingPage {
+  id             String   @id @default(cuid())
+  projectId      String
+  name           String
+  template       String   @default("hero")
+  headline       String
+  subheadline    String
+  cta            String
+  positioning    String   @default("")
+  status         String   @default("draft")
+  experimentId   String?
+  slug           String   @unique
+  visitors       Int      @default(0)
+  conversions    Int      @default(0)
+  conversionRate Float    @default(0)
+  bounceRate     Float    @default(0)
+  avgTimeOnPage  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  experiment Experiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([experimentId])
+  @@index([status])
+  @@index([slug])
+}
+

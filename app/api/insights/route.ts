@@ -1,0 +1,24 @@
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const experimentId = searchParams.get("experimentId");
+    const type = searchParams.get("type");
+
+    const where: Record<string, string> = {};
+    if (experimentId) where.experimentId = experimentId;
+    if (type) where.type = type;
+
+    const insights = await prisma.aIInsight.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(insights);
+  } catch (error) {
+    console.error("Error fetching insights:", error);
+    return NextResponse.json({ error: "Failed to fetch insights" }, { status: 500 });
+  }
+}

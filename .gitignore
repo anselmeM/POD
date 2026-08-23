@@ -1,0 +1,35 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+/lib/generated/prisma
+
+# Next.js
+.next/
+out/
+
+# Database
+*.db
+*.db-journal
+
+# Logs
+*.log
+
+# Build
+build-output.log
+build_check.log
+build_expansion.log
+build_expansion2.log
+build_final.log
+build_output.log
+dev_output.log
+npm_install.log
+
+# IDE / Agent
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
+
+# TypeScript
+next-env.d.ts

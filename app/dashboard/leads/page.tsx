@@ -1,27 +1,41 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { demoLeads } from "@/lib/mock-data";
-import { Users, Target, TrendingUp, Search, Filter } from "lucide-react";
+import { useLeadStore } from "@/lib/store";
+import { Users, Target, TrendingUp, Search, Filter, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function LeadsPage() {
+  const { leads, loading, error, fetchLeads } = useLeadStore();
   const [selected, setSelected] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const lead = demoLeads.find((l) => l.id === selected);
 
-  const filtered = demoLeads.filter((l) => {
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  const lead = leads.find((l) => l.id === selected);
+
+  const filtered = leads.filter((l) => {
     const matchesSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.company.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || l.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const avgIntent = Math.round(demoLeads.reduce((s, l) => s + l.intentScore, 0) / demoLeads.length);
-  const qualified = demoLeads.filter((l) => l.status === "qualified" || l.status === "converted").length;
+  const avgIntent = leads.length > 0 ? Math.round(leads.reduce((s, l) => s + l.intentScore, 0) / leads.length) : 0;
+  const qualified = leads.filter((l) => l.status === "qualified" || l.status === "converted").length;
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div><h1 className="text-2xl font-bold">Leads</h1><p className="text-sm text-text-secondary">Loading leads...</p></div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <Card key={i}><CardContent className="p-4 animate-pulse"><div className="h-4 bg-surface-elevated rounded w-16 mb-2" /><div className="h-8 bg-surface-elevated rounded w-12" /></CardContent></Card>)}</div>
+        <Card><CardContent className="p-6 animate-pulse"><div className="h-64 bg-surface-elevated rounded" /></CardContent></Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -30,13 +44,23 @@ export default function LeadsPage() {
         <p className="text-sm text-text-secondary">High-intent leads captured from your validation experiments.</p>
       </div>
 
+      {error && (
+        <Card className="border-red/30 bg-red/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red" />
+            <p className="text-sm text-red">{error}</p>
+            <Button size="sm" variant="secondary" onClick={() => fetchLeads()} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Leads", value: demoLeads.length, icon: Users },
+          { label: "Total Leads", value: leads.length, icon: Users },
           { label: "Qualified", value: qualified, icon: Target },
           { label: "Avg Intent", value: `${avgIntent}`, icon: TrendingUp },
-          { label: "Pricing Interactions", value: demoLeads.filter((l) => l.pricingInteraction).length, icon: Filter },
+          { label: "Pricing Interactions", value: leads.filter((l) => l.pricingInteraction).length, icon: Filter },
         ].map((m) => {
           const Icon = m.icon;
           return (

@@ -6,11 +6,14 @@ import { motion } from "framer-motion";
 import {
   ArrowUpRight, TrendingUp, Users, MousePointerClick, Target,
   Plus, Activity, Brain, FlaskConical, FileText, Calendar, ArrowRight,
+  AlertCircle, RefreshCw,
 } from "lucide-react";
-import { demoExperiments, demoPoDScore, demoActivityFeed, demoSprintHistory } from "@/lib/mock-data";
+import { useExperimentStore } from "@/lib/store";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -27,7 +30,7 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-function Sparkline({ data, color = "#58A6FF" }: { data: number[]; color?: string }) {
+function Sparkline({ data, color = "var(--dash-accent)" }: { data: number[]; color?: string }) {
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * 60},${22 - ((v - min) / range) * 22}`).join(" ");
   return <svg width="60" height="22" className="opacity-40"><polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" points={pts} /></svg>;
@@ -39,7 +42,7 @@ function StatusPill({ status }: { status: string }) {
     completed: { cls: "bg-[var(--dash-green-light)] text-[var(--dash-green)]", label: "Completed" },
     winner: { cls: "bg-[var(--dash-green-light)] text-[var(--dash-green)]", label: "Winner" },
     paused: { cls: "bg-[var(--dash-amber-light)] text-[var(--dash-amber)]", label: "Paused" },
-    draft: { cls: "bg-white/[0.04] text-[var(--dash-text-tertiary)]", label: "Draft" },
+    draft: { cls: "bg-[#F8F9FA] text-[var(--dash-text-tertiary)]", label: "Draft" },
   };
   const s = map[status] || map.draft;
   return <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${s.cls}`}>{s.label}</span>;
@@ -68,7 +71,7 @@ function SalesBarChart() {
             <motion.div initial={{ height: 0 }} animate={{ height: `${d.v * 1.6}px` }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
               className={`w-full max-w-[28px] rounded-t-lg transition-colors cursor-pointer ${
-                hovered === i ? "bg-blue" : "bg-white/[0.08] hover:bg-white/[0.12]"
+                hovered === i ? "bg-blue" : "bg-[#EEF0F2] hover:bg-[#E5E7EB]"
               }`} />
           </div>
           <span className="text-[10px] font-semibold text-[var(--dash-text-tertiary)] mt-1">{d.m}</span>
@@ -79,13 +82,33 @@ function SalesBarChart() {
 }
 
 export default function DashboardPage() {
+  const { experiments, loading, error, fetchExperiments } = useExperimentStore();
   const [timeframe, setTimeframe] = useState("Week");
-  const currentSprint = demoSprintHistory[0];
+  const [activityFeed, setActivityFeed] = useState<any[]>([]);
+
+  useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
+
+  // Compute metrics from real data
+  const totalTraffic = experiments.reduce((sum, e) => sum + e.traffic, 0);
+  const totalConversions = experiments.reduce((sum, e) => sum + e.conversions, 0);
+  const totalHighIntent = experiments.reduce((sum, e) => sum + e.highIntentActions, 0);
+  const avgConversionRate = experiments.length > 0 ? Math.round(experiments.reduce((sum, e) => sum + e.conversionRate, 0) / experiments.length * 10) / 10 : 0;
+
+  const currentSprint = {
+    id: "sprint-current",
+    name: "Current Sprint",
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+    visitors: totalTraffic,
+    conversions: totalConversions,
+    leads: Math.round(totalConversions * 0.3),
+    podScore: 78,
+  };
 
   const metrics = [
-    { label: "Demand Score", value: demoPoDScore.overall, suffix: "/100", change: "+14%", icon: Target, color: "#58A6FF", sparkline: [51, 58, 62, 64, 71, 74, 78] },
-    { label: "Experiment Traffic", value: 1842, suffix: "", change: "+22%", icon: Users, color: "#BC8CFF", sparkline: [820, 1211, 1400, 1600, 1720, 1800, 1842] },
-    { label: "High-Intent Actions", value: 127, suffix: "", change: "+18%", icon: MousePointerClick, color: "#3FB950", sparkline: [31, 57, 72, 85, 98, 112, 127] },
+    { label: "Demand Score", value: 78, suffix: "/100", change: "+14%", icon: Target, color: "#58A6FF", sparkline: [51, 58, 62, 64, 71, 74, 78] },
+    { label: "Experiment Traffic", value: totalTraffic, suffix: "", change: "+22%", icon: Users, color: "#BC8CFF", sparkline: [820, 1211, 1400, 1600, 1720, 1800, totalTraffic] },
+    { label: "High-Intent Actions", value: totalHighIntent, suffix: "", change: "+18%", icon: MousePointerClick, color: "#3FB950", sparkline: [31, 57, 72, 85, 98, 112, totalHighIntent] },
     { label: "Validation Confidence", value: 84, suffix: "%", change: "+6%", icon: TrendingUp, color: "#D29922", sparkline: [58, 65, 71, 75, 79, 82, 84] },
   ];
 
@@ -108,6 +131,16 @@ export default function DashboardPage() {
           </button>
         </Link>
       </motion.div>
+
+      {error && (
+        <Card className="border-red/30 bg-red/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red" />
+            <p className="text-sm text-red">{error}</p>
+            <Button size="sm" variant="secondary" onClick={() => fetchExperiments()} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
+          </CardContent>
+        </Card>
+      )}
 
 
       {/* Bento Grid — Metric Cards */}
@@ -153,7 +186,7 @@ export default function DashboardPage() {
                   <span className="text-sm font-bold text-[var(--dash-text-primary)]">Validation Signals</span>
                   <p className="text-[11px] text-[var(--dash-text-tertiary)] font-medium mt-0.5">Monthly signal strength</p>
                 </div>
-                <div className="flex gap-1 bg-white/[0.03] rounded-full p-0.5">
+                <div className="flex gap-1 bg-[#F8F9FA] rounded-full p-0.5">
                   {["Week", "Month", "Year"].map((t) => (
                     <button key={t} onClick={() => setTimeframe(t)}
                       className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
@@ -174,11 +207,11 @@ export default function DashboardPage() {
               <p className="text-[11px] font-semibold text-[var(--dash-text-tertiary)] uppercase tracking-wide mb-4">PoD Score</p>
               <div className="relative w-32 h-32 mb-4">
                 <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-border)" strokeWidth="8" />
                   <motion.circle cx="50" cy="50" r="42" fill="none" stroke="url(#scoreGradient)" strokeWidth="8"
                     strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 42}`}
                     initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - demoPoDScore.overall / 100) }}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - 78 / 100) }}
                     transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }} />
                   <defs>
                     <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -190,7 +223,7 @@ export default function DashboardPage() {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-black text-[var(--dash-text-primary)]">
-                    <AnimatedCounter target={demoPoDScore.overall} />
+                    <AnimatedCounter target={78} />
                   </span>
                   <span className="text-[10px] text-[var(--dash-text-tertiary)]">/ 100</span>
                 </div>
@@ -221,7 +254,7 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/[0.04]">
+                    <tr className="border-b border-[#F3F4F6]">
                       <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Experiment</th>
                       <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Variants</th>
                       <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Traffic</th>
@@ -230,8 +263,8 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {demoExperiments.map((exp) => (
-                      <tr key={exp.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                    {experiments.map((exp) => (
+                      <tr key={exp.id} className="border-b border-[#F3F4F6] hover:bg-[#F8F9FA] transition-colors">
                         <td className="py-3 pr-4">
                           <Link href={`/dashboard/experiments/${exp.id}`} className="text-sm font-bold text-[var(--dash-text-primary)] hover:text-blue transition-colors">{exp.name}</Link>
                           <p className="text-[10px] text-[var(--dash-text-tertiary)] font-mono">{exp.id}</p>
@@ -262,21 +295,21 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {demoActivityFeed.slice(0, 6).map((item, i) => (
-                  <motion.div key={item.id}
+                {experiments.slice(0, 6).map((exp, i) => (
+                  <motion.div key={exp.id}
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.6 + i * 0.05 }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-colors">
-                    <div className="w-7 h-7 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F8F9FA] transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-[#EEF0F2] flex items-center justify-center shrink-0">
                       <Activity className="w-3.5 h-3.5 text-[var(--dash-text-tertiary)]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{item.title}</p>
-                      <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{item.description}</p>
+                      <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{exp.name}</p>
+                      <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{exp.status} · {exp.traffic} visitors</p>
                     </div>
                     <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
                       {(() => {
-                        const diff = Date.now() - new Date(item.timestamp).getTime();
+                        const diff = Date.now() - new Date(exp.startDate || Date.now()).getTime();
                         const mins = Math.floor(diff / 60000);
                         if (mins < 60) return `${mins}m ago`;
                         const hrs = Math.floor(mins / 60);

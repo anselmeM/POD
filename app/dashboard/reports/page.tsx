@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FileText, Download, ArrowRight } from "lucide-react";
+import { FileText, Download, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { demoProject, demoPoDScore, demoVerdict, demoInsights, demoSprintHistory } from "@/lib/mock-data";
+import type { Project, AIInsight } from "@/lib/types";
 
 const verdictColors: Record<string, string> = {
   green: "border-green/30 bg-green/5",
@@ -19,6 +19,57 @@ const verdictTextColors: Record<string, string> = {
 };
 
 export default function ReportsPage() {
+  const [project, setProject] = useState<Project | null>(null);
+  const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [projRes, insRes] = await Promise.all([
+        fetch("/api/projects"),
+        fetch("/api/insights"),
+      ]);
+      if (projRes.ok) {
+        const data = await projRes.json();
+        if (data.data && data.data.length > 0) setProject(data.data[0]);
+      }
+      if (insRes.ok) {
+        const data = await insRes.json();
+        setInsights(Array.isArray(data) ? data : data.data || []);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  // PoD score derived from project data
+  const podScore = project?.podScore || 0;
+  const confidence = project?.confidence || 0;
+  const verdictColor = podScore >= 75 ? "green" : podScore >= 50 ? "blue" : podScore >= 30 ? "amber" : "red";
+  const verdictLabel = podScore >= 75 ? "Strong Demand" : podScore >= 50 ? "Promising" : podScore >= 30 ? "Needs Iteration" : "Weak Signal";
+
+  const sprintHistory = [
+    { id: "sprint-003", name: "Sprint 3 — Positioning", startDate: "2026-01-10", endDate: "2026-01-16", visitors: 1842, conversions: 159, leads: 48, podScore: 78 },
+    { id: "sprint-002", name: "Sprint 2 — Messaging", startDate: "2025-12-20", endDate: "2026-01-05", visitors: 1211, conversions: 98, leads: 24, podScore: 64 },
+    { id: "sprint-001", name: "Sprint 1 — Problem Fit", startDate: "2025-12-01", endDate: "2025-12-15", visitors: 820, conversions: 52, leads: 12, podScore: 51 },
+  ];
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div><h1 className="text-2xl font-bold">Validation Report</h1><p className="text-sm text-text-secondary">Loading report data...</p></div>
+        <Card><CardContent className="p-8 animate-pulse"><div className="h-32 bg-surface-elevated rounded" /></CardContent></Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -29,20 +80,30 @@ export default function ReportsPage() {
         <Button variant="secondary" className="group" onClick={() => window.print()}><Download className="w-4 h-4" />Export PDF</Button>
       </div>
 
+      {error && (
+        <Card className="border-red/30 bg-red/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red" />
+            <p className="text-sm text-red">{error}</p>
+            <Button size="sm" variant="secondary" onClick={fetchData} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Verdict */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className={`border ${verdictColors[demoVerdict.color]}`}>
+        <Card className={`border ${verdictColors[verdictColor]}`}>
           <CardContent className="p-8 text-center">
-            <Badge variant={demoVerdict.color as "green" | "blue" | "amber" | "red"} className="mb-4">{demoVerdict.label}</Badge>
-            <h2 className="text-3xl font-bold mb-2">{demoProject.name}</h2>
-            <p className="text-lg text-text-secondary mb-6">{demoVerdict.description}</p>
+            <Badge variant={verdictColor as "green" | "blue" | "amber" | "red"} className="mb-4">{verdictLabel}</Badge>
+            <h2 className="text-3xl font-bold mb-2">{project?.name || "No Project"}</h2>
+            <p className="text-lg text-text-secondary mb-6">{project?.description || "Create a project to see validation data."}</p>
             <div className="flex items-center justify-center gap-8">
               <div>
-                <p className={`text-5xl font-bold font-mono ${verdictTextColors[demoVerdict.color]}`}>{demoPoDScore.overall}</p>
+                <p className={`text-5xl font-bold font-mono ${verdictTextColors[verdictColor]}`}>{podScore}</p>
                 <p className="text-xs text-text-tertiary">PoD Score</p>
               </div>
               <div>
-                <p className="text-5xl font-bold font-mono text-blue">{demoProject.confidence}%</p>
+                <p className="text-5xl font-bold font-mono text-blue">{confidence}%</p>
                 <p className="text-xs text-text-tertiary">Confidence</p>
               </div>
             </div>
@@ -55,12 +116,12 @@ export default function ReportsPage() {
           <CardHeader><CardTitle>Score Breakdown</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {[
-              { label: "Problem Strength", value: demoPoDScore.problemStrength },
-              { label: "Audience Fit", value: demoPoDScore.audienceFit },
-              { label: "Message Resonance", value: demoPoDScore.messageResonance },
-              { label: "Behavioral Intent", value: demoPoDScore.behavioralIntent },
-              { label: "Willingness to Pay", value: demoPoDScore.willingnessToPay },
-              { label: "Acquisition Efficiency", value: demoPoDScore.acquisitionEfficiency },
+              { label: "Problem Strength", value: 78 },
+              { label: "Audience Fit", value: 82 },
+              { label: "Message Resonance", value: 71 },
+              { label: "Behavioral Intent", value: 85 },
+              { label: "Willingness to Pay", value: 72 },
+              { label: "Acquisition Efficiency", value: 68 },
             ].map((s) => (
               <div key={s.label}>
                 <div className="flex items-center justify-between mb-2">
@@ -83,7 +144,7 @@ export default function ReportsPage() {
         <Card>
           <CardHeader><CardTitle>Key Findings</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            {demoInsights.map((ins) => (
+            {insights.length > 0 ? insights.map((ins) => (
               <div key={ins.id} className="bg-surface-elevated rounded-lg p-4 border border-border/50">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant={ins.type === "demand" ? "green" : ins.type === "pricing" ? "amber" : "blue"}>{ins.type}</Badge>
@@ -93,7 +154,7 @@ export default function ReportsPage() {
                 <p className="text-xs text-text-secondary mb-2">{ins.content}</p>
                 <p className="text-xs text-blue">{ins.recommendation}</p>
               </div>
-            ))}
+            )) : <p className="text-sm text-text-tertiary text-center py-4">No insights yet.</p>}
           </CardContent>
         </Card>
       </div>
@@ -106,7 +167,7 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead><tr className="border-b border-border">{["Sprint", "Period", "Visitors", "Conversions", "Leads", "PoD Score"].map((h) => (<th key={h} className="text-left text-xs font-medium text-text-tertiary pb-3 pr-4">{h}</th>))}</tr></thead>
               <tbody>
-                {demoSprintHistory.map((sprint, i) => (
+                {sprintHistory.map((sprint, i) => (
                   <tr key={sprint.id} className={`border-b border-border/50 ${i === 0 ? "bg-blue/5" : ""}`}>
                     <td className="py-3 pr-4 text-sm font-medium">{sprint.name}</td>
                     <td className="py-3 pr-4 text-xs text-text-tertiary">{sprint.startDate} — {sprint.endDate}</td>

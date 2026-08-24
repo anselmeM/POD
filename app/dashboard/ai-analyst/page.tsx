@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Send, CheckCircle2, ArrowRight } from "lucide-react";
+import { Brain, Send, CheckCircle2, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { demoInsights, demoPoDScore, demoConversations, demoAnalysisTemplates } from "@/lib/mock-data";
+import type { AIInsight } from "@/lib/types";
 
 const suggestedQuestions = [
   "Is there real demand?",
@@ -17,6 +17,9 @@ const suggestedQuestions = [
 ];
 
 export default function AIAnalystPage() {
+  const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState([
     { role: "user" as const, content: "Is there real demand for this product?" },
     {
@@ -25,6 +28,39 @@ export default function AIAnalystPage() {
     },
   ]);
   const [input, setInput] = useState("");
+
+  const fetchInsights = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/insights");
+      if (res.ok) {
+        const data = await res.json();
+        setInsights(Array.isArray(data) ? data : data.data || []);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchInsights(); }, []);
+
+  const conversations = [
+    { id: "conv-001", title: "Initial demand assessment", lastMessage: "The data suggests moderate demand...", timestamp: "2026-01-15T14:30:00Z", messageCount: 8 },
+    { id: "conv-002", title: "Audience segment comparison", lastMessage: "Operations managers show 3.2x higher...", timestamp: "2026-01-15T10:15:00Z", messageCount: 5 },
+    { id: "conv-003", title: "Pricing strategy analysis", lastMessage: "The $49-99 range appears viable...", timestamp: "2026-01-14T11:45:00Z", messageCount: 6 },
+    { id: "conv-004", title: "Variant performance deep-dive", lastMessage: "Variant B outperforms on every metric...", timestamp: "2026-01-13T09:30:00Z", messageCount: 4 },
+  ];
+
+  const analysisTemplates = [
+    { id: "tpl-001", name: "Demand Verdict", description: "Get an overall demand assessment", prompt: "Is there real demand for this product? Give me a verdict with evidence." },
+    { id: "tpl-002", name: "Audience Analysis", description: "Compare audience segments", prompt: "Which audience segment shows the strongest demand signals?" },
+    { id: "tpl-003", name: "Pricing Insights", description: "Analyze willingness-to-pay", prompt: "What does the pricing data tell us about willingness to pay?" },
+    { id: "tpl-004", name: "Next Experiment", description: "Recommendations for what to test", prompt: "Based on current data, what should we test next?" },
+    { id: "tpl-005", name: "Variant Comparison", description: "Deep comparison of variants", prompt: "Compare the variants and recommend which to scale." },
+  ];
 
   return (
     <div className="space-y-6">
@@ -43,7 +79,7 @@ export default function AIAnalystPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base">AI Analyst</CardTitle>
-                  <Badge variant="green">Confidence: {demoPoDScore.overall}%</Badge>
+                  <Badge variant="green">Confidence: 78%</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -91,7 +127,7 @@ export default function AIAnalystPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Conversation History</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {demoConversations.map((conv) => (
+              {conversations.map((conv) => (
                 <button key={conv.id} className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-elevated transition-colors">
                   <p className="text-xs font-medium truncate">{conv.title}</p>
                   <p className="text-[10px] text-text-tertiary">{conv.messageCount} messages · {conv.timestamp}</p>
@@ -104,7 +140,7 @@ export default function AIAnalystPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Analysis Templates</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {demoAnalysisTemplates.map((tmpl) => (
+              {analysisTemplates.map((tmpl) => (
                 <button key={tmpl.id} onClick={() => setInput(tmpl.prompt)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-elevated transition-colors">
                   <p className="text-xs font-medium">{tmpl.name}</p>
                   <p className="text-[10px] text-text-tertiary line-clamp-1">{tmpl.description}</p>
@@ -127,12 +163,12 @@ export default function AIAnalystPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Key Insights</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {demoInsights.slice(0, 3).map((ins) => (
+              {insights.length > 0 ? insights.slice(0, 3).map((ins) => (
                 <div key={ins.id} className="text-xs">
                   <Badge variant={ins.type === "demand" ? "green" : "blue"} className="mb-1">{ins.type}</Badge>
                   <p className="font-medium">{ins.title}</p>
                 </div>
-              ))}
+              )) : <p className="text-xs text-text-tertiary text-center py-2">No insights yet.</p>}
             </CardContent>
           </Card>
 

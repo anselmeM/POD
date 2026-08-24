@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { demoFunnel, demoPoDScore, demoSignalEvents } from "@/lib/mock-data";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import type { FunnelStage } from "@/lib/types";
 
 const strengthColors: Record<string, string> = {
   none: "var(--text-tertiary)", weak: "var(--red)", moderate: "var(--amber)", strong: "var(--blue)", very_strong: "var(--green)",
@@ -16,7 +17,47 @@ const strengthLabels: Record<string, string> = {
 };
 
 export default function SignalsPage() {
-  const maxCount = Math.max(...demoFunnel.map((s) => s.count));
+  const [funnel, setFunnel] = useState<FunnelStage[]>([]);
+  const [signalEvents, setSignalEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [funnelRes, signalsRes] = await Promise.all([
+        fetch("/api/funnel"),
+        fetch("/api/signals"),
+      ]);
+      if (funnelRes.ok) setFunnel(await funnelRes.json());
+      if (signalsRes.ok) {
+        const data = await signalsRes.json();
+        setSignalEvents(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const maxCount = funnel.length > 0 ? Math.max(...funnel.map((s) => s.count)) : 1;
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div><h1 className="text-2xl font-bold">Behavioral Signals</h1><p className="text-sm text-text-secondary">Loading signal data...</p></div>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2"><CardContent className="p-6 animate-pulse"><div className="h-64 bg-surface-elevated rounded" /></CardContent></Card>
+          <Card><CardContent className="p-6 animate-pulse"><div className="h-64 bg-surface-elevated rounded" /></CardContent></Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -24,12 +65,22 @@ export default function SignalsPage() {
         <p className="text-sm text-text-secondary">Track how visitors progress through your validation funnel.</p>
       </div>
 
+      {error && (
+        <Card className="border-red/30 bg-red/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red" />
+            <p className="text-sm text-red">{error}</p>
+            <Button size="sm" variant="secondary" onClick={fetchData} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader><CardTitle>Conversion Funnel</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {demoFunnel.map((stage, i) => (
+              {funnel.length > 0 ? funnel.map((stage, i) => (
                 <motion.div key={stage.label} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium">{stage.label}</span>
@@ -43,7 +94,7 @@ export default function SignalsPage() {
                     <motion.div className="h-full rounded-full" style={{ backgroundColor: strengthColors[stage.signalStrength] }} initial={{ width: 0 }} animate={{ width: `${(stage.count / maxCount) * 100}%` }} transition={{ delay: 0.2 + i * 0.06, duration: 0.6 }} />
                   </div>
                 </motion.div>
-              ))}
+              )) : <p className="text-sm text-text-tertiary text-center py-8">No funnel data yet. Run an experiment to see signals.</p>}
             </CardContent>
           </Card>
         </div>
@@ -80,12 +131,12 @@ export default function SignalsPage() {
             <CardHeader><CardTitle>PoD Score Breakdown</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: "Problem Strength", v: demoPoDScore.problemStrength },
-                { label: "Audience Fit", v: demoPoDScore.audienceFit },
-                { label: "Message Resonance", v: demoPoDScore.messageResonance },
-                { label: "Behavioral Intent", v: demoPoDScore.behavioralIntent },
-                { label: "Willingness to Pay", v: demoPoDScore.willingnessToPay },
-                { label: "Acquisition Efficiency", v: demoPoDScore.acquisitionEfficiency },
+                { label: "Problem Strength", v: 78 },
+                { label: "Audience Fit", v: 82 },
+                { label: "Message Resonance", v: 71 },
+                { label: "Behavioral Intent", v: 85 },
+                { label: "Willingness to Pay", v: 72 },
+                { label: "Acquisition Efficiency", v: 68 },
               ].map((s) => (
                 <div key={s.label}>
                   <div className="flex items-center justify-between mb-1">
@@ -106,22 +157,26 @@ export default function SignalsPage() {
       <Card>
         <CardHeader><CardTitle>Recent Signal Events</CardTitle></CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead><tr className="border-b border-border">{["Event", "Type", "Visitor", "Timestamp", "Value"].map((h) => (<th key={h} className="text-left text-xs font-medium text-text-tertiary pb-3 pr-4">{h}</th>))}</tr></thead>
-              <tbody>
-                {demoSignalEvents.slice(0, 8).map((evt) => (
-                  <tr key={evt.id} className="border-b border-border/50 hover:bg-surface-elevated/50 transition-colors">
-                    <td className="py-2.5 pr-4 text-sm">{evt.eventType}</td>
-                    <td className="py-2.5 pr-4"><Badge variant="default">{evt.eventType}</Badge></td>
-                    <td className="py-2.5 pr-4 text-xs font-mono text-text-tertiary">{evt.visitorId}</td>
-                    <td className="py-2.5 pr-4 text-xs text-text-tertiary">{evt.timestamp}</td>
-                    <td className="py-2.5 pr-4 text-sm">{evt.metadata}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {signalEvents.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead><tr className="border-b border-border">{["Event", "Type", "Visitor", "Timestamp", "Value"].map((h) => (<th key={h} className="text-left text-xs font-medium text-text-tertiary pb-3 pr-4">{h}</th>))}</tr></thead>
+                <tbody>
+                  {signalEvents.slice(0, 8).map((evt: any) => (
+                    <tr key={evt.id} className="border-b border-border/50 hover:bg-surface-elevated/50 transition-colors">
+                      <td className="py-2.5 pr-4 text-sm">{evt.eventType}</td>
+                      <td className="py-2.5 pr-4"><Badge variant="default">{evt.eventType}</Badge></td>
+                      <td className="py-2.5 pr-4 text-xs font-mono text-text-tertiary">{evt.visitorId}</td>
+                      <td className="py-2.5 pr-4 text-xs text-text-tertiary">{evt.timestamp}</td>
+                      <td className="py-2.5 pr-4 text-sm">{evt.metadata}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-text-tertiary text-center py-8">No signal events yet.</p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -88,11 +88,11 @@ export function CommandPalette() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
+        className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] bg-[#F8F9FA] hover:bg-[#EEF0F2] border border-[#E5E7EB] hover:border-[#D1D5DB] transition-all duration-200"
       >
         <Command className="w-3 h-3" />
         <span>Search...</span>
-        <kbd className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-white/[0.04] border border-white/[0.06] font-mono">⌘K</kbd>
+        <kbd className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-white border border-[#E5E7EB] font-mono">⌘K</kbd>
       </button>
 
       <AnimatePresence>
@@ -112,10 +112,10 @@ export function CommandPalette() {
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             >
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-[#F3F4F6]">
                 <Search className="w-5 h-5 text-[var(--dash-text-tertiary)]" />
                 <input ref={inputRef} type="text" placeholder="Search pages, actions..." value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} className="flex-1 bg-transparent text-sm text-[var(--dash-text-primary)] placeholder:text-[var(--dash-text-tertiary)] outline-none" />
-                <kbd className="px-2 py-0.5 rounded text-[10px] text-[var(--dash-text-tertiary)] bg-white/[0.04] border border-white/[0.06] font-mono">ESC</kbd>
+                <kbd className="px-2 py-0.5 rounded text-[10px] text-[var(--dash-text-tertiary)] bg-[#F8F9FA] border border-[#E5E7EB] font-mono">ESC</kbd>
               </div>
 
               <div className="max-h-80 overflow-y-auto py-2">
@@ -128,7 +128,7 @@ export function CommandPalette() {
                       return (
                         <button key={item.href} onClick={() => handleSelect(item.href)}
                           className={cn("w-full flex items-center gap-3 px-5 py-2.5 text-sm transition-colors",
-                            idx === selectedIndex ? "bg-[var(--dash-accent)]/10 text-[var(--dash-text-primary)]" : "text-[var(--dash-text-secondary)] hover:bg-white/[0.04]"
+                            idx === selectedIndex ? "bg-[var(--dash-accent)]/10 text-[var(--dash-text-primary)]" : "text-[var(--dash-text-secondary)] hover:bg-[#F8F9FA]"
                           )}>
                           <Icon className="w-4 h-4 shrink-0" />
                           <span className="flex-1 text-left">{item.label}</span>
@@ -141,10 +141,10 @@ export function CommandPalette() {
                 {filtered.length === 0 && <div className="px-5 py-8 text-center"><p className="text-sm text-[var(--dash-text-tertiary)]">No results found</p></div>}
               </div>
 
-              <div className="px-5 py-3 border-t border-white/[0.06] flex items-center gap-4 text-[10px] text-[var(--dash-text-tertiary)]">
-                <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono">↑↓</kbd> Navigate</span>
-                <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono">↵</kbd> Select</span>
-                <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono">esc</kbd> Close</span>
+              <div className="px-5 py-3 border-t border-[#F3F4F6] flex items-center gap-4 text-[10px] text-[var(--dash-text-tertiary)]">
+                <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded bg-[#F8F9FA] border border-[#E5E7EB] font-mono">↑↓</kbd> Navigate</span>
+                <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded bg-[#F8F9FA] border border-[#E5E7EB] font-mono">↵</kbd> Select</span>
+                <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded bg-[#F8F9FA] border border-[#E5E7EB] font-mono">esc</kbd> Close</span>
               </div>
             </motion.div>
           </motion.div>

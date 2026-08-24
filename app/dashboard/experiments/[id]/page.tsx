@@ -7,10 +7,9 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { demoFunnel, demoPoDScore } from "@/lib/mock-data";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
-import type { Experiment, AIInsight } from "@/lib/types";
+import type { Experiment, AIInsight, FunnelStage } from "@/lib/types";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { variant: "green" | "blue" | "amber" | "default"; label: string }> = {
@@ -44,6 +43,7 @@ export default function ExperimentDetailPage() {
 
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [funnel, setFunnel] = useState<FunnelStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,9 +51,10 @@ export default function ExperimentDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [expRes, insRes] = await Promise.all([
+      const [expRes, insRes, funnelRes] = await Promise.all([
         fetch(`/api/experiments/${id}`),
         fetch(`/api/insights?experimentId=${id}`),
+        fetch(`/api/funnel?experimentId=${id}`),
       ]);
 
       if (!expRes.ok) {
@@ -72,6 +73,11 @@ export default function ExperimentDetailPage() {
       if (insRes.ok) {
         const insJson = await insRes.json();
         setInsights(insJson.data || []);
+      }
+
+      if (funnelRes.ok) {
+        const funnelJson = await funnelRes.json();
+        setFunnel(funnelJson || []);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -101,57 +107,40 @@ export default function ExperimentDetailPage() {
         <Link href="/dashboard/experiments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
           <ArrowLeft className="w-4 h-4" />Back to Experiments
         </Link>
-        <Card>
-          <CardContent className="p-12 text-center">
-            <AlertCircle className="w-10 h-10 text-red mx-auto mb-4" />
-            <h2 className="text-lg font-bold mb-2">{error === "Experiment not found" ? "Experiment Not Found" : "Something Went Wrong"}</h2>
-            <p className="text-sm text-text-secondary mb-6">{error === "Experiment not found" ? `No experiment with ID "${id}" exists.` : error}</p>
-            <div className="flex gap-3 justify-center">
-              {error !== "Experiment not found" && (
-                <Button variant="outline" onClick={fetchData}><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Retry</Button>
-              )}
-              <Link href="/dashboard/experiments"><Button>Back to Experiments</Button></Link>
-            </div>
+        <Card className="border-red/30 bg-red/5">
+          <CardContent className="p-6 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red" />
+            <p className="text-sm text-red">{error || "Experiment not found"}</p>
+            <Button size="sm" variant="secondary" onClick={fetchData} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const variantData = experiment.variants.map((v) => ({ name: v.name.replace("Variant ", ""), conversion: v.conversionRate, highIntent: v.highIntent, visitors: v.visitors, cost: v.costPerAction }));
-  const winnerIdx = experiment.variants.reduce((maxI, v, i, arr) => v.conversionRate > arr[maxI].conversionRate ? i : maxI, 0);
+  const winnerIdx = experiment.variants.reduce((best, v, i, arr) => v.conversionRate > arr[best].conversionRate ? i : best, 0);
 
   return (
     <div className="space-y-8">
-      <Link href="/dashboard/experiments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
-        <ArrowLeft className="w-4 h-4" />Back to Experiments
-      </Link>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold">Experiment #{experiment.id}</h1>
-            <StatusBadge status={experiment.status} />
-          </div>
-          <p className="text-sm text-text-secondary">{experiment.name}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm">Pause</Button>
-          <Button variant="secondary" size="sm">Edit</Button>
-        </div>
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard/experiments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
+          <ArrowLeft className="w-4 h-4" />Back
+        </Link>
+        <h1 className="text-2xl font-bold">{experiment.name}</h1>
+        <StatusBadge status={experiment.status} />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Demand Score", value: `${demoPoDScore.overall}` },
-          { label: "Confidence", value: "84%" },
-          { label: "Visitors", value: experiment.traffic.toLocaleString() },
-          { label: "Conversion", value: `${experiment.conversionRate}%` },
-          { label: "High-Intent Rate", value: `${experiment.highIntentRate}%` },
+          { label: "Traffic", value: experiment.traffic.toLocaleString() },
+          { label: "Conversions", value: experiment.conversions.toString() },
+          { label: "CVR", value: `${experiment.conversionRate}%` },
+          { label: "High Intent", value: experiment.highIntentActions.toString() },
+          { label: "Cost/Action", value: `$${experiment.costPerAction.toFixed(2)}` },
         ].map((m) => (
           <Card key={m.label}>
             <CardContent className="p-4 text-center">
-              <p className="text-xs text-text-tertiary mb-1">{m.label}</p>
+              <p className="text-xs text-text-tertiary">{m.label}</p>
               <p className="text-2xl font-bold font-mono">{m.value}</p>
             </CardContent>
           </Card>
@@ -159,30 +148,31 @@ export default function ExperimentDetailPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Variant Comparison</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Variant Performance</CardTitle></CardHeader>
         <CardContent>
           {experiment.variants.length > 0 ? (
             <>
               <div className="h-64 mb-6">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={variantData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis dataKey="name" tick={{ fill: "#6B7280", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "#6B7280", fontSize: 12 }} />
-                    <Tooltip contentStyle={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", color: "#1F2937", borderRadius: 8, fontSize: 12 }} />
-                    <Bar dataKey="conversion" name="Conversion %" radius={[4, 4, 0, 0]}>
-                      {variantData.map((_, i) => (
-                        <Cell key={i} fill={i === winnerIdx ? "#35D399" : "#4C8DFF"} fillOpacity={i === winnerIdx ? 1 : 0.6} />
+                  <BarChart data={experiment.variants}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <XAxis dataKey="name" tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} />
+                    <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
+                    <Bar dataKey="conversionRate" radius={[4, 4, 0, 0]}>
+                      {experiment.variants.map((_, i) => (
+                        <Cell key={i} fill={i === winnerIdx ? "#3FB950" : "#58A6FF"} />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      {["Variant", "Visitors", "Conversion", "High Intent", "Cost/Action"].map((h) => (
+                      {["Variant", "Visitors", "CVR", "High Intent", "Cost/Action"].map((h) => (
                         <th key={h} className="text-left text-xs font-medium text-text-tertiary pb-3 pr-4">{h}</th>
                       ))}
                     </tr>
@@ -216,7 +206,7 @@ export default function ExperimentDetailPage() {
         <Card>
           <CardHeader><CardTitle>Behavioral Funnel</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {demoFunnel.map((stage, i) => {
+            {funnel.length > 0 ? funnel.map((stage, i) => {
               const colors = ["bg-text-tertiary", "bg-red", "bg-amber", "bg-blue", "bg-blue-bright", "bg-green", "bg-green"];
               return (
                 <motion.div key={stage.label} className="flex items-center gap-3" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
@@ -226,7 +216,7 @@ export default function ExperimentDetailPage() {
                   <span className="text-xs text-text-tertiary w-12 text-right">{stage.percentage}%</span>
                 </motion.div>
               );
-            })}
+            }) : <p className="text-sm text-text-tertiary text-center py-4">No funnel data yet.</p>}
           </CardContent>
         </Card>
 

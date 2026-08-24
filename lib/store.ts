@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { LandingPage, LandingPageStatus } from "./types";
+import type { Experiment, ExperimentStatus, LandingPage, LandingPageStatus, Lead, LeadStatus } from "./types";
 
 export interface WizardState {
   step: number;
@@ -164,5 +164,157 @@ export const useLandingPageStore = create<LandingPageStore>((set, get) => ({
 
   updateLandingPageStatus: async (id, status) => {
     await get().updateLandingPage(id, { status });
+  },
+}));
+
+// ============================================================
+// Experiment Store — backed by /api/experiments (Prisma DB)
+// ============================================================
+
+export interface ExperimentStore {
+  experiments: Experiment[];
+  loading: boolean;
+  error: string | null;
+  fetchExperiments: (projectId?: string) => Promise<void>;
+  addExperiment: (experiment: Omit<Experiment, "variants" | "traffic" | "conversions" | "conversionRate" | "highIntentActions" | "highIntentRate" | "costPerAction"> & { channel?: string[] }) => Promise<void>;
+  updateExperiment: (id: string, updates: Partial<Experiment>) => Promise<void>;
+  deleteExperiment: (id: string) => Promise<void>;
+  updateExperimentStatus: (id: string, status: ExperimentStatus) => Promise<void>;
+}
+
+export const useExperimentStore = create<ExperimentStore>((set, get) => ({
+  experiments: [],
+  loading: false,
+  error: null,
+
+  fetchExperiments: async (projectId) => {
+    set({ loading: true, error: null });
+    try {
+      const url = projectId ? `/api/experiments?projectId=${projectId}` : "/api/experiments";
+      const res = await fetch(url);
+      const json = await res.json();
+      set({ experiments: json.data, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  addExperiment: async (experiment) => {
+    const res = await fetch("/api/experiments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(experiment),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to create experiment");
+    }
+    const json = await res.json();
+    set((s) => ({ experiments: [json.data, ...s.experiments] }));
+  },
+
+  updateExperiment: async (id, updates) => {
+    const res = await fetch(`/api/experiments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to update experiment");
+    }
+    const json = await res.json();
+    set((s) => ({
+      experiments: s.experiments.map((exp) => (exp.id === json.data.id ? json.data : exp)),
+    }));
+  },
+
+  deleteExperiment: async (id) => {
+    const res = await fetch(`/api/experiments/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to delete experiment");
+    }
+    set((s) => ({ experiments: s.experiments.filter((exp) => exp.id !== id) }));
+  },
+
+  updateExperimentStatus: async (id, status) => {
+    await get().updateExperiment(id, { status });
+  },
+}));
+
+// ============================================================
+// Lead Store — backed by /api/leads (Prisma DB)
+// ============================================================
+
+export interface LeadStore {
+  leads: Lead[];
+  loading: boolean;
+  error: string | null;
+  fetchLeads: (experimentId?: string) => Promise<void>;
+  addLead: (lead: Omit<Lead, "createdAt">) => Promise<void>;
+  updateLead: (id: string, updates: Partial<Lead>) => Promise<void>;
+  deleteLead: (id: string) => Promise<void>;
+  updateLeadStatus: (id: string, status: LeadStatus) => Promise<void>;
+}
+
+export const useLeadStore = create<LeadStore>((set, get) => ({
+  leads: [],
+  loading: false,
+  error: null,
+
+  fetchLeads: async (experimentId) => {
+    set({ loading: true, error: null });
+    try {
+      const url = experimentId ? `/api/leads?experimentId=${experimentId}` : "/api/leads";
+      const res = await fetch(url);
+      const json = await res.json();
+      set({ leads: json.data, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  addLead: async (lead) => {
+    const res = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to create lead");
+    }
+    const json = await res.json();
+    set((s) => ({ leads: [json.data, ...s.leads] }));
+  },
+
+  updateLead: async (id, updates) => {
+    const res = await fetch(`/api/leads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to update lead");
+    }
+    const json = await res.json();
+    set((s) => ({
+      leads: s.leads.map((lead) => (lead.id === json.data.id ? json.data : lead)),
+    }));
+  },
+
+  deleteLead: async (id) => {
+    const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to delete lead");
+    }
+    set((s) => ({ leads: s.leads.filter((lead) => lead.id !== id) }));
+  },
+
+  updateLeadStatus: async (id, status) => {
+    await get().updateLead(id, { status });
   },
 }));

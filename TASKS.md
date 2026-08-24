@@ -63,25 +63,25 @@ All tracked improvements and feature tasks for the PoD Engine app. Check off eac
 - **File:** New `lib/stores/experiment-store.ts` (or add to `lib/store.ts`)
 - **Issue:** Only `useLandingPageStore` has real API integration. Experiments have no store.
 - **Fix:** Create `useExperimentStore` following the same pattern as `useLandingPageStore` — with `fetchExperiments`, `addExperiment`, `updateExperiment`, `deleteExperiment`, loading/error states.
-- [ ] **Status:** Pending
+- [x] **Status:** Done ✅ — `useExperimentStore` added to `lib/store.ts` with `fetchExperiments`, `addExperiment`, `updateExperiment`, `deleteExperiment`, `updateExperimentStatus`, loading/error states. Follows same pattern as `useLandingPageStore`.
 
 ### 28. Zustand Leads Store
 - **File:** New `lib/stores/lead-store.ts` (or add to `lib/store.ts`)
 - **Issue:** Leads have no store — page uses local state with mock data.
 - **Fix:** Create `useLeadStore` with `fetchLeads`, `updateLeadStatus`, loading/error states.
-- [ ] **Status:** Pending
+- [x] **Status:** Done ✅ — `useLeadStore` added to `lib/store.ts` with `fetchLeads`, `addLead`, `updateLead`, `deleteLead`, `updateLeadStatus`, loading/error states. Follows same pattern as `useLandingPageStore` and `useExperimentStore`.
 
 ### 29. Wire Experiments List Page to Real Data
 - **File:** `app/dashboard/experiments/page.tsx`
 - **Issue:** Page imports `demoExperiments` from `mock-data.ts`. All data is static.
 - **Fix:** Replace `demoExperiments` with `useExperimentStore` hook. Add loading skeleton, error state, and empty state. Keep existing filter/search UI.
-- [ ] **Status:** Pending
+- [x] **Status:** Done ✅ — Replaced `demoExperiments` with `useExperimentStore` hook. Added `useEffect` to fetch on mount, `ExperimentsSkeleton` loading state, error card with retry button. Filter/search UI preserved.
 
 ### 30. Wire Experiment Detail Page to Real Data
 - **File:** `app/dashboard/experiments/[id]/page.tsx`
 - **Issue:** Page uses `demoExperiments[0]` hardcoded — always shows the same experiment regardless of URL `id`.
 - **Fix:** Read `id` from `useParams()`, fetch experiment from store/API. Add loading state and 404 handling for invalid IDs.
-- [ ] **Status:** Pending
+- [x] **Status:** Done ✅ — Reads `id` from `useParams()`. Fetches experiment via `GET /api/experiments/{id}` and insights via `GET /api/insights?experimentId={id}` in parallel. Added `DetailSkeleton` loading state, 404 handling with "Experiment Not Found" card, generic error with retry button. Back-to-Experiments link added. Empty state for no variants. AI Insights now fetched from API instead of `demoInsights`.
 
 ### 31. Wire Leads Page to Real Data
 - **File:** `app/dashboard/leads/page.tsx`
@@ -256,9 +256,9 @@ All tracked improvements and feature tasks for the PoD Engine app. Check off eac
 | Phase | Tasks | Pending | Done |
 |-------|-------|---------|------|
 | UI/UX Fixes (#1–22) | 22 | 0 | 22 |
-| Phase 1: Core Data (#23–32) | 10 | 6 | 4 |
+| Phase 1: Core Data (#23–32) | 10 | 2 | 8 |
 | Phase 2: Auth (#33–36) | 4 | 4 | 0 |
 | Phase 3: Features (#37–44) | 8 | 8 | 0 |
 | Phase 4: Polish (#45–52) | 8 | 8 | 0 |
 | Tests (#53–55) | 3 | 3 | 0 |
-| **Total** | **55** | **29** | **26** |
+| **Total** | **55** | **25** | **30** |

@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Plus, FlaskConical, Search, Filter, BarChart3, Users, MousePointerClick, DollarSign } from "lucide-react";
+import { Plus, FlaskConical, Search, BarChart3, Users, MousePointerClick, AlertCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { demoExperiments } from "@/lib/mock-data";
+import { useExperimentStore } from "@/lib/store";
 
 const statusTabs = ["All", "Running", "Completed", "Paused", "Draft"] as const;
 
@@ -20,11 +20,44 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={s.variant}>{s.label}</Badge>;
 }
 
+function ExperimentsSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-pulse">
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-4 bg-surface-elevated rounded w-48" />
+                <div className="h-3 bg-surface-elevated rounded w-24" />
+                <div className="h-3 bg-surface-elevated rounded w-64 mt-2" />
+              </div>
+              <div className="flex items-center gap-6">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <div key={j} className="text-center space-y-1">
+                    <div className="h-3 bg-surface-elevated rounded w-12" />
+                    <div className="h-4 bg-surface-elevated rounded w-16" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function ExperimentsPage() {
+  const { experiments, loading, error, fetchExperiments } = useExperimentStore();
   const [activeTab, setActiveTab] = useState<string>("All");
   const [search, setSearch] = useState("");
 
-  const filtered = demoExperiments.filter((exp) => {
+  useEffect(() => {
+    fetchExperiments();
+  }, [fetchExperiments]);
+
+  const filtered = experiments.filter((exp) => {
     const matchesTab = activeTab === "All" || exp.status === activeTab.toLowerCase();
     const matchesSearch = exp.name.toLowerCase().includes(search.toLowerCase()) || exp.id.toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
@@ -41,27 +74,42 @@ export default function ExperimentsPage() {
         <Link href="/dashboard/experiments/new"><Button><Plus className="w-4 h-4" />New Experiment</Button></Link>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total Experiments", value: filtered.length, icon: FlaskConical },
-          { label: "Total Traffic", value: totalTraffic.toLocaleString(), icon: Users },
-          { label: "Total Conversions", value: totalConversions.toLocaleString(), icon: MousePointerClick },
-          { label: "Avg Conversion", value: `${avgConversion}%`, icon: BarChart3 },
-        ].map((m) => {
-          const Icon = m.icon;
-          return (
-            <Card key={m.label}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue/10 flex items-center justify-center"><Icon className="w-4 h-4 text-blue" /></div>
-                <div><p className="text-xs text-text-tertiary">{m.label}</p><p className="text-lg font-bold font-mono">{m.value}</p></div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {error && (
+        <Card>
+          <CardContent className="p-6 flex items-center gap-4">
+            <AlertCircle className="w-5 h-5 text-red flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red">Failed to load experiments</p>
+              <p className="text-xs text-text-tertiary mt-0.5">{error}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => fetchExperiments()}>
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Filters */}
+      {!loading && !error && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Total Experiments", value: filtered.length, icon: FlaskConical },
+            { label: "Total Traffic", value: totalTraffic.toLocaleString(), icon: Users },
+            { label: "Total Conversions", value: totalConversions.toLocaleString(), icon: MousePointerClick },
+            { label: "Avg Conversion", value: `${avgConversion}%`, icon: BarChart3 },
+          ].map((m) => {
+            const Icon = m.icon;
+            return (
+              <Card key={m.label}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue/10 flex items-center justify-center"><Icon className="w-4 h-4 text-blue" /></div>
+                  <div><p className="text-xs text-text-tertiary">{m.label}</p><p className="text-lg font-bold font-mono">{m.value}</p></div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <div className="flex gap-1 bg-surface-elevated rounded-lg p-1">
           {statusTabs.map((tab) => (
@@ -78,46 +126,49 @@ export default function ExperimentsPage() {
         </div>
       </div>
 
-      {/* Experiments Grid */}
-      <div className="grid gap-4">
-        {filtered.map((exp, i) => (
-          <motion.div key={exp.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-            <Link href={`/dashboard/experiments/${exp.id}`}>
-              <Card className="hover:border-blue/30 transition-colors cursor-pointer">
-                <CardContent className="p-5">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-semibold truncate">{exp.name}</h3>
-                        <StatusBadge status={exp.status} />
+      {loading && <ExperimentsSkeleton />}
+
+      {!loading && (
+        <div className="grid gap-4">
+          {filtered.map((exp, i) => (
+            <motion.div key={exp.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+              <Link href={`/dashboard/experiments/${exp.id}`}>
+                <Card className="hover:border-blue/30 transition-colors cursor-pointer">
+                  <CardContent className="p-5">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-semibold truncate">{exp.name}</h3>
+                          <StatusBadge status={exp.status} />
+                        </div>
+                        <p className="text-xs text-text-tertiary font-mono">{exp.id}</p>
+                        <p className="text-xs text-text-secondary mt-2 line-clamp-1">Testing demand for {exp.name.toLowerCase()}</p>
                       </div>
-                      <p className="text-xs text-text-tertiary font-mono">{exp.id}</p>
-                      <p className="text-xs text-text-secondary mt-2 line-clamp-1">Testing demand for {exp.name.toLowerCase()}</p>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center"><p className="text-xs text-text-tertiary">Traffic</p><p className="text-sm font-bold font-mono">{exp.traffic.toLocaleString()}</p></div>
+                        <div className="text-center"><p className="text-xs text-text-tertiary">Conversions</p><p className="text-sm font-bold font-mono">{exp.conversions}</p></div>
+                        <div className="text-center"><p className="text-xs text-text-tertiary">Rate</p><p className="text-sm font-bold font-mono">{exp.conversionRate}%</p></div>
+                        <div className="text-center"><p className="text-xs text-text-tertiary">High Intent</p><p className="text-sm font-bold font-mono">{exp.highIntentActions}</p></div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-center"><p className="text-xs text-text-tertiary">Traffic</p><p className="text-sm font-bold font-mono">{exp.traffic.toLocaleString()}</p></div>
-                      <div className="text-center"><p className="text-xs text-text-tertiary">Conversions</p><p className="text-sm font-bold font-mono">{exp.conversions}</p></div>
-                      <div className="text-center"><p className="text-xs text-text-tertiary">Rate</p><p className="text-sm font-bold font-mono">{exp.conversionRate}%</p></div>
-                      <div className="text-center"><p className="text-xs text-text-tertiary">High Intent</p><p className="text-sm font-bold font-mono">{exp.highIntentActions}</p></div>
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-[10px] text-text-tertiary mb-1">
+                        <span>Conversion Rate</span><span>{exp.conversionRate}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
+                        <motion.div className="h-full rounded-full bg-blue" initial={{ width: 0 }} animate={{ width: `${Math.min(exp.conversionRate * 10, 100)}%` }} transition={{ duration: 0.6, delay: i * 0.05 }} />
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] text-text-tertiary mb-1">
-                      <span>Conversion Rate</span><span>{exp.conversionRate}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
-                      <motion.div className="h-full rounded-full bg-blue" initial={{ width: 0 }} animate={{ width: `${Math.min(exp.conversionRate * 10, 100)}%` }} transition={{ duration: 0.6, delay: i * 0.05 }} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </motion.div>
-        ))}
-        {filtered.length === 0 && (
-          <Card><CardContent className="p-12 text-center"><FlaskConical className="w-8 h-8 text-text-tertiary mx-auto mb-3" /><p className="text-sm text-text-secondary">No experiments match your filters.</p></CardContent></Card>
-        )}
-      </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+          ))}
+          {filtered.length === 0 && !error && (
+            <Card><CardContent className="p-12 text-center"><FlaskConical className="w-8 h-8 text-text-tertiary mx-auto mb-3" /><p className="text-sm text-text-secondary">No experiments match your filters.</p></CardContent></Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

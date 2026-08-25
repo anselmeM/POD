@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       return { label: stage.label, count, percentage, signalStrength };
     });
 
-    return NextResponse.json(funnel);
+    return NextResponse.json({ data: funnel });
   } catch (error) {
     console.error("Error computing funnel:", error);
     return NextResponse.json({ error: "Failed to compute funnel" }, { status: 500 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeLead } from "@/lib/serialize";
 
 /** GET /api/leads/[id] — get a single lead */
 export async function GET(
@@ -15,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data: lead });
+    return NextResponse.json({ data: serializeLead(lead) });
   } catch (e) {
     console.error("Failed to fetch lead:", e);
     return NextResponse.json({ error: "Failed to fetch lead" }, { status: 500 });
@@ -49,7 +50,7 @@ export async function PATCH(
     if (body.variantId !== undefined) data.variantId = body.variantId;
 
     const lead = await prisma.lead.update({ where: { id }, data });
-    return NextResponse.json({ data: lead });
+    return NextResponse.json({ data: serializeLead(lead) });
   } catch (e) {
     console.error("Failed to update lead:", e);
     return NextResponse.json({ error: "Failed to update lead" }, { status: 500 });

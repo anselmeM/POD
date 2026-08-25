@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { serializeInsight } from "@/lib/serialize";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(insights);
+    return NextResponse.json({ data: insights.map(serializeInsight), total: insights.length });
   } catch (error) {
     console.error("Error fetching insights:", error);
     return NextResponse.json({ error: "Failed to fetch insights" }, { status: 500 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeExperiment } from "@/lib/serialize";
 
 /** GET /api/experiments — list all experiments with variants */
 export async function GET(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: "desc" },
       include: { variants: true },
     });
-    return NextResponse.json({ data, total: data.length });
+    return NextResponse.json({ data: data.map(serializeExperiment), total: data.length });
   } catch (e) {
     console.error("Failed to fetch experiments:", e);
     return NextResponse.json({ error: "Failed to fetch experiments" }, { status: 500 });
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       },
       include: { variants: true },
     });
-    return NextResponse.json({ data: experiment }, { status: 201 });
+    return NextResponse.json({ data: serializeExperiment(experiment) }, { status: 201 });
   } catch (e) {
     console.error("Failed to create experiment:", e);
     return NextResponse.json({ error: "Failed to create experiment" }, { status: 500 });

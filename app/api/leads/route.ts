@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeLead } from "@/lib/serialize";
 
 /** GET /api/leads — list all leads */
 export async function GET(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ data, total: data.length });
+    return NextResponse.json({ data: data.map(serializeLead), total: data.length });
   } catch (e) {
     console.error("Failed to fetch leads:", e);
     return NextResponse.json({ error: "Failed to fetch leads" }, { status: 500 });
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
         events: JSON.stringify(body.events || []),
       },
     });
-    return NextResponse.json({ data: lead }, { status: 201 });
+    return NextResponse.json({ data: serializeLead(lead) }, { status: 201 });
   } catch (e) {
     console.error("Failed to create lead:", e);
     return NextResponse.json({ error: "Failed to create lead" }, { status: 500 });

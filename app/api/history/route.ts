@@ -9,5 +9,5 @@ export async function GET() {
     { id: "hist-003", date: "Nov 2025", project: "Dev Analytics", verdict: "Strong Demand", score: 89, experiments: 4, status: "green", description: "Exceptional demand from engineering leaders. High-intent signals across all variants with strong conversion rates.", topExperiment: "Developer Pain Points", keyInsight: "Engineering managers actively search for solutions to reduce time spent on manual status reporting." },
   ];
 
-  return NextResponse.json(historyItems);
+  return NextResponse.json({ data: historyItems, total: historyItems.length });
 }

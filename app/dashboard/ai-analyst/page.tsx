@@ -35,8 +35,8 @@ export default function AIAnalystPage() {
     try {
       const res = await fetch("/api/insights");
       if (res.ok) {
-        const data = await res.json();
-        setInsights(Array.isArray(data) ? data : data.data || []);
+      const data = await res.json();
+      setInsights(data.data || []);
       }
     } catch (e) {
       setError((e as Error).message);

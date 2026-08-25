@@ -38,7 +38,7 @@ export default function ReportsPage() {
       }
       if (insRes.ok) {
         const data = await insRes.json();
-        setInsights(Array.isArray(data) ? data : data.data || []);
+        setInsights(data.data || []);
       }
     } catch (e) {
       setError((e as Error).message);

@@ -23,7 +23,7 @@ export default function HistoryPage() {
       const res = await fetch("/api/history");
       if (!res.ok) throw new Error("Failed to fetch history");
       const data = await res.json();
-      setHistoryItems(data);
+      setHistoryItems(data.data || []);
     } catch (e) {
       setError((e as Error).message);
     } finally {

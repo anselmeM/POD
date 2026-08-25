@@ -30,10 +30,13 @@ export default function SignalsPage() {
         fetch("/api/funnel"),
         fetch("/api/signals"),
       ]);
-      if (funnelRes.ok) setFunnel(await funnelRes.json());
+      if (funnelRes.ok) {
+        const funnelJson = await funnelRes.json();
+        setFunnel(funnelJson.data || []);
+      }
       if (signalsRes.ok) {
         const data = await signalsRes.json();
-        setSignalEvents(Array.isArray(data) ? data : []);
+        setSignalEvents(data.data || []);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -168,7 +171,7 @@ export default function SignalsPage() {
                       <td className="py-2.5 pr-4"><Badge variant="default">{evt.eventType}</Badge></td>
                       <td className="py-2.5 pr-4 text-xs font-mono text-text-tertiary">{evt.visitorId}</td>
                       <td className="py-2.5 pr-4 text-xs text-text-tertiary">{evt.timestamp}</td>
-                      <td className="py-2.5 pr-4 text-sm">{evt.metadata}</td>
+                      <td className="py-2.5 pr-4 text-sm">{evt.metadata && Object.keys(evt.metadata).length > 0 ? JSON.stringify(evt.metadata) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -77,7 +77,7 @@ export default function ExperimentDetailPage() {
 
       if (funnelRes.ok) {
         const funnelJson = await funnelRes.json();
-        setFunnel(funnelJson || []);
+        setFunnel(funnelJson.data || []);
       }
     } catch (e) {
       setError((e as Error).message);

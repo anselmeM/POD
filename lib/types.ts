@@ -64,6 +64,8 @@ export interface Experiment {
   highIntentActions: number;
   highIntentRate: number;
   costPerAction: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Variant {

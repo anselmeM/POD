@@ -5,10 +5,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowUpRight, TrendingUp, Users, MousePointerClick, Target,
-  Plus, Activity, Brain, FlaskConical, FileText, Calendar, ArrowRight,
+  Plus, Activity,
   AlertCircle, RefreshCw,
 } from "lucide-react";
 import { useExperimentStore } from "@/lib/store";
+import { DEMO_USER, VERDICTS } from "@/lib/constants";
+import type { FunnelStage, Project } from "@/lib/types";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
@@ -30,12 +32,6 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-function Sparkline({ data, color = "var(--dash-accent)" }: { data: number[]; color?: string }) {
-  const max = Math.max(...data), min = Math.min(...data), range = max - min || 1;
-  const pts = data.map((v, i) => `${(i / (data.length - 1)) * 60},${22 - ((v - min) / range) * 22}`).join(" ");
-  return <svg width="60" height="22" className="opacity-40"><polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" points={pts} /></svg>;
-}
-
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
     running: { cls: "bg-[var(--dash-accent-light)] text-[var(--dash-accent)]", label: "Running" },
@@ -48,33 +44,58 @@ function StatusPill({ status }: { status: string }) {
   return <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${s.cls}`}>{s.label}</span>;
 }
 
-function SalesBarChart() {
+function timeAgo(dateStr?: string | null) {
+  const diff = Date.now() - new Date(dateStr || Date.now()).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${Math.max(mins, 0)}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function verdictFromScore(score: number) {
+  if (score >= 80) return VERDICTS.strong;
+  if (score >= 60) return VERDICTS.promising;
+  if (score >= 40) return VERDICTS.needs_iteration;
+  return VERDICTS.weak;
+}
+
+function SignalFunnelChart() {
+  const [stages, setStages] = useState<FunnelStage[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
-  const data = [
-    { m: "Jan", v: 55, p: "+24%" }, { m: "Feb", v: 85, p: "+36%" }, { m: "Mar", v: 65, p: "+26%" },
-    { m: "Apr", v: 45, p: "+19%" }, { m: "May", v: 62, p: "+25%" }, { m: "Jun", v: 38, p: "+14%" },
-    { m: "Jul", v: 50, p: "+20%" }, { m: "Aug", v: 68, p: "+25%" }, { m: "Sep", v: 42, p: "+18%" },
-    { m: "Oct", v: 78, p: "+32%" }, { m: "Nov", v: 35, p: "+14%" }, { m: "Dec", v: 82, p: "+25%" },
-  ];
+
+  useEffect(() => {
+    fetch("/api/funnel")
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((json) => setStages(json.data || []))
+      .catch(() => setStages([]));
+  }, []);
+
+  const maxCount = Math.max(...stages.map((s) => s.count), 1);
+
+  if (stages.length === 0) {
+    return <p className="text-sm text-[var(--dash-text-tertiary)] text-center py-12">No signal events yet.</p>;
+  }
+
   return (
     <div className="flex items-end justify-between gap-1 sm:gap-2 h-40 px-2">
-      {data.map((d, i) => (
-        <div key={d.m} className="flex-1 flex flex-col items-center gap-1 relative"
+      {stages.map((s, i) => (
+        <div key={s.label} className="flex-1 flex flex-col items-center gap-1 relative"
           onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
           {hovered === i && (
             <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
               className="absolute -top-8 bg-blue text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10">
-              {d.p}
+              {s.count} events · {s.percentage}%
             </motion.div>
           )}
           <div className="w-full flex justify-center">
-            <motion.div initial={{ height: 0 }} animate={{ height: `${d.v * 1.6}px` }}
+            <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max((s.count / maxCount) * 144, 4)}px` }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
               className={`w-full max-w-[28px] rounded-t-lg transition-colors cursor-pointer ${
                 hovered === i ? "bg-blue" : "bg-[#EEF0F2] hover:bg-[#E5E7EB]"
               }`} />
           </div>
-          <span className="text-[10px] font-semibold text-[var(--dash-text-tertiary)] mt-1">{d.m}</span>
+          <span className="text-[10px] font-semibold text-[var(--dash-text-tertiary)] mt-1 text-center leading-tight">{s.label}</span>
         </div>
       ))}
     </div>
@@ -82,34 +103,36 @@ function SalesBarChart() {
 }
 
 export default function DashboardPage() {
-  const { experiments, loading, error, fetchExperiments } = useExperimentStore();
-  const [timeframe, setTimeframe] = useState("Week");
-  const [activityFeed, setActivityFeed] = useState<any[]>([]);
+  const { experiments, error, fetchExperiments } = useExperimentStore();
+  const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
 
+  useEffect(() => {
+    fetch("/api/projects")
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((json) => setProject(json.data?.[0] ?? null))
+      .catch(() => setProject(null));
+  }, []);
+
   // Compute metrics from real data
   const totalTraffic = experiments.reduce((sum, e) => sum + e.traffic, 0);
-  const totalConversions = experiments.reduce((sum, e) => sum + e.conversions, 0);
   const totalHighIntent = experiments.reduce((sum, e) => sum + e.highIntentActions, 0);
-  const avgConversionRate = experiments.length > 0 ? Math.round(experiments.reduce((sum, e) => sum + e.conversionRate, 0) / experiments.length * 10) / 10 : 0;
+  const podScore = project?.podScore ?? 0;
+  const verdict = verdictFromScore(podScore);
 
-  const currentSprint = {
-    id: "sprint-current",
-    name: "Current Sprint",
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
-    visitors: totalTraffic,
-    conversions: totalConversions,
-    leads: Math.round(totalConversions * 0.3),
-    podScore: 78,
-  };
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  })();
 
   const metrics = [
-    { label: "Demand Score", value: 78, suffix: "/100", change: "+14%", icon: Target, color: "#58A6FF", sparkline: [51, 58, 62, 64, 71, 74, 78] },
-    { label: "Experiment Traffic", value: totalTraffic, suffix: "", change: "+22%", icon: Users, color: "#BC8CFF", sparkline: [820, 1211, 1400, 1600, 1720, 1800, totalTraffic] },
-    { label: "High-Intent Actions", value: totalHighIntent, suffix: "", change: "+18%", icon: MousePointerClick, color: "#3FB950", sparkline: [31, 57, 72, 85, 98, 112, totalHighIntent] },
-    { label: "Validation Confidence", value: 84, suffix: "%", change: "+6%", icon: TrendingUp, color: "#D29922", sparkline: [58, 65, 71, 75, 79, 82, 84] },
+    { label: "Demand Score", value: podScore, suffix: "/100", icon: Target, color: "#58A6FF" },
+    { label: "Experiment Traffic", value: totalTraffic, suffix: "", icon: Users, color: "#BC8CFF" },
+    { label: "High-Intent Actions", value: totalHighIntent, suffix: "", icon: MousePointerClick, color: "#3FB950" },
+    { label: "Validation Confidence", value: project?.confidence ?? 0, suffix: "%", icon: TrendingUp, color: "#D29922" },
   ];
 
   return (
@@ -119,7 +142,7 @@ export default function DashboardPage() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--dash-text-primary)]">
-            Good evening, Alex
+            {greeting}, {DEMO_USER.firstName}
           </h1>
           <p className="text-sm text-[var(--dash-text-secondary)] font-medium mt-1">
             Here&apos;s what your current validation sprint is telling you.
@@ -153,18 +176,14 @@ export default function DashboardPage() {
               transition={{ delay: i * 0.08 }}>
               <SpotlightCard className="h-full">
                 <GlassCard className="p-5 h-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${m.color}15` }}>
-                      <Icon className="w-4 h-4" style={{ color: m.color }} />
-                    </div>
-                    <Sparkline data={m.sparkline} color={m.color} />
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${m.color}15` }}>
+                    <Icon className="w-4 h-4" style={{ color: m.color }} />
                   </div>
                   <p className="text-[11px] font-semibold text-[var(--dash-text-tertiary)] uppercase tracking-wide">{m.label}</p>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--dash-text-primary)]">
                       <AnimatedCounter target={m.value} suffix={m.suffix} />
                     </span>
-                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-[var(--dash-green-light)] text-[var(--dash-green)]">{m.change}</span>
                   </div>
                 </GlassCard>
               </SpotlightCard>
@@ -184,18 +203,10 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="text-sm font-bold text-[var(--dash-text-primary)]">Validation Signals</span>
-                  <p className="text-[11px] text-[var(--dash-text-tertiary)] font-medium mt-0.5">Monthly signal strength</p>
-                </div>
-                <div className="flex gap-1 bg-[#F8F9FA] rounded-full p-0.5">
-                  {["Week", "Month", "Year"].map((t) => (
-                    <button key={t} onClick={() => setTimeframe(t)}
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
-                        timeframe === t ? "bg-blue text-white shadow-sm" : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)]"
-                      }`}>{t}</button>
-                  ))}
+                  <p className="text-[11px] text-[var(--dash-text-tertiary)] font-medium mt-0.5">Funnel events across all experiments</p>
                 </div>
               </div>
-              <SalesBarChart />
+              <SignalFunnelChart />
             </GlassCard>
           </SpotlightCard>
         </motion.div>
@@ -211,7 +222,7 @@ export default function DashboardPage() {
                   <motion.circle cx="50" cy="50" r="42" fill="none" stroke="url(#scoreGradient)" strokeWidth="8"
                     strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 42}`}
                     initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - 78 / 100) }}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - podScore / 100) }}
                     transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }} />
                   <defs>
                     <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -223,13 +234,13 @@ export default function DashboardPage() {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-black text-[var(--dash-text-primary)]">
-                    <AnimatedCounter target={78} />
+                    <AnimatedCounter target={podScore} />
                   </span>
                   <span className="text-[10px] text-[var(--dash-text-tertiary)]">/ 100</span>
                 </div>
               </div>
-              <Badge variant="green" className="mb-2">Strong Demand</Badge>
-              <p className="text-[11px] text-[var(--dash-text-tertiary)] mt-1">Updated 2 hours ago</p>
+              <Badge variant={verdict.color} className="mb-2">{verdict.label}</Badge>
+              <p className="text-[11px] text-[var(--dash-text-tertiary)] mt-1">Updated {timeAgo(project?.updatedAt)}</p>
             </GlassCard>
           </SpotlightCard>
         </motion.div>
@@ -308,14 +319,7 @@ export default function DashboardPage() {
                       <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{exp.status} · {exp.traffic} visitors</p>
                     </div>
                     <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
-                      {(() => {
-                        const diff = Date.now() - new Date(exp.startDate || Date.now()).getTime();
-                        const mins = Math.floor(diff / 60000);
-                        if (mins < 60) return `${mins}m ago`;
-                        const hrs = Math.floor(mins / 60);
-                        if (hrs < 24) return `${hrs}h ago`;
-                        return `${Math.floor(hrs / 24)}d ago`;
-                      })()}
+                      {timeAgo(exp.updatedAt)}
                     </span>
                   </motion.div>
                 ))}

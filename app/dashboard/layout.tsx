@@ -9,14 +9,14 @@ import {
   LogOut, Settings, User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_NAV } from "@/lib/constants";
+import { DASHBOARD_NAV, DEMO_USER } from "@/lib/constants";
 import { OrbField } from "@/components/ui/animated-orb";
 import { CommandPalette } from "@/components/ui/command-palette";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notifCount] = useState(7);
+  const [notifCount] = useState(DEMO_USER.notificationCount);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="relative" ref={userMenuRef}>
                 <button onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8F9FA] transition-colors">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue to-purple flex items-center justify-center text-white text-xs font-bold">A</div>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue to-purple flex items-center justify-center text-white text-xs font-bold">{DEMO_USER.initials}</div>
                   <ChevronDown className={cn("w-3 h-3 text-[var(--dash-text-tertiary)] transition-transform", userMenuOpen && "rotate-180")} />
                 </button>
 
@@ -98,8 +98,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <motion.div initial={{ opacity: 0, y: -8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }} transition={{ duration: 0.15 }}
                       className="absolute right-0 top-full mt-2 w-52 glass-strong rounded-xl shadow-2xl shadow-black/40 py-1.5 z-50">
                       <div className="px-3 py-2.5 border-b border-[#F3F4F6] mb-1">
-                        <p className="text-sm font-semibold text-[var(--dash-text-primary)]">Alex Morgan</p>
-                        <p className="text-[11px] text-[var(--dash-text-tertiary)]">alex@example.com</p>
+                        <p className="text-sm font-semibold text-[var(--dash-text-primary)]">{DEMO_USER.name}</p>
+                        <p className="text-[11px] text-[var(--dash-text-tertiary)]">{DEMO_USER.email}</p>
                       </div>
                       <Link href="/dashboard/settings" onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-[#F8F9FA] hover:text-[var(--dash-text-primary)] transition-colors">

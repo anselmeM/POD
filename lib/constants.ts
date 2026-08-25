@@ -19,6 +19,14 @@ export const BRAND = {
   firstMileDevs: "FirstMileDevs",
 } as const;
 
+export const DEMO_USER = {
+  name: "Alex Morgan",
+  firstName: "Alex",
+  email: "alex@example.com",
+  initials: "A",
+  notificationCount: 7,
+} as const;
+
 export const NAV_ITEMS = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Validation Method", href: "/#validation-method" },

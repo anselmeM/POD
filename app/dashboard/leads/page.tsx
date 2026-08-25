@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLeadStore } from "@/lib/store";
+import type { LeadStatus } from "@/lib/types";
 import { Users, Target, TrendingUp, Search, Filter, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function LeadsPage() {
@@ -133,6 +134,23 @@ export default function LeadsPage() {
                   <p className="text-sm text-text-secondary">{lead.role} at {lead.company}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-xs text-text-tertiary mb-2">Status</p>
+                    <div className="flex items-center gap-2">
+                      <LeadStatusBadge status={lead.status} />
+                      <select
+                        value={lead.status}
+                        onChange={(e) => useLeadStore.getState().updateLeadStatus(lead.id, e.target.value as LeadStatus)}
+                        className="text-xs bg-surface-elevated border border-border rounded px-2 py-1 text-text-secondary"
+                      >
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="converted">Converted</option>
+                        <option value="disqualified">Disqualified</option>
+                      </select>
+                    </div>
+                  </div>
                   <div><p className="text-xs text-text-tertiary">Email</p><p className="text-sm">{lead.email}</p></div>
                   <div><p className="text-xs text-text-tertiary">Source</p><p className="text-sm">{lead.source}</p></div>
                   <div><p className="text-xs text-text-tertiary">Intent Score</p><IntentScore score={lead.intentScore} /></div>

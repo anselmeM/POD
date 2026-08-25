@@ -5,24 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, FlaskConical, Layout, Users, Activity, Contact,
-  Brain, FileText, Bell, ChevronDown, Menu, X,
-  LogOut, Settings, User, Command,
+  Bell, ChevronDown, Menu, X,
+  LogOut, Settings, User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DASHBOARD_NAV } from "@/lib/constants";
 import { OrbField } from "@/components/ui/animated-orb";
 import { CommandPalette } from "@/components/ui/command-palette";
-
-const NAV_SECTIONS = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },
-  { label: "Signals", href: "/dashboard/signals", icon: Activity },
-  { label: "Audiences", href: "/dashboard/audiences", icon: Users },
-  { label: "Leads", href: "/dashboard/leads", icon: Contact },
-  { label: "AI Analyst", href: "/dashboard/ai-analyst", icon: Brain },
-  { label: "Landing Pages", href: "/dashboard/landing-pages", icon: Layout },
-  { label: "Reports", href: "/dashboard/reports", icon: FileText },
-];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -65,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
 
               <nav className="hidden lg:flex items-center gap-0.5">
-                {NAV_SECTIONS.map((item) => {
+                  {DASHBOARD_NAV.map((item) => {
                   const active = isActive(item.href);
                   const Icon = item.icon;
                   return (
@@ -146,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="lg:hidden overflow-hidden">
               <div className="glass border-b border-[#F3F4F6] px-4 py-4">
                 <div className="grid grid-cols-2 gap-1">
-                  {NAV_SECTIONS.map((item) => {
+                {DASHBOARD_NAV.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
                     return (

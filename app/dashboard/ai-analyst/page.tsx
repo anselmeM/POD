@@ -28,6 +28,7 @@ export default function AIAnalystPage() {
     },
   ]);
   const [input, setInput] = useState("");
+  const [streaming, setStreaming] = useState(false);
 
   const fetchInsights = async () => {
     setLoading(true);
@@ -96,17 +97,51 @@ export default function AIAnalystPage() {
 
             <div className="p-4 border-t border-border">
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!input.trim()) return;
-                  setMessages((prev) => [...prev, { role: "user", content: input }]);
+                  if (!input.trim() || streaming) return;
+                  const prompt = input.trim();
+                  const nextMsgs = [...messages, { role: "user" as const, content: prompt }];
+                  setMessages(nextMsgs);
                   setInput("");
-                  setTimeout(() => {
-                    setMessages((prev) => [...prev, {
-                      role: "ai",
-                      content: "Based on the current experiment data, the evidence suggests moderate-to-strong demand signals. The time-savings positioning is resonating most with operations leaders. I recommend running a focused pricing test with the winning variant before scaling acquisition spend.",
-                    }]);
-                  }, 1000);
+                  setStreaming(true);
+                  setMessages((prev) => [...prev, { role: "ai" as const, content: "" }]);
+                  try {
+                    const res = await fetch("/api/ai", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ messages: nextMsgs.map((m) => ({ role: m.role === "ai" ? "assistant" : m.role, content: m.content })) }),
+                    });
+                    if (!res.ok || !res.body) throw new Error("AI request failed");
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = "";
+                    let acc = "";
+                    while (true) {
+                      const { done, value } = await reader.read();
+                      if (done) break;
+                      buffer += decoder.decode(value, { stream: true });
+                      const lines = buffer.split("\n");
+                      buffer = lines.pop() || "";
+                      for (const line of lines) {
+                        if (!line.startsWith("data: ")) continue;
+                        const data = line.slice(6).trim();
+                        if (data === "[DONE]") break;
+                        try {
+                          const json = JSON.parse(data);
+                          const delta = json.choices?.[0]?.delta?.content || json.choices?.[0]?.message?.content || "";
+                          if (delta) {
+                            acc += delta;
+                            setMessages((prev) => { const copy = [...prev]; copy[copy.length - 1] = { role: "ai", content: acc }; return copy; });
+                          }
+                        } catch {}
+                      }
+                    }
+                  } catch {
+                    setMessages((prev) => { const copy = [...prev]; copy[copy.length - 1] = { role: "ai", content: "Sorry — the analyst is unavailable. Please check OPENAI_API_KEY or try again." }; return copy; });
+                  } finally {
+                    setStreaming(false);
+                  }
                 }}
                 className="flex gap-2"
               >
@@ -114,9 +149,10 @@ export default function AIAnalystPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about your validation data..."
-                  className="flex-1 h-10 rounded-md border border-border bg-surface-elevated px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue"
+                  disabled={streaming}
+                  className="flex-1 h-10 rounded-md border border-border bg-surface-elevated px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue disabled:opacity-50"
                 />
-                <Button type="submit" size="icon"><Send className="w-4 h-4" /></Button>
+                <Button type="submit" size="icon" disabled={streaming}><Send className="w-4 h-4" /></Button>
               </form>
             </div>
           </Card>

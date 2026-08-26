@@ -40,17 +40,33 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const variantsInput = (Array.isArray(body.variants) ? body.variants : []) as Record<string, unknown>[];
+    const expId: string = body.id ? String(body.id) : `exp-${Date.now()}`;
+    const data: Record<string, unknown> = {
+      id: expId,
+      projectId: body.projectId,
+      name: body.name,
+      status: body.status || "draft",
+      budget: body.budget || 0,
+      channel: JSON.stringify(body.channel || []),
+      startDate: body.startDate ? new Date(body.startDate) : null,
+      endDate: body.endDate ? new Date(body.endDate) : null,
+    };
+    if (variantsInput.length) {
+      (data as Record<string, unknown> & { variants: unknown }).variants = {
+        create: variantsInput.map((v, idx) => ({
+          ...(v.id ? { id: String(v.id) } : { id: `${expId}-var-${idx + 1}` }),
+          name: String(v.name || "Variant"),
+          headline: String(v.headline || ""),
+          subheadline: String((v.subheadline as string) || ""),
+          positioning: String((v.positioning as string) || ""),
+          cta: String(v.cta || "Learn More"),
+          trafficAllocation: Number(v.trafficAllocation ?? 0),
+        })),
+      };
+    }
     const experiment = await prisma.experiment.create({
-      data: {
-        id: body.id || undefined,
-        projectId: body.projectId,
-        name: body.name,
-        status: body.status || "draft",
-        budget: body.budget || 0,
-        channel: JSON.stringify(body.channel || []),
-        startDate: body.startDate ? new Date(body.startDate) : null,
-        endDate: body.endDate ? new Date(body.endDate) : null,
-      },
+      data: data as never,
       include: { variants: true },
     });
     return NextResponse.json({ data: serializeExperiment(experiment) }, { status: 201 });

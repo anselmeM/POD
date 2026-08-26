@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
+import { AlertCircle, RefreshCw, ArrowLeft, Beaker } from "lucide-react";
 import type { Experiment, AIInsight, FunnelStage } from "@/lib/types";
+import { wilsonCI, significance, formatPValue, sampleSize } from "@/lib/stats";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { variant: "green" | "blue" | "amber" | "default"; label: string }> = {
@@ -172,29 +173,60 @@ export default function ExperimentDetailPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      {["Variant", "Visitors", "CVR", "High Intent", "Cost/Action"].map((h) => (
+                      {["Variant", "Visitors", "CVR", "95% CI", "vs Control", "High Intent", "Cost/Action"].map((h) => (
                         <th key={h} className="text-left text-xs font-medium text-text-tertiary pb-3 pr-4">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {experiment.variants.map((v, i) => (
-                      <tr key={v.id} className={`border-b border-border/50 ${i === winnerIdx ? "bg-green/5" : ""}`}>
-                        <td className="py-3 pr-4">
-                          <div className="flex items-center gap-2">
-                            {i === winnerIdx && <Badge variant="green" className="text-[10px]">Winner</Badge>}
-                            <span className="text-sm font-medium">{v.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 pr-4 text-sm font-mono">{v.visitors}</td>
-                        <td className="py-3 pr-4 text-sm font-mono">{v.conversionRate}%</td>
-                        <td className="py-3 pr-4 text-sm font-mono">{v.highIntent}</td>
-                        <td className="py-3 pr-4 text-sm font-mono">${v.costPerAction.toFixed(2)}</td>
-                      </tr>
-                    ))}
+                    {(() => {
+                      const control = experiment.variants[0];
+                      const winner = experiment.variants[winnerIdx];
+                      const winnerSig = control && winner && winner.id !== control.id
+                        ? significance({ visitors: control.visitors, conversions: control.conversions, p: control.visitors ? control.conversions/control.visitors : 0 }, { visitors: winner.visitors, conversions: winner.conversions, p: winner.visitors ? winner.conversions/winner.visitors : 0 })
+                        : null;
+                      return experiment.variants.map((v, i) => {
+                        const ci = wilsonCI(v.conversions, v.visitors);
+                        const sig = i === 0 || !control ? null : significance({ visitors: control.visitors, conversions: control.conversions, p: control.visitors ? control.conversions/control.visitors : 0 }, { visitors: v.visitors, conversions: v.conversions, p: v.visitors ? v.conversions/v.visitors : 0 });
+                        return (
+                          <tr key={v.id} className={`border-b border-border/50 ${i === winnerIdx ? "bg-green/5" : ""}`}>
+                            <td className="py-3 pr-4">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {i === winnerIdx && <Badge variant={winnerSig?.significant ? "green" : "amber"} className="text-[10px]">{winnerSig?.significant ? "Significant winner" : "Winner"}</Badge>}
+                                <span className="text-sm font-medium">{v.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 pr-4 text-sm font-mono">{v.visitors}</td>
+                            <td className="py-3 pr-4 text-sm font-mono">{v.conversionRate}%</td>
+                            <td className="py-3 pr-4 text-xs font-mono text-text-tertiary">{(ci.lower*100).toFixed(1)}–{(ci.upper*100).toFixed(1)}%</td>
+                            <td className="py-3 pr-4">
+                              {i === 0 ? <span className="text-xs text-text-tertiary">— control</span> : sig ? (
+                                <span className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full border ${sig.significant ? "border-green/30 bg-green/10 text-green" : "border-border bg-surface-elevated text-text-tertiary"}`}>
+                                  {sig.significant ? "●" : "○"} {formatPValue(sig.pValue)} {sig.lift !== 0 && `(${sig.lift > 0 ? "+" : ""}${(sig.lift*100).toFixed(1)}%)`}
+                                </span>
+                              ) : <span className="text-xs text-text-tertiary">—</span>}
+                            </td>
+                            <td className="py-3 pr-4 text-sm font-mono">{v.highIntent}</td>
+                            <td className="py-3 pr-4 text-sm font-mono">${v.costPerAction.toFixed(2)}</td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>
+              {(() => {
+                const control = experiment.variants[0];
+                const winner = experiment.variants[winnerIdx];
+                if (!control || !winner || winner.id === control.id) return null;
+                const sig = significance({ visitors: control.visitors, conversions: control.conversions, p: 0 }, { visitors: winner.visitors, conversions: winner.conversions, p: 0 });
+                if (sig.significant) return null;
+                const p1 = control.visitors ? control.conversions / control.visitors : 0;
+                const p2 = winner.visitors ? winner.conversions / winner.visitors : 0;
+                if (p1 === 0 || p2 === 0 || p1 === p2) return null;
+                const need = sampleSize(Math.min(p1,p2), Math.max(p1,p2));
+                return <div className="mt-4 flex items-center gap-2 text-xs text-text-tertiary bg-surface-elevated rounded-lg px-3 py-2 border border-border/50"><Beaker className="w-3.5 h-3.5" />Need ~{need.toLocaleString()} visitors per variant to detect this effect (80% power, α=0.05).</div>;
+              })()}
             </>
           ) : (
             <p className="text-sm text-text-tertiary text-center py-8">No variants yet. Add variants to compare performance.</p>

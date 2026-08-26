@@ -77,7 +77,20 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-bold">Validation Report</h1>
           <p className="text-sm text-text-secondary">Generated {new Date().toLocaleDateString()}</p>
         </div>
-        <Button variant="secondary" className="group" onClick={() => window.print()}><Download className="w-4 h-4" />Export PDF</Button>
+        <Button variant="secondary" className="group" onClick={async () => {
+          const { jsPDF } = await import("jspdf");
+          const doc = new jsPDF();
+          doc.setFontSize(18); doc.text(`Validation Report — ${project?.name || "Project"}`, 14, 18);
+          doc.setFontSize(10); doc.text(`Generated ${new Date().toLocaleDateString()}  •  PoD Score ${podScore}  •  Confidence ${confidence}%  •  Verdict ${verdictLabel}`, 14, 26);
+          let y = 36;
+          doc.setFontSize(11); doc.text("Key Findings", 14, y); y += 6;
+          insights.slice(0, 5).forEach((ins) => {
+            const lines = doc.splitTextToSize(`${ins.title} (${ins.confidence}%): ${ins.content}`, 180);
+            if (y + lines.length * 5 > 280) { doc.addPage(); y = 14; }
+            doc.setFontSize(9); doc.text(lines as unknown as string, 14, y); y += (lines as string[]).length * 5 + 4;
+          });
+          doc.save(`pod-report-${(project?.name || "project").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`);
+        }}><Download className="w-4 h-4" />Export PDF</Button>
       </div>
 
       {error && (
@@ -199,12 +212,37 @@ export default function ReportsPage() {
           <CardHeader><CardTitle>Export Options</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {[
-              { label: "PDF Report", desc: "Full validation report with charts", icon: FileText },
-              { label: "CSV Data Export", desc: "Raw experiment data for analysis", icon: Download },
+              {
+                label: "PDF Report", desc: "Full validation report with charts", icon: FileText,
+                action: async () => {
+                  const { jsPDF } = await import("jspdf");
+                  const doc = new jsPDF();
+                  doc.setFontSize(18); doc.text(`Validation Report — ${project?.name || "Project"}`, 14, 18);
+                  doc.setFontSize(10); doc.text(`Generated ${new Date().toLocaleDateString()} • PoD ${podScore} • ${confidence}% • ${verdictLabel}`, 14, 26);
+                  let y = 36;
+                  insights.slice(0, 5).forEach((ins) => {
+                    const lines = doc.splitTextToSize(`${ins.title} (${ins.confidence}%): ${ins.content}`, 180);
+                    if (y + (lines as string[]).length * 5 > 280) { doc.addPage(); y = 14; }
+                    doc.setFontSize(9); doc.text(lines as unknown as string, 14, y); y += (lines as string[]).length * 5 + 4;
+                  });
+                  doc.save(`pod-report-${(project?.name || "project").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`);
+                }
+              },
+              {
+                label: "CSV Data Export", desc: "Raw experiment data for analysis", icon: Download,
+                action: async () => {
+                  const exps = await fetch("/api/experiments").then(r => r.json()).then(j => j.data || []) as { name: string; status: string; traffic: number; conversions: number; conversionRate: number }[];
+                  const rows = [["Experiment","Status","Traffic","Conversions","CVR%"], ...exps.map(e => [e.name, e.status, String(e.traffic), String(e.conversions), String(e.conversionRate)])];
+                  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = "pod-experiments.csv"; a.click(); URL.revokeObjectURL(url);
+                }
+              },
             ].map((opt) => {
               const Icon = opt.icon;
               return (
-                <button key={opt.label} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-blue/30 transition-colors text-left" onClick={() => window.print()}>
+                <button key={opt.label} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-blue/30 transition-colors text-left" onClick={opt.action as never}>
                   <div className="w-8 h-8 rounded-lg bg-blue/10 flex items-center justify-center"><Icon className="w-4 h-4 text-blue" /></div>
                   <div><p className="text-sm font-medium">{opt.label}</p><p className="text-xs text-text-tertiary">{opt.desc}</p></div>
                 </button>

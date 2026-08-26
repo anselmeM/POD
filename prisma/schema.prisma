@@ -24,6 +24,7 @@ model User {
   sessions   Session[]
   memberships WorkspaceMember[]
   ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
+  notifications Notification[]
 }
 
 model Account {
@@ -78,6 +79,7 @@ model Workspace {
 
   owner   User?             @relation("WorkspaceOwner", fields: [ownerId], references: [id])
   members WorkspaceMember[]
+  notifications Notification[]
 
   @@index([ownerId])
 }
@@ -95,6 +97,25 @@ model WorkspaceMember {
   @@unique([workspaceId, userId])
   @@index([workspaceId])
   @@index([userId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String?
+  workspaceId String?
+  type        String   @default("info")
+  title       String
+  message     String   @default("")
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([read])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------

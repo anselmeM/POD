@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLandingPageStore } from "@/lib/store";
+import { templateRenderers } from "@/app/p/[slug]/templates";
+import type { LandingPageTemplate } from "@/lib/types";
 
 const statusMap: Record<string, { variant: "green" | "blue" | "amber" | "default"; label: string }> = {
   live: { variant: "green", label: "Live" },
@@ -31,6 +33,8 @@ export default function LandingPageDetailPage() {
   const [headline, setHeadline] = useState("");
   const [subheadline, setSubheadline] = useState("");
   const [cta, setCta] = useState("");
+  const [template, setTemplate] = useState<LandingPageTemplate>("hero");
+  const [positioning, setPositioning] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -38,6 +42,8 @@ export default function LandingPageDetailPage() {
       setHeadline(page.headline);
       setSubheadline(page.subheadline);
       setCta(page.cta);
+      setTemplate(page.template);
+      setPositioning(page.positioning);
     }
   }, [page]);
 
@@ -54,7 +60,7 @@ export default function LandingPageDetailPage() {
   const s = statusMap[page.status] || statusMap.draft;
 
   const handleSave = () => {
-    updateLandingPage(page.id, { headline, subheadline, cta });
+    updateLandingPage(page.id, { headline, subheadline, cta, template, positioning });
     setEditing(false);
   };
 
@@ -120,7 +126,7 @@ export default function LandingPageDetailPage() {
             {editing && (
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleSave}><Check className="w-3 h-3 mr-1" />Save</Button>
-                <Button variant="secondary" size="sm" onClick={() => { setEditing(false); setHeadline(page.headline); setSubheadline(page.subheadline); setCta(page.cta); }}>
+                <Button variant="secondary" size="sm" onClick={() => { setEditing(false); setHeadline(page.headline); setSubheadline(page.subheadline); setCta(page.cta); setTemplate(page.template); setPositioning(page.positioning); }}>
                   <X className="w-3 h-3 mr-1" />Cancel
                 </Button>
               </div>
@@ -129,16 +135,43 @@ export default function LandingPageDetailPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {editing ? (
-            <>
-              <Input label="Headline" value={headline} onChange={(e) => setHeadline(e.target.value)} />
-              <Textarea label="Subheadline" value={subheadline} onChange={(e) => setSubheadline(e.target.value)} />
-              <Input label="CTA Button Text" value={cta} onChange={(e) => setCta(e.target.value)} />
-            </>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <Input label="Headline" value={headline} onChange={(e) => setHeadline(e.target.value)} />
+                <Textarea label="Subheadline" value={subheadline} onChange={(e) => setSubheadline(e.target.value)} />
+                <Input label="CTA Button Text" value={cta} onChange={(e) => setCta(e.target.value)} />
+                <div>
+                  <label className="text-sm font-medium">Template</label>
+                  <select value={template} onChange={(e) => setTemplate(e.target.value as LandingPageTemplate)} className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm">
+                    <option value="hero">Hero</option>
+                    <option value="problem">Problem</option>
+                    <option value="social-proof">Social Proof</option>
+                    <option value="pricing">Pricing</option>
+                    <option value="minimal">Minimal</option>
+                  </select>
+                </div>
+                <Input label="Positioning" value={positioning} onChange={(e) => setPositioning(e.target.value)} />
+              </div>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="px-3 py-2 bg-surface-elevated border-b border-border text-xs font-medium text-text-tertiary">Live Preview — {template}</div>
+                <div className="max-h-[420px] overflow-auto bg-white">
+                  {(() => {
+                    const Preview = templateRenderers[template] || templateRenderers.hero;
+                    const previewPage = { ...page, headline: headline || page.headline, subheadline: subheadline || page.subheadline, cta: cta || page.cta, template, positioning };
+                    return <div className="scale-[0.55] origin-top-left w-[182%] h-[380px] overflow-hidden"><Preview page={previewPage as never} /></div>;
+                  })()}
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="bg-surface-elevated rounded-lg p-6 border border-border/30">
-              <p className="text-xl font-bold mb-3">{page.headline}</p>
-              <p className="text-sm text-text-secondary mb-6">{page.subheadline}</p>
-              <div className="inline-block px-6 py-2.5 bg-blue text-white rounded-lg text-sm font-medium">{page.cta}</div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="px-3 py-2 bg-surface-elevated border-b border-border text-xs font-medium text-text-tertiary capitalize">{page.template.replace("-", " ")} Preview</div>
+              <div className="max-h-[420px] overflow-auto">
+                {(() => {
+                  const Preview = templateRenderers[page.template] || templateRenderers.hero;
+                  return <div className="scale-[0.55] origin-top-left w-[182%] h-[380px] overflow-hidden"><Preview page={page} /></div>;
+                })()}
+              </div>
             </div>
           )}
         </CardContent>

@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLandingPageStore } from "@/lib/store";
-import type { LandingPageTemplate } from "@/lib/types";
+import type { LandingPage, LandingPageTemplate } from "@/lib/types";
+import { templateRenderers } from "@/app/p/[slug]/templates";
 
 const steps = [
   { label: "Template", icon: Layout },
@@ -155,7 +156,7 @@ export default function NewLandingPagePage() {
         )}
 
         {step === 1 && (
-          <motion.div key="step-1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+          <motion.div key="step-1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="grid lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -196,6 +197,22 @@ export default function NewLandingPagePage() {
                 </div>
               </CardContent>
             </Card>
+            <Card className="overflow-hidden">
+              <CardHeader className="py-3"><div className="flex items-center gap-2"><Globe className="w-4 h-4 text-text-tertiary" /><span className="text-xs font-medium text-text-tertiary">Live Preview — {templates.find((t) => t.id === selectedTemplate)?.name}</span></div></CardHeader>
+              <div className="border-t border-border max-h-[480px] overflow-auto">
+                {(() => {
+                  const Preview = templateRenderers[templateMap[selectedTemplate] || "hero"] || templateRenderers.hero;
+                  const previewPage: LandingPage = {
+                    id: "preview", projectId: "proj-001", name: pageName || headline.slice(0, 40) || "Preview", template: templateMap[selectedTemplate] || "hero",
+                    headline: headline || "Your headline here", subheadline: subheadline || "Your subheadline will appear here.", cta: selectedCta,
+                    positioning: positioningMap[selectedPositioning] || selectedPositioning, status: "draft", slug: "preview",
+                    visitors: 0, conversions: 0, bounceRate: 0, avgTimeOnPage: 0, conversionRate: 0,
+                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+                  };
+                  return <div className="scale-[0.55] origin-top-left w-[182%] h-[420px] overflow-hidden"><Preview page={previewPage} /></div>;
+                })()}
+              </div>
+            </Card>
           </motion.div>
         )}
 
@@ -235,12 +252,20 @@ export default function NewLandingPagePage() {
                   <div className="bg-surface-elevated rounded-lg p-3"><p className="text-[10px] text-text-tertiary mb-1">Page Name</p><p className="text-sm font-medium">{pageName || "Untitled Page"}</p></div>
                 </div>
 
-                <div className="bg-surface-elevated rounded-lg p-4 border border-border/50">
-                  <p className="text-xs text-text-tertiary mb-2">Preview</p>
-                  <div className="bg-surface rounded-lg p-6 border border-border/30">
-                    <p className="text-lg font-bold mb-2">{headline}</p>
-                    <p className="text-sm text-text-secondary mb-4">{subheadline}</p>
-                    <div className="inline-block px-4 py-2 bg-blue text-white rounded-lg text-sm font-medium">{selectedCta}</div>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="px-3 py-2 bg-surface-elevated border-b border-border flex items-center gap-2"><Globe className="w-3 h-3 text-text-tertiary" /><span className="text-[10px] font-medium text-text-tertiary">{selectedTpl?.name} Preview</span></div>
+                  <div className="max-h-[380px] overflow-auto">
+                    {(() => {
+                      const Preview = templateRenderers[templateMap[selectedTemplate] || "hero"] || templateRenderers.hero;
+                      const previewPage: LandingPage = {
+                        id: "preview", projectId: "proj-001", name: pageName || "Preview", template: templateMap[selectedTemplate] || "hero",
+                        headline, subheadline, cta: selectedCta,
+                        positioning: positioningMap[selectedPositioning] || selectedPositioning, status: "draft", slug: "preview",
+                        visitors: 0, conversions: 0, bounceRate: 0, avgTimeOnPage: 0, conversionRate: 0,
+                        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+                      };
+                      return <div className="scale-[0.5] origin-top-left w-[200%] h-[320px] overflow-hidden"><Preview page={previewPage} /></div>;
+                    })()}
                   </div>
                 </div>
 

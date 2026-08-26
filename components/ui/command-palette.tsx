@@ -31,8 +31,27 @@ export function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const [dynamic, setDynamic] = useState<CommandItem[]>([]);
 
-  const filtered = commands.filter((cmd) => {
+  useEffect(() => {
+    if (!open) return;
+    Promise.all([
+      fetch("/api/experiments").then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+      fetch("/api/landing-pages").then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+      fetch("/api/leads").then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+    ]).then(([exps, lps, leads]) => {
+      const items: CommandItem[] = [
+        ...(exps.data || []).slice(0, 5).map((e: { id: string; name: string }) => ({ label: e.name, href: `/dashboard/experiments/${e.id}`, icon: FlaskConical, section: "Experiments", keywords: [e.id] })),
+        ...(lps.data || []).slice(0, 5).map((p: { slug: string; name: string }) => ({ label: p.name, href: `/p/${p.slug}`, icon: Layout, section: "Landing Pages", keywords: [p.slug] })),
+        ...(leads.data || []).slice(0, 5).map((l: { id: string; name: string }) => ({ label: l.name, href: `/dashboard/leads`, icon: Contact, section: "Leads", keywords: [l.name] })),
+      ];
+      setDynamic(items);
+    });
+  }, [open]);
+
+  const allCommands = [...commands, ...dynamic];
+
+  const filtered = allCommands.filter((cmd) => {
     const q = query.toLowerCase();
     return (
       cmd.label.toLowerCase().includes(q) ||

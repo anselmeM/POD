@@ -23,7 +23,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userEmail = session?.user?.email || DEMO_USER.email;
   const userInitial = (userName[0] || DEMO_USER.initials).toUpperCase();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notifCount] = useState(DEMO_USER.notificationCount);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read: boolean; createdAt: string }[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const unread = notifications.filter((n) => !n.read).length;
+  const notifRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    fetch("/api/notifications").then((r) => r.ok ? r.json() : { data: [] }).then((j) => setNotifications(j.data || [])).catch(() => {});
+  }, [session]);
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) { if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false); }
+    if (notifOpen) document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [notifOpen]);
+  const markAllRead = async () => {
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markAll: true }) });
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -87,12 +102,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="flex items-center gap-3">
               <CommandPalette />
-              <button className="relative p-2 rounded-lg text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] hover:bg-[#F8F9FA] transition-colors">
-                <Bell className="w-4 h-4" />
-                {notifCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue text-white text-[9px] font-bold flex items-center justify-center">{notifCount}</span>
-                )}
-              </button>
+              <div className="relative" ref={notifRef}>
+                <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 rounded-lg text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] hover:bg-[#F8F9FA] transition-colors">
+                  <Bell className="w-4 h-4" />
+                  {unread > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue text-white text-[9px] font-bold flex items-center justify-center">{unread}</span>
+                  )}
+                </button>
+                <AnimatePresence>
+                  {notifOpen && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute right-0 top-full mt-2 w-80 glass-strong rounded-xl shadow-2xl py-2 z-50 border border-border max-h-[380px] overflow-auto">
+                      <div className="flex items-center justify-between px-3 pb-2 border-b border-border">
+                        <span className="text-sm font-semibold">Notifications</span>
+                        {unread > 0 && <button onClick={markAllRead} className="text-[11px] text-blue hover:underline">Mark all read</button>}
+                      </div>
+                      {notifications.length === 0 ? <p className="text-xs text-text-tertiary text-center py-8">No notifications</p> : notifications.map((n) => (
+                        <div key={n.id} className={`px-3 py-2.5 hover:bg-surface-elevated border-b border-border/50 last:border-0 ${!n.read ? "bg-blue/5" : ""}`}>
+                          <p className="text-xs font-medium">{n.title}</p>
+                          <p className="text-[11px] text-text-secondary line-clamp-2">{n.message}</p>
+                          <p className="text-[10px] text-text-tertiary mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <div className="relative" ref={userMenuRef}>
                 <button onClick={() => setUserMenuOpen(!userMenuOpen)}

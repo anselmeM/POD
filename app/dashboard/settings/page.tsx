@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,11 @@ export default function SettingsPage() {
             <div><p className="text-sm font-medium">Plan</p><p className="text-xs text-text-tertiary">Current subscription tier</p></div>
             <Badge variant="blue">{demoWorkspace.plan}</Badge>
           </div>
+          <Button variant="secondary" onClick={async () => {
+            const res = await fetch("/api/stripe/portal", { method: "POST" });
+            const json = await res.json();
+            if (json.url) window.location.href = json.url;
+          }}>Manage Billing</Button>
         </CardContent>
       </Card>
 
@@ -81,6 +87,14 @@ export default function SettingsPage() {
               </button>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Integrations</CardTitle><CardDescription>Webhooks, Slack, Zapier, and FirstMileDevs API.</CardDescription></CardHeader>
+        <CardContent>
+          <p className="text-sm text-text-secondary mb-3">Configure webhooks to receive experiment events.</p>
+          <a href="/dashboard/settings/integrations" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-elevated border border-border text-sm hover:bg-surface transition-colors">Manage Integrations →</a>
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,9 +45,12 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold">Validation History</h1>
-        <p className="text-sm text-text-secondary">Your past validation sprints and their outcomes.</p>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Validation History</h1>
+          <p className="text-sm text-text-secondary">Your past validation sprints and their outcomes.</p>
+        </div>
+        <Link href="/dashboard/history/activity" className="text-xs font-medium text-blue hover:underline">Activity Log →</Link>
       </motion.div>
 
       {error && (

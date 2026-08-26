@@ -25,6 +25,7 @@ model User {
   memberships WorkspaceMember[]
   ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
   notifications Notification[]
+  activityLogs ActivityLog[]
 }
 
 model Account {
@@ -80,6 +81,7 @@ model Workspace {
   owner   User?             @relation("WorkspaceOwner", fields: [ownerId], references: [id])
   members WorkspaceMember[]
   notifications Notification[]
+  webhooks Webhook[]
 
   @@index([ownerId])
 }
@@ -116,6 +118,36 @@ model Notification {
   @@index([workspaceId])
   @@index([read])
   @@index([createdAt])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  detail     String   @default("")
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  workspaceId String
+  url         String
+  events      String   @default("[]")
+  secret      String   @default("")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { Project } from "@/lib/types";
+import { EXPERIMENT_TEMPLATES } from "@/lib/experiment-templates";
 
 const CHANNELS = [
   { id: "linkedin", label: "LinkedIn" },
@@ -123,12 +124,32 @@ export default function NewExperimentPage() {
     }
   };
 
+  const applyTemplate = (id: string) => {
+    const tpl = EXPERIMENT_TEMPLATES.find((t) => t.id === id);
+    if (!tpl) return;
+    setBudget(String(tpl.budget));
+    setChannels(tpl.channel);
+    setVariants(tpl.variants.map((v) => ({ ...v })));
+    if (!name) setName(`${tpl.name} — ${new Date().toLocaleDateString()}`);
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/dashboard/experiments"><Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button></Link>
         <div><h1 className="text-2xl font-bold">New Experiment</h1><p className="text-sm text-text-secondary">Set up a new demand validation experiment.</p></div>
       </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Start from a template</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2">
+          {EXPERIMENT_TEMPLATES.map((tpl) => (
+            <button key={tpl.id} onClick={() => applyTemplate(tpl.id)} className="text-left p-3 rounded-lg border border-border hover:border-blue/30 hover:bg-blue/5 transition-colors">
+              <p className="text-sm font-semibold">{tpl.name}</p>
+              <p className="text-xs text-text-tertiary">{tpl.description}</p>
+            </button>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Experiment Details</CardTitle></CardHeader>

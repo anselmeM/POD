@@ -14,6 +14,9 @@ import { DEMO_USER } from "@/lib/constants";
 import { OrbField } from "@/components/ui/animated-orb";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ShortcutHelp } from "@/components/ui/shortcut-help";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useSession, signOut } from "next-auth/react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -40,6 +43,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  useKeyboardShortcuts({ onHelp: () => setHelpOpen((v) => !v) });
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -102,6 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="flex items-center gap-3">
               <CommandPalette />
+              <ThemeToggle />
               <div className="relative" ref={notifRef}>
                 <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 rounded-lg text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] hover:bg-[#F8F9FA] transition-colors">
                   <Bell className="w-4 h-4" />
@@ -201,6 +207,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
           {children}
         </main>
+        <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       </div>
     </div>
   );

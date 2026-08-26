@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Users, Target, TrendingUp, Globe, Building2, Briefcase, AlertCircle, RefreshCw } from "lucide-react";
+import { Users, Target, TrendingUp, Globe, Building2, Briefcase, AlertCircle, RefreshCw, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,10 @@ export default function AudiencesPage() {
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-bold">Audiences</h1><p className="text-sm text-text-secondary">Target audience segments and reach analysis for your experiments.</p></div>
+      <div className="flex items-start justify-between gap-4">
+        <div><h1 className="text-2xl font-bold">Audiences</h1><p className="text-sm text-text-secondary">Target audience segments and reach analysis for your experiments.</p></div>
+        <Link href="/dashboard/audiences/cohorts"><Button variant="secondary" size="sm"><BarChart3 className="w-4 h-4" /> Cohort Analysis</Button></Link>
+      </div>
 
       {error && (
         <Card className="border-red/30 bg-red/5">

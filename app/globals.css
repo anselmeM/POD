@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   /* Core palette */
   --color-background: #E5E7EB;
@@ -467,5 +469,29 @@ html.lenis, html.lenis body { height: auto; }
   background-color: var(--dash-bg);
   color: var(--dash-text-primary);
   font-family: var(--font-sans);
+}
+
+html.dark {
+  --color-background: #0F0F0F;
+  --color-surface: #1A1A1A;
+  --color-surface-elevated: #242424;
+  --color-surface-glass: rgba(26, 26, 26, 0.8);
+  --color-border: #2A2A2A;
+  --color-border-subtle: #2A2A2A;
+  --color-text-primary: #F3F4F6;
+  --color-text-secondary: #9CA3AF;
+  --color-text-tertiary: #6B7280;
+}
+
+html.dark .dashboard-theme {
+  --dash-bg: #0F0F0F;
+  --dash-container: #1A1A1A;
+  --dash-card: #1E1E1E;
+  --dash-card-border: #2A2A2A;
+  --dash-text-primary: #F3F4F6;
+  --dash-text-secondary: #9CA3AF;
+  --dash-text-tertiary: #6B7280;
+  --dash-nav-bg: rgba(30, 30, 30, 0.8);
+  --dash-nav-active: #F3F4F6;
 }
 

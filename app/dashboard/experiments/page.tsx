@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useExperimentStore } from "@/lib/store";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useRouter } from "next/navigation";
 
 const statusTabs = ["All", "Running", "Completed", "Paused", "Draft"] as const;
 
@@ -49,9 +51,13 @@ function ExperimentsSkeleton() {
 }
 
 export default function ExperimentsPage() {
+  const router = useRouter();
   const { experiments, loading, error, fetchExperiments } = useExperimentStore();
-  const [activeTab, setActiveTab] = useState<string>("All");
+  const [activeTab, setActiveTab] = useState<(typeof statusTabs)[number]>("All");
   const [search, setSearch] = useState("");
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const toggleCompare = (id: string) => setCompareIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 3 ? [...prev, id] : prev);
 
   useEffect(() => {
     fetchExperiments();
@@ -62,6 +68,19 @@ export default function ExperimentsPage() {
     const matchesSearch = exp.name.toLowerCase().includes(search.toLowerCase()) || exp.id.toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  useKeyboardShortcuts({
+    onJ: () => setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1)),
+    onK: () => setSelectedIdx((i) => Math.max(i - 1, 0)),
+  });
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && filtered[selectedIdx]) router.push(`/dashboard/experiments/${filtered[selectedIdx].id}`);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [selectedIdx, filtered, router]);
 
   const totalTraffic = filtered.reduce((sum, e) => sum + e.traffic, 0);
   const totalConversions = filtered.reduce((sum, e) => sum + e.conversions, 0);
@@ -124,6 +143,11 @@ export default function ExperimentsPage() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search experiments..."
             className="w-full h-9 pl-9 pr-3 rounded-md border border-border bg-surface-elevated text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue" />
         </div>
+        {compareIds.length >= 2 && (
+          <Link href={`/dashboard/experiments/compare?ids=${compareIds.join(",")}`}>
+            <Button size="sm">Compare ({compareIds.length})</Button>
+          </Link>
+        )}
       </div>
 
       {loading && <ExperimentsSkeleton />}
@@ -133,11 +157,12 @@ export default function ExperimentsPage() {
           {filtered.map((exp, i) => (
             <motion.div key={exp.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
               <Link href={`/dashboard/experiments/${exp.id}`}>
-                <Card className="hover:border-blue/30 transition-colors cursor-pointer">
+                <Card className={`hover:border-blue/30 transition-colors cursor-pointer ${i === selectedIdx ? "ring-1 ring-blue/30 bg-blue/5" : ""}`}>
                   <CardContent className="p-5">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
+                          <input type="checkbox" checked={compareIds.includes(exp.id)} onChange={(e) => { e.stopPropagation(); toggleCompare(exp.id); }} onClick={(e) => e.stopPropagation()} className="rounded border-border" />
                           <h3 className="text-sm font-semibold truncate">{exp.name}</h3>
                           <StatusBadge status={exp.status} />
                         </div>

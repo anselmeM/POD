@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
@@ -9,12 +9,28 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 import { demoPricingTiers } from "@/lib/mock-data";
 
 export default function PricingPage() {
+  const router = useRouter();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const checkout = async (tier: (typeof demoPricingTiers)[number]) => {
+    const plan = tier.name.toLowerCase().includes("sprint") ? "sprint" : tier.name.toLowerCase().includes("studio") ? "studio" : "self-serve";
+    setLoadingPlan(plan);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }) });
+      const json = await res.json();
+      if (res.status === 401) { router.push("/sign-up"); return; }
+      if (json.url) window.location.href = json.url;
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <>
@@ -66,15 +82,15 @@ export default function PricingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/sign-up">
-                    <Button
-                      className="w-full"
-                      variant={tier.highlighted ? "default" : "secondary"}
-                      size="lg"
-                    >
-                      {tier.cta}
-                    </Button>
-                  </Link>
+                  <Button
+                    className="w-full"
+                    variant={tier.highlighted ? "default" : "secondary"}
+                    size="lg"
+                    disabled={!!loadingPlan}
+                    onClick={() => checkout(tier)}
+                  >
+                    {loadingPlan ? "Redirecting…" : tier.cta}
+                  </Button>
                 </Card>
               </motion.div>
             ))}

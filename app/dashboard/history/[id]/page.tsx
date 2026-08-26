@@ -1,12 +1,12 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Lightbulb, FlaskConical } from "lucide-react";
-import { demoHistoryItems } from "@/lib/mock-data";
+import type { HistoryItem } from "@/lib/types";
 
 const verdictColors: Record<string, string> = {
   green: "border-green/30 bg-green/5",
@@ -18,7 +18,25 @@ const verdictColors: Record<string, string> = {
 export default function HistoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const item = demoHistoryItems.find((h) => h.id === id);
+  const [item, setItem] = useState<HistoryItem | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/history")
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((json) => setItem((json.data as HistoryItem[]).find((h) => h.id === id) ?? null))
+      .catch(() => setItem(null))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => router.push("/dashboard/history")}><ArrowLeft className="w-4 h-4" />Back to History</Button>
+        <Card><CardContent className="p-12 text-center"><p className="text-text-secondary">Loading…</p></CardContent></Card>
+      </div>
+    );
+  }
 
   if (!item) {
     return (

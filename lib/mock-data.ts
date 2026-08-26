@@ -85,17 +85,17 @@ export const demoExperiments: Experiment[] = [
       { id: "var-005", experimentId: "EXP-2041", name: "Variant B", headline: "Your Team Deserves Better Data", positioning: "Outcome-focused", cta: "Get Started", trafficAllocation: 34, visitors: 401, conversions: 38, conversionRate: 9.5, highIntent: 24, costPerAction: 3.29 },
       { id: "var-006", experimentId: "EXP-2041", name: "Variant C", headline: "Automated Reports for Growing Teams", positioning: "Solution-focused", cta: "Try Free", trafficAllocation: 33, visitors: 398, conversions: 29, conversionRate: 7.3, highIntent: 15, costPerAction: 4.51 },
     ],
-    traffic: 1211, conversions: 98, conversionRate: 8.1, highIntentActions: 57, highIntentRate: 4.7, costPerAction: 3.97,
+    traffic: 1230, conversions: 89, conversionRate: 7.2, highIntentActions: 52, highIntentRate: 5.8, costPerAction: 3.92,
   },
   {
     id: "EXP-2035", projectId: "proj-001", name: "Pricing Sensitivity",
-    status: "running", budget: 75, channel: ["meta"],
+    status: "running", budget: 100, channel: ["meta", "google"],
     startDate: "2026-01-12T00:00:00Z",
     variants: [
       { id: "var-007", experimentId: "EXP-2035", name: "Variant A", headline: "AI Reporting for $49/Month", positioning: "Lower price anchor", cta: "Start Free Trial", trafficAllocation: 50, visitors: 284, conversions: 22, conversionRate: 7.7, highIntent: 16, costPerAction: 2.86 },
       { id: "var-008", experimentId: "EXP-2035", name: "Variant B", headline: "AI Reporting for $99/Month", positioning: "Premium price anchor", cta: "Start Free Trial", trafficAllocation: 50, visitors: 240, conversions: 14, conversionRate: 5.8, highIntent: 13, costPerAction: 3.93 },
     ],
-    traffic: 524, conversions: 36, conversionRate: 6.8, highIntentActions: 29, highIntentRate: 5.5, costPerAction: 3.4,
+    traffic: 524, conversions: 36, conversionRate: 6.9, highIntentActions: 22, highIntentRate: 5.1, costPerAction: 4.12,
   },
 ];
 

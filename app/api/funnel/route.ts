@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
 
     // Define funnel stage order
     const stageOrder = [
-      { label: "Ad Impression", eventTypes: ["page_view"] },
       { label: "Landing Page", eventTypes: ["page_view"] },
       { label: "Scroll", eventTypes: ["scroll"] },
       { label: "CTA Click", eventTypes: ["cta_click"] },

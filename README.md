@@ -101,12 +101,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Current Status
 
-- 54/55 tasks completed
+- 55/55 tasks completed
 - Phase 1 (Core Data Layer) — 10/10 done
 - Phase 2 (Auth & Multi-Tenancy) — 4/4 done
 - Phase 3 (Features) — 8/8 done
 - Phase 4 (Polish) — 8/8 done
-- 14 test files, 89 tests passing
+- Tests — 3/3 done
+- 14 test files, 89 tests passing + 2 Playwright E2E suites
 
 See [TASKS.md](TASKS.md) for the full task list and [ROADMAP.md](ROADMAP.md) for the product roadmap.
 

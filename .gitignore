@@ -24,6 +24,7 @@ out/
 
 # Build
 build-output.log
+build-output*.txt
 build_check.log
 build_expansion.log
 build_expansion2.log

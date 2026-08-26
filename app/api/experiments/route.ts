@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
+import { auth } from "@/lib/auth";
 
 /** GET /api/experiments — list all experiments with variants */
 export async function GET(request: NextRequest) {
@@ -23,8 +24,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/experiments — create a new experiment */
+/** POST /api/experiments — create a new experiment (requires auth) */
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = await request.json();
 
   if (!body.name) {

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,21 @@ export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const res = await signIn("credentials", { email, password, redirect: false });
+    setLoading(false);
+    if (res?.error) {
+      setError("Invalid email or password.");
+      return;
+    }
+    router.push("/dashboard");
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -32,7 +48,7 @@ export default function SignInPage() {
         </div>
 
         <Card className="p-6">
-          <form onSubmit={(e) => { e.preventDefault(); router.push("/dashboard"); }} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Email"
               type="email"
@@ -49,6 +65,8 @@ export default function SignInPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            {error && <p className="text-sm text-red">{error}</p>}
+            <p className="text-xs text-text-tertiary">Demo: alex@example.com / demo12345</p>
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-sm text-text-secondary">
                 <input type="checkbox" className="rounded border-border" />
@@ -56,7 +74,9 @@ export default function SignInPage() {
               </label>
               <Link href="#" className="text-sm text-blue hover:text-blue-bright">Forgot password?</Link>
             </div>
-            <Button type="submit" className="w-full" size="lg">Sign In</Button>
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Signing in…" : "Sign In"}
+            </Button>
           </form>
 
           <div className="relative my-6">
@@ -69,9 +89,10 @@ export default function SignInPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="secondary" onClick={() => router.push("/dashboard")}>Google</Button>
-            <Button variant="secondary" onClick={() => router.push("/dashboard")}>GitHub</Button>
+            <Button variant="secondary" onClick={() => setError("Google sign-in coming soon.")}>Google</Button>
+            <Button variant="secondary" onClick={() => setError("GitHub sign-in coming soon.")}>GitHub</Button>
           </div>
+          {error && <p className="text-xs text-text-tertiary text-center mt-3">{error}</p>}
         </Card>
 
         <p className="text-center text-sm text-text-secondary mt-6">

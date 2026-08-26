@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import bcrypt from "bcryptjs";
 import "dotenv/config";
 
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL || "file:./dev.db" });
@@ -7,6 +8,33 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Seeding database...");
+
+  // Demo user + workspace (for auth)
+  const hashedPassword = await bcrypt.hash("demo12345", 10);
+  const demoUser = await prisma.user.upsert({
+    where: { email: "alex@example.com" },
+    update: { name: "Alex Morgan", password: hashedPassword },
+    create: {
+      name: "Alex Morgan",
+      email: "alex@example.com",
+      password: hashedPassword,
+    },
+  });
+  console.log(`  ✅ User: ${demoUser.email}`);
+
+  const workspace = await prisma.workspace.upsert({
+    where: { id: "ws-001" },
+    update: { name: "Acme Inc.", plan: "trial", ownerId: demoUser.id },
+    create: { id: "ws-001", name: "Acme Inc.", plan: "trial", ownerId: demoUser.id },
+  });
+  console.log(`  ✅ Workspace: ${workspace.name}`);
+
+  await prisma.workspaceMember.upsert({
+    where: { workspaceId_userId: { workspaceId: workspace.id, userId: demoUser.id } },
+    update: { role: "owner" },
+    create: { workspaceId: workspace.id, userId: demoUser.id, role: "owner" },
+  });
+  console.log(`  ✅ Membership: ${demoUser.email} → ${workspace.name} (owner)`);
 
   // Project
   const project = await prisma.project.upsert({

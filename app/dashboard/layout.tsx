@@ -9,12 +9,19 @@ import {
   LogOut, Settings, User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_NAV, DEMO_USER } from "@/lib/constants";
+import { DASHBOARD_NAV } from "@/lib/constants";
+import { DEMO_USER } from "@/lib/constants";
 import { OrbField } from "@/components/ui/animated-orb";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { useSession, signOut } from "next-auth/react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const userName = session?.user?.name || DEMO_USER.name;
+  const userEmail = session?.user?.email || DEMO_USER.email;
+  const userInitial = (userName[0] || DEMO_USER.initials).toUpperCase();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifCount] = useState(DEMO_USER.notificationCount);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -52,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <span className="text-sm font-bold text-[var(--dash-text-primary)] tracking-tight hidden sm:block">PoD Engine</span>
               </Link>
+              <WorkspaceSwitcher />
 
               <nav className="hidden lg:flex items-center gap-0.5">
                   {DASHBOARD_NAV.map((item) => {
@@ -89,7 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="relative" ref={userMenuRef}>
                 <button onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8F9FA] transition-colors">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue to-purple flex items-center justify-center text-white text-xs font-bold">{DEMO_USER.initials}</div>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue to-purple flex items-center justify-center text-white text-xs font-bold">{userInitial}</div>
                   <ChevronDown className={cn("w-3 h-3 text-[var(--dash-text-tertiary)] transition-transform", userMenuOpen && "rotate-180")} />
                 </button>
 
@@ -98,8 +106,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <motion.div initial={{ opacity: 0, y: -8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }} transition={{ duration: 0.15 }}
                       className="absolute right-0 top-full mt-2 w-52 glass-strong rounded-xl shadow-2xl shadow-black/40 py-1.5 z-50">
                       <div className="px-3 py-2.5 border-b border-[#F3F4F6] mb-1">
-                        <p className="text-sm font-semibold text-[var(--dash-text-primary)]">{DEMO_USER.name}</p>
-                        <p className="text-[11px] text-[var(--dash-text-tertiary)]">{DEMO_USER.email}</p>
+                        <p className="text-sm font-semibold text-[var(--dash-text-primary)]">{userName}</p>
+                        <p className="text-[11px] text-[var(--dash-text-tertiary)]">{userEmail}</p>
                       </div>
                       <Link href="/dashboard/settings" onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-[#F8F9FA] hover:text-[var(--dash-text-primary)] transition-colors">
@@ -110,10 +118,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <User className="w-4 h-4" /> Team
                       </Link>
                       <div className="border-t border-[#F3F4F6] mt-1 pt-1">
-                        <Link href="/" onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 text-sm text-red hover:bg-red/10 transition-colors">
+                        <button
+                          onClick={() => signOut({ callbackUrl: "/" })}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red hover:bg-red/10 transition-colors text-left"
+                        >
                           <LogOut className="w-4 h-4" /> Log out
-                        </Link>
+                        </button>
                       </div>
                     </motion.div>
                   )}

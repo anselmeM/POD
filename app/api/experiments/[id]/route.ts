@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
+import { auth } from "@/lib/auth";
+import { hasRole, getWorkspaceRole } from "@/lib/rbac";
 
 /** GET /api/experiments/[id] — get a single experiment with variants */
 export async function GET(
@@ -26,11 +28,15 @@ export async function GET(
   }
 }
 
-/** PATCH /api/experiments/[id] — update an experiment */
+/** PATCH /api/experiments/[id] — update an experiment (requires auth, member+) */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   const body = await request.json();
 
@@ -67,17 +73,30 @@ export async function PATCH(
   }
 }
 
-/** DELETE /api/experiments/[id] — delete an experiment */
+/** DELETE /api/experiments/[id] — delete an experiment (requires admin+) */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
 
   try {
-    const existing = await prisma.experiment.findUnique({ where: { id } });
+    const existing = await prisma.experiment.findUnique({ where: { id }, include: { project: true } });
     if (!existing) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    }
+
+    // RBAC: only admin/owner of the workspace can delete
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (user) {
+      const role = await getWorkspaceRole(user.id, existing.project.workspaceId);
+      if (!hasRole(role, "admin")) {
+        return NextResponse.json({ error: "Forbidden: admin role required" }, { status: 403 });
+      }
     }
 
     await prisma.experiment.delete({ where: { id } });

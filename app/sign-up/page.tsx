@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,37 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Failed to create account.");
+        setLoading(false);
+        return;
+      }
+      const signInRes = await signIn("credentials", { email, password, redirect: false });
+      setLoading(false);
+      if (signInRes?.error) {
+        router.push("/sign-in");
+        return;
+      }
+      router.push("/onboarding");
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -33,11 +65,14 @@ export default function SignUpPage() {
         </div>
 
         <Card className="p-6">
-          <form onSubmit={(e) => { e.preventDefault(); router.push("/onboarding"); }} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input label="Full name" placeholder="Alex Morgan" value={name} onChange={(e) => setName(e.target.value)} required />
             <Input label="Email" type="email" placeholder="alex@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <Input label="Password" type="password" placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} required hint="At least 8 characters" />
-            <Button type="submit" className="w-full" size="lg">Create Account</Button>
+            {error && <p className="text-sm text-red">{error}</p>}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Creating…" : "Create Account"}
+            </Button>
           </form>
 
           <p className="text-xs text-text-tertiary mt-4 text-center">

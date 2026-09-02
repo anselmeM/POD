@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Experiment } from "@/lib/types";
 
-export default function ComparePage() {
+function CompareContent() {
   const params = useSearchParams();
   const ids = (params.get("ids") || "").split(",").filter(Boolean).slice(0, 3);
   const [exps, setExps] = useState<Experiment[]>([]);
@@ -54,3 +54,12 @@ export default function ComparePage() {
     </div>
   );
 }
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-text-tertiary">Loading comparison…</div>}>
+      <CompareContent />
+    </Suspense>
+  );
+}
+

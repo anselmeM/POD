@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import OnboardingPage from "@/app/onboarding/page";
 import { useWizardStore } from "@/lib/store";

@@ -32,7 +32,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
           "rounded-2xl transition-all duration-300",
           variantClasses[variant],
           glowClasses[glow],
-          hover && "hover:border-white/10 hover:shadow-lg hover:shadow-black/20",
+          hover && "hover:border-black/15 dark:hover:border-white/15 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/40",
           className
         )}
         {...props}

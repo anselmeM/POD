@@ -19,14 +19,14 @@ import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { ScrollRevealSection } from "@/components/ui/scroll-reveal-section";
 
 const marqueeItems = [
-  "AI-Powered Analysis",
-  "Multi-Variant Testing",
-  "Demand Scoring",
-  "Willingness-to-Pay",
-  "Behavioral Signals",
-  "Conversion Tracking",
-  "Audience Segmentation",
-  "Smart Recommendations",
+  "Wilson 95% Confidence Intervals",
+  "High-Friction Intent Funnels",
+  "Willingness-to-Pay Smoke Tests",
+  "7-Day Sprint Protocol",
+  "Deposit & Pricing Dwell Tracking",
+  "Statistical Sample Sizing",
+  "Unambiguous Build/Pivot Verdicts",
+  "Pre-Code Market Evidence",
 ];
 
 export default function LandingPage() {

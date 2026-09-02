@@ -10,11 +10,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-blue text-white hover:bg-blue-bright shadow-lg shadow-blue/20 hover:shadow-blue/30 hover:shadow-xl",
-        secondary: "bg-[#EEF0F2] text-text-primary border border-[#E5E7EB] hover:bg-[#E5E7EB]",
-        ghost: "text-text-secondary hover:text-text-primary hover:bg-[#EEF0F2]",
+        secondary: "bg-surface-elevated text-text-primary border border-border hover:bg-surface",
+        ghost: "text-text-secondary hover:text-text-primary hover:bg-surface-elevated",
         danger: "bg-red/10 text-red hover:bg-red/20 border border-red/20",
         success: "bg-green/10 text-green hover:bg-green/20 border border-green/20",
-        outline: "border border-[#E5E7EB] text-text-primary hover:bg-[#EEF0F2]",
+        outline: "border border-border text-text-primary hover:bg-surface-elevated",
         link: "text-blue hover:text-blue-bright underline-offset-4 hover:underline",
         glow: "bg-blue text-white hover:bg-blue-bright shadow-lg shadow-blue/30 hover:shadow-blue/40 hover:shadow-xl animate-pulse-glow",
       },

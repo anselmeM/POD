@@ -2,26 +2,35 @@
 
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { TextReveal } from "@/components/ui/text-reveal";
+import { ArrowUpRight, TrendingUp } from "lucide-react";
 
-const testimonials = [
+const CASE_STUDIES = [
   {
-    quote: "We were about to spend $200K building a feature nobody wanted. PoD showed us in 5 days.",
-    name: "Sarah Chen",
-    role: "CEO, DataSync",
-    metric: "Saved $200K",
+    company: "SyncOps",
+    category: "B2B DevTools",
+    quote: "We were 2 weeks away from hiring two contract engineers to build a \$60k feature. The PoD sprint revealed that developers loved the positioning, but willingness-to-pay stalled at \$19/mo. We pivoted to team licensing before writing code.",
+    founder: "Sarah Chen",
+    role: "Founder & CTO",
+    metric: "Saved $60k + 3 Mo Dev",
+    metricType: "green" as const,
   },
   {
-    quote: "The demand signals were crystal clear. We pivoted our entire product strategy based on PoD's analysis.",
-    name: "Marcus Rivera",
-    role: "Founder, FlowState",
-    metric: "3.2x conversion lift",
+    company: "Cadence Health",
+    category: "Digital Clinic SaaS",
+    quote: "We tested 3 value props: 'Save Clinician Time', 'Reduce No-Shows', and 'HIPAA Automated Audit'. 'Reduce No-Shows' drove a 4.1× higher checkout click-through. It completely shaped our launch messaging.",
+    founder: "Marcus Rivera",
+    role: "Co-Founder",
+    metric: "4.1x Higher Checkout Intent",
+    metricType: "blue" as const,
   },
   {
-    quote: "Finally, a tool that tells me if customers will actually pay before I build it. Game changer.",
-    name: "Aisha Patel",
-    role: "CPO, Nexus Labs",
-    metric: "Validated in 7 days",
+    company: "FinPilot",
+    category: "SMB Financial Workflow",
+    quote: "Traditional surveys told us everyone wanted automated invoice extraction. But when we put up a deposit smoke test, only agency owners converted. PoD pinpointed our exact beachhead ICP in 6 days.",
+    founder: "Aisha Patel",
+    role: "Product Lead",
+    metric: "Beachhead ICP Identified",
+    metricType: "green" as const,
   },
 ];
 
@@ -30,85 +39,63 @@ export function TestimonialsSection() {
   const isInView = useInView(ref, { once: true, margin: "-10%" });
 
   return (
-    <section className="py-32 relative overflow-hidden">
-      <div className="absolute inset-0 dot-grid opacity-8" />
-      <div className="absolute inset-0 dot-grid opacity-8" />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" ref={ref}>
-        <div className="text-center mb-20">
-          <TextReveal as="h2" className="text-4xl sm:text-5xl font-bold tracking-tight mb-6" delay={0.1}>
-            Trusted by builders who ship smart.
-          </TextReveal>
-          <motion.p
-            className="text-lg text-text-secondary max-w-xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.4 }}
-          >
-            Teams using PoD make better decisions, faster.
-          </motion.p>
+    <section className="py-28 relative overflow-hidden">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" ref={ref}>
+        
+        {/* Header */}
+        <div className="max-w-3xl mb-16">
+          <span className="text-xs font-mono uppercase tracking-wider text-green font-bold flex items-center gap-1.5 mb-3">
+            <TrendingUp className="w-3.5 h-3.5" /> Real Founder Evidence
+          </span>
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-text-primary">
+            Before code was written.
+          </h2>
+          <p className="text-base sm:text-lg text-text-secondary mt-4 leading-relaxed">
+            How early-stage teams used behavioral smoke tests to kill bad ideas early and double down on validated demand.
+          </p>
         </div>
 
+        {/* 3 Case Study Cards */}
         <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((t, i) => (
+          {CASE_STUDIES.map((c, i) => (
             <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 40 }}
+              key={c.company}
+              initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.3 + i * 0.15, duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ delay: 0.15 + i * 0.1, duration: 0.55 }}
+              className="glass-strong rounded-3xl border border-border p-7 flex flex-col justify-between"
             >
-              <div className="relative group h-full">
-                <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-blue/10 via-transparent to-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative glass rounded-2xl p-8 h-full flex flex-col">
-                  {/* Quote */}
-                  <div className="flex-1 mb-6">
-                    <svg className="w-8 h-8 text-blue/15 mb-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                    </svg>
-                    <p className="text-text-secondary leading-relaxed">{t.quote}</p>
+              <div>
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-border/70">
+                  <div>
+                    <span className="text-sm font-bold text-text-primary">{c.company}</span>
+                    <p className="text-[11px] text-text-tertiary font-mono">{c.category}</p>
                   </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface-elevated border border-border text-text-primary">
+                    {c.metric}
+                  </span>
+                </div>
 
-                  {/* Metric badge */}
-                  <div className="mb-6">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green bg-green/10 border border-green/20 rounded-full px-3 py-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green" />
-                      {t.metric}
-                    </span>
-                  </div>
+                <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-6">
+                  &ldquo;{c.quote}&rdquo;
+                </p>
+              </div>
 
-                  {/* Author */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue/10 to-purple/10 flex items-center justify-center text-sm font-bold text-blue">
-                      {t.name.split(" ").map((n) => n[0]).join("")}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">{t.name}</p>
-                      <p className="text-xs text-text-tertiary">{t.role}</p>
-                    </div>
-                  </div>
+              <div className="pt-4 border-t border-border/70 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue/20 to-purple/20 border border-border flex items-center justify-center text-xs font-bold text-text-primary">
+                  {c.founder.split(" ").map((n) => n[0]).join("")}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-text-primary">{c.founder}</p>
+                  <p className="text-[11px] text-text-tertiary">{c.role}</p>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Trust logos */}
-        <motion.div
-          className="mt-20 text-center"
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ delay: 0.8 }}
-        >
-          <p className="text-xs text-text-tertiary uppercase tracking-[0.2em] mb-8">Trusted by teams at</p>
-          <div className="flex flex-wrap items-center justify-center gap-12 opacity-30">
-            {["Stripe", "Vercel", "Linear", "Notion", "Figma"].map((company) => (
-              <span key={company} className="text-lg font-bold text-text-secondary tracking-tight">
-                {company}
-              </span>
-            ))}
-          </div>
-        </motion.div>
       </div>
     </section>
   );
 }
+

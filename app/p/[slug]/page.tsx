@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { LandingPage } from "@/lib/types";
@@ -11,6 +11,7 @@ export default function PublicLandingPage() {
   const slug = params?.slug as string | undefined;
   const [page, setPage] = useState<LandingPage | null>(null);
   const [loading, setLoading] = useState(true);
+  const trackedScrolls = useRef<Record<number, boolean>>({});
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
@@ -20,6 +21,62 @@ export default function PublicLandingPage() {
       .catch(() => setPage(null))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  // Automated Tracking: Page View & Scroll Depth
+  useEffect(() => {
+    if (!slug || !page) return;
+
+    let visitorId = "vis-anon";
+    try {
+      visitorId = localStorage.getItem("pod_vid") || "";
+      if (!visitorId) {
+        visitorId = `vis-${Math.random().toString(36).slice(2, 9)}`;
+        localStorage.setItem("pod_vid", visitorId);
+      }
+    } catch {
+      visitorId = `vis-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    // Fire Page View Beacon
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug,
+        eventType: "page_view",
+        visitorId,
+        metadata: { referrer: document.referrer || "direct", userAgent: navigator.userAgent },
+      }),
+    }).catch(() => {});
+
+    // Instrument Scroll Depth
+    const handleScroll = () => {
+      const h = document.documentElement;
+      const b = document.body;
+      const st = "scrollTop" in h ? h.scrollTop : b.scrollTop;
+      const sh = "scrollHeight" in h ? h.scrollHeight : b.scrollHeight;
+      const percent = Math.floor((st / (sh - h.clientHeight)) * 100);
+
+      [25, 50, 75].forEach((threshold) => {
+        if (percent >= threshold && !trackedScrolls.current[threshold]) {
+          trackedScrolls.current[threshold] = true;
+          fetch("/api/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slug,
+              eventType: `scroll_${threshold}`,
+              visitorId,
+              metadata: { depth: threshold },
+            }),
+          }).catch(() => {});
+        }
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [slug, page]);
 
   if (loading) {
     return (
@@ -55,3 +112,4 @@ export default function PublicLandingPage() {
     </div>
   );
 }
+

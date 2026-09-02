@@ -34,7 +34,7 @@ export function WorkspaceSwitcher() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#F8F9FA] hover:bg-[#EEF0F2] transition-colors"
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface border border-border transition-colors"
       >
         <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
         <span className="text-xs font-semibold text-[var(--dash-text-primary)] hidden sm:block">{active.name}</span>
@@ -47,12 +47,12 @@ export function WorkspaceSwitcher() {
               key={ws.id}
               onClick={() => { setActiveId(ws.id); setOpen(false); }}
               className={cn(
-                "w-full text-left px-3 py-2 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between",
+                "w-full text-left px-3 py-2 text-sm hover:bg-surface-elevated transition-colors flex items-center justify-between",
                 ws.id === activeId ? "text-blue font-semibold" : "text-text-secondary"
               )}
             >
               <span>{ws.name}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EEF0F2] text-text-tertiary">{ws.role}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-elevated text-text-tertiary border border-border">{ws.role}</span>
             </button>
           ))}
         </div>

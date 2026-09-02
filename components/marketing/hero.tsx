@@ -1,130 +1,211 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, CheckCircle2, TrendingUp, Sparkles, ShieldCheck, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { GradientMesh } from "@/components/ui/gradient-mesh";
-import { ParticleField } from "@/components/ui/particle-field";
-import { TextReveal } from "@/components/ui/text-reveal";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true });
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isInView) return;
-    const duration = 2000;
-    const startTime = performance.now();
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [isInView, target]);
-
-  return <span ref={ref} className="font-mono">{count.toLocaleString()}{suffix}</span>;
-}
-
-function SignalPulse() {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue/15"
-          initial={{ width: 200, height: 200, opacity: 0.3 }}
-          animate={{ width: [200, 800], height: [200, 800], opacity: [0.3, 0] }}
-          transition={{ duration: 4, repeat: Infinity, delay: i * 1.3, ease: "easeOut" }}
-        />
-      ))}
-    </div>
-  );
-}
+const DEMO_VARIANTS = [
+  {
+    id: "var-a",
+    tag: "Angle A: Feature / Automation",
+    headline: "Automate your operational workflows in one click.",
+    price: "$49 / mo",
+    traffic: 1240,
+    cvr: "4.2%",
+    intentRate: "3.1%",
+    verdict: "Weak Demand",
+    verdictColor: "amber" as const,
+    insight: "Low pricing interaction (2.1%). Users understand the feature but don't feel acute urgency.",
+  },
+  {
+    id: "var-b",
+    tag: "Angle B: Outcome / Time Saved",
+    headline: "Cut 15 hours of manual reporting every single week.",
+    price: "$79 / mo",
+    traffic: 1842,
+    cvr: "11.4%",
+    intentRate: "8.7%",
+    verdict: "Strong Validation (Winner)",
+    verdictColor: "green" as const,
+    insight: "High-intent checkout rate is 2.8× higher. 95% Wilson CI confirms statistical significance.",
+  },
+  {
+    id: "var-c",
+    tag: "Angle C: Risk / Compliance",
+    headline: "Never fail a SOC2 audit due to rogue spreadsheet silos.",
+    price: "$199 / mo",
+    traffic: 980,
+    cvr: "6.8%",
+    intentRate: "5.4%",
+    verdict: "Moderate (Enterprise Lead)",
+    verdictColor: "blue" as const,
+    insight: "Higher revenue potential per lead ($199), but smaller addressable search traffic.",
+  },
+];
 
 export function HeroSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, 150]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.95]);
+  const [selectedIdx, setSelectedIdx] = useState(1);
+  const activeVariant = DEMO_VARIANTS[selectedIdx];
 
   return (
-    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden">
-      <GradientMesh />
-      <ParticleField particleCount={50} />
-      <SignalPulse />
-      <div className="absolute inset-0 grid-pattern opacity-[0.07]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+    <section className="relative pt-32 pb-24 lg:pt-40 lg:pb-32 overflow-hidden">
+      {/* Subtle atmospheric background */}
+      <div className="absolute inset-0 dot-grid opacity-20 pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue/5 rounded-full blur-3xl pointer-events-none" />
 
-      <motion.div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 w-full" style={{ y, opacity, scale }}>
-        <div className="max-w-5xl mx-auto">
-          <motion.div className="flex justify-center mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-            <Badge variant="blue" className="px-4 py-1.5 text-xs tracking-wide">
-              <Sparkles className="w-3 h-3 mr-1.5" />
-              AI-Powered Demand Validation
-            </Badge>
-          </motion.div>
-
-          <div className="text-center mb-8">
-            <TextReveal as="h1" className="text-5xl sm:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[0.9] gradient-text-blue" delay={0.3} staggerChildren={0.04}>
-              Prove demand before you build.
-            </TextReveal>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Editorial Eyebrow */}
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-elevated border border-border text-xs font-medium text-text-secondary shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
+            <span>The 7-Day Demand Sprint</span>
+            <span className="text-text-tertiary">·</span>
+            <span className="text-text-tertiary font-mono">Statistical Rigor</span>
           </div>
-
-          <motion.p className="text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto text-center mb-12 leading-relaxed text-glow" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.8 }}>
-            PoD Engine turns startup ideas into measurable demand experiments—combining AI-generated positioning, multi-variant landing pages, targeted ad tests, and willingness-to-pay analysis.
-          </motion.p>
-
-          <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1 }}>
-            <MagneticButton strength={0.15}>
-              <Link href="/sign-up">
-                <Button size="xl" className="group relative overflow-hidden">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Start a Validation Sprint
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </Button>
-              </Link>
-            </MagneticButton>
-            <MagneticButton strength={0.15}>
-              <Link href="#how-it-works">
-                <Button variant="secondary" size="xl" className="group">
-                  See How It Works
-                  <motion.span className="inline-block" animate={{ x: [0, 4, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>→</motion.span>
-                </Button>
-              </Link>
-            </MagneticButton>
-          </motion.div>
-
-          <motion.div className="grid grid-cols-3 gap-8 max-w-lg mx-auto" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1.2 }}>
-            {[
-              { value: 2847, suffix: "+", label: "Experiments Run" },
-              { value: 94, suffix: "%", label: "Accuracy Rate" },
-              { value: 12, suffix: "x", label: "Faster Validation" },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-2xl sm:text-3xl font-bold gradient-text-blue">
-                  <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-                </p>
-                <p className="text-xs text-text-tertiary mt-1 font-medium">{stat.label}</p>
-              </div>
-            ))}
-          </motion.div>
         </div>
 
-        <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary">Scroll</span>
-          <motion.div className="w-[1px] h-8 bg-gradient-to-b from-blue/50 to-transparent" animate={{ scaleY: [0, 1, 0] }} transition={{ duration: 2, repeat: Infinity }} />
-        </motion.div>
-      </motion.div>
+        {/* Main Headline */}
+        <div className="text-center max-w-4xl mx-auto mb-8">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-text-primary leading-[1.08]">
+            Don&apos;t spend 6 months building something{" "}
+            <span className="underline decoration-blue/40 decoration-4 underline-offset-8">
+              nobody wants.
+            </span>
+          </h1>
+          <p className="text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto mt-6 leading-relaxed">
+            Customer interviews lie. Friends are polite. Real validation only happens when people click pricing tiers, commit intent, and pull out their wallets.
+          </p>
+        </div>
+
+        {/* CTA Actions */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <Link href="/onboarding">
+            <Button size="xl" className="w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold shadow-lg shadow-blue/20 hover:shadow-blue/30 group">
+              Start a 7-Day Sprint
+              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
+          <Link href="#interactive-demo">
+            <Button variant="secondary" size="xl" className="w-full sm:w-auto px-8 py-3.5 rounded-full font-medium">
+              See Live Evidence
+            </Button>
+          </Link>
+        </div>
+
+        {/* Interactive Experiment Simulator Widget */}
+        <div id="interactive-demo" className="mt-8 max-w-4xl mx-auto">
+          <div className="glass-strong rounded-3xl border border-border p-5 sm:p-7 shadow-2xl shadow-black/5 dark:shadow-black/40">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-text-tertiary font-mono">Live Validation Test</span>
+                  <Badge variant="blue">EXP-2848</Badge>
+                </div>
+                <h3 className="text-base font-bold text-text-primary mt-1">B2B Workflow SaaS — Positioning & Pricing Sprint</h3>
+              </div>
+              <div className="flex items-center gap-1.5 bg-surface-elevated p-1 rounded-full border border-border self-start sm:self-auto">
+                {DEMO_VARIANTS.map((v, i) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setSelectedIdx(i)}
+                    className={cn(
+                      "px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer",
+                      selectedIdx === i
+                        ? "bg-surface text-text-primary shadow-xs border border-border"
+                        : "text-text-tertiary hover:text-text-secondary"
+                    )}
+                  >
+                    Variant {String.fromCharCode(65 + i)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selected Variant Data Card */}
+            <div className="pt-5 space-y-5">
+              <div className="p-4 rounded-2xl bg-surface-elevated/70 border border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <span className="text-[11px] font-mono text-text-tertiary uppercase">{activeVariant.tag}</span>
+                  <p className="text-sm sm:text-base font-semibold text-text-primary mt-0.5">&ldquo;{activeVariant.headline}&rdquo;</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-text-tertiary">Tested Price:</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-surface border border-border text-xs font-mono font-bold text-text-primary">
+                    {activeVariant.price}
+                  </span>
+                </div>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-surface border border-border">
+                  <p className="text-[11px] text-text-tertiary">Sample Traffic</p>
+                  <p className="text-xl font-bold font-mono text-text-primary mt-0.5">{activeVariant.traffic.toLocaleString()}</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-surface border border-border">
+                  <p className="text-[11px] text-text-tertiary">Conversion Rate</p>
+                  <p className="text-xl font-bold font-mono text-text-primary mt-0.5">{activeVariant.cvr}</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-surface border border-border">
+                  <p className="text-[11px] text-text-tertiary">High-Intent Clicks</p>
+                  <p className="text-xl font-bold font-mono text-text-primary mt-0.5">{activeVariant.intentRate}</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-surface border border-border">
+                  <p className="text-[11px] text-text-tertiary">Verdict</p>
+                  <div className="mt-1">
+                    <Badge variant={activeVariant.verdictColor}>{activeVariant.verdict}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Diagnosis Callout */}
+              <div className="p-3.5 rounded-xl bg-blue/5 border border-blue/15 flex items-start gap-3">
+                <TrendingUp className="w-4 h-4 text-blue shrink-0 mt-0.5" />
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  <strong className="text-text-primary">Demand Diagnosis:</strong> {activeVariant.insight}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Human Proof Pillars */}
+        <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto mt-16 pt-12 border-t border-border/70 text-center sm:text-left">
+          <div>
+            <div className="flex items-center gap-2 justify-center sm:justify-start text-xs font-semibold text-text-primary">
+              <CheckCircle2 className="w-4 h-4 text-green" />
+              <span>Real Behavioral Funnels</span>
+            </div>
+            <p className="text-xs text-text-tertiary mt-1.5 leading-relaxed">
+              Track pricing table dwell time, checkout attempts, and deposit commitments.
+            </p>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 justify-center sm:justify-start text-xs font-semibold text-text-primary">
+              <ShieldCheck className="w-4 h-4 text-blue" />
+              <span>Statistical Confidence</span>
+            </div>
+            <p className="text-xs text-text-tertiary mt-1.5 leading-relaxed">
+              Wilson 95% confidence intervals and sample sizing to eliminate random noise.
+            </p>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 justify-center sm:justify-start text-xs font-semibold text-text-primary">
+              <DollarSign className="w-4 h-4 text-amber" />
+              <span>Willingness to Pay</span>
+            </div>
+            <p className="text-xs text-text-tertiary mt-1.5 leading-relaxed">
+              Discover price elasticity across cohorts before writing product code.
+            </p>
+          </div>
+        </div>
+
+      </div>
     </section>
   );
 }

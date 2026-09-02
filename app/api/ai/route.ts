@@ -35,18 +35,19 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
+      const baseUrl = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
       const system = `You are the PoD demand analyst. Use this live experiment context:\n${context}\n\nAnswer concisely with evidence, then a recommendation.`;
       const payload = {
-        model: body.model || "gpt-4o-mini",
+        model: body.model || process.env.OPENAI_MODEL || "gpt-4o-mini",
         stream: true,
         messages: [{ role: "system", content: system }, ...messages],
       };
-      const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
+      const upstream = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(payload),
       });
-      if (!upstream.ok || !upstream.body) throw new Error(`OpenAI ${upstream.status}`);
+      if (!upstream.ok || !upstream.body) throw new Error(`AI Gateway error: ${upstream.status}`);
       // Proxy stream as SSE text/event-stream
       return new Response(upstream.body, {
         headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },

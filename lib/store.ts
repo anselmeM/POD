@@ -18,7 +18,7 @@ export interface WizardState {
   budget: number;
   channel: string[];
   setStep: (step: number) => void;
-  updateField: (field: string, value: string | number | string[]) => void;
+  updateField: (field: string, value: string | number | string[] | Record<string, string>) => void;
   toggleHypothesis: (id: string) => void;
   nextStep: () => void;
   prevStep: () => void;

@@ -21,7 +21,11 @@ export async function GET() {
     });
   }
 
-  const data = await prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 20 });
+  const data = await prisma.notification.findMany({
+    where: { OR: [{ userId: user.id }, { userId: null }] },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+  });
   const unread = data.filter((n) => !n.read).length;
   return NextResponse.json({ data, total: data.length, unread });
 }

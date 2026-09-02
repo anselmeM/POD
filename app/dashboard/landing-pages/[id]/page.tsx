@@ -154,7 +154,7 @@ export default function LandingPageDetailPage() {
               </div>
               <div className="rounded-lg border border-border overflow-hidden">
                 <div className="px-3 py-2 bg-surface-elevated border-b border-border text-xs font-medium text-text-tertiary">Live Preview — {template}</div>
-                <div className="max-h-[420px] overflow-auto bg-white">
+                <div className="max-h-[420px] overflow-auto bg-surface">
                   {(() => {
                     const Preview = templateRenderers[template] || templateRenderers.hero;
                     const previewPage = { ...page, headline: headline || page.headline, subheadline: subheadline || page.subheadline, cta: cta || page.cta, template, positioning };

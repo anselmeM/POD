@@ -36,7 +36,7 @@ export function ScrollRevealSection({
             {eyebrow}
           </p>
         )}
-        <h2 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-center max-w-5xl mx-auto leading-[1.1] mb-8 gradient-text-blue">
+        <h2 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight text-center max-w-5xl mx-auto leading-[1.1] mb-8 text-text-primary">
           {heading}
         </h2>
         {subheading && (

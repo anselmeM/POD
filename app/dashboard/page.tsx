@@ -38,7 +38,7 @@ function StatusPill({ status }: { status: string }) {
     completed: { cls: "bg-[var(--dash-green-light)] text-[var(--dash-green)]", label: "Completed" },
     winner: { cls: "bg-[var(--dash-green-light)] text-[var(--dash-green)]", label: "Winner" },
     paused: { cls: "bg-[var(--dash-amber-light)] text-[var(--dash-amber)]", label: "Paused" },
-    draft: { cls: "bg-[#F8F9FA] text-[var(--dash-text-tertiary)]", label: "Draft" },
+    draft: { cls: "bg-surface-elevated text-[var(--dash-text-tertiary)] border border-border", label: "Draft" },
   };
   const s = map[status] || map.draft;
   return <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${s.cls}`}>{s.label}</span>;
@@ -84,7 +84,7 @@ function SignalFunnelChart() {
           onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
           {hovered === i && (
             <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-              className="absolute -top-8 bg-blue text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10">
+              className="absolute -top-8 bg-blue text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10 shadow-lg">
               {s.count} events · {s.percentage}%
             </motion.div>
           )}
@@ -92,7 +92,7 @@ function SignalFunnelChart() {
             <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max((s.count / maxCount) * 144, 4)}px` }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
               className={`w-full max-w-[28px] rounded-t-lg transition-colors cursor-pointer ${
-                hovered === i ? "bg-blue" : "bg-[#EEF0F2] hover:bg-[#E5E7EB]"
+                hovered === i ? "bg-blue" : "bg-surface-elevated hover:bg-black/10 dark:hover:bg-white/10"
               }`} />
           </div>
           <span className="text-[10px] font-semibold text-[var(--dash-text-tertiary)] mt-1 text-center leading-tight">{s.label}</span>
@@ -265,7 +265,7 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#F3F4F6]">
+                    <tr className="border-b border-border">
                       <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Experiment</th>
                       <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Variants</th>
                       <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Traffic</th>
@@ -275,7 +275,7 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {experiments.map((exp) => (
-                      <tr key={exp.id} className="border-b border-[#F3F4F6] hover:bg-[#F8F9FA] transition-colors">
+                      <tr key={exp.id} className="border-b border-border hover:bg-surface-elevated/80 transition-colors">
                         <td className="py-3 pr-4">
                           <Link href={`/dashboard/experiments/${exp.id}`} className="text-sm font-bold text-[var(--dash-text-primary)] hover:text-blue transition-colors">{exp.name}</Link>
                           <p className="text-[10px] text-[var(--dash-text-tertiary)] font-mono">{exp.id}</p>
@@ -310,8 +310,8 @@ export default function DashboardPage() {
                   <motion.div key={exp.id}
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.6 + i * 0.05 }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F8F9FA] transition-colors">
-                    <div className="w-7 h-7 rounded-full bg-[#EEF0F2] flex items-center justify-center shrink-0">
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-elevated transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-surface-elevated border border-border flex items-center justify-center shrink-0">
                       <Activity className="w-3.5 h-3.5 text-[var(--dash-text-tertiary)]" />
                     </div>
                     <div className="flex-1 min-w-0">

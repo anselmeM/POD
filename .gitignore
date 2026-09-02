@@ -35,6 +35,8 @@ npm_install.log
 
 # Testing
 coverage/
+test-results/
+playwright-report/
 
 # TypeScript
 *.tsbuildinfo

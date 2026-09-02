@@ -2,6 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 export const authConfig: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "EHirfBUmlFVPGEqId3EmAWyUUiX3Dl3EWoE4DtyeMtA=",
+  session: { strategy: "jwt" },
   providers: [
     Credentials({
       name: "Credentials",

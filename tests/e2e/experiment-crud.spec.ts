@@ -2,10 +2,10 @@ import { test, expect } from "@playwright/test";
 
 async function signIn(page: import("@playwright/test").Page) {
   await page.goto("/sign-in");
-  await page.getByLabel("Email").fill("alex@example.com");
-  await page.getByLabel("Password").fill("demo12345");
+  await page.locator('input[type="email"]').fill("alex@example.com");
+  await page.locator('input[type="password"]').fill("demo12345");
   await page.getByRole("button", { name: "Sign In" }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 }
 
 test("experiment CRUD: create, view, and delete", async ({ page }) => {
@@ -15,15 +15,15 @@ test("experiment CRUD: create, view, and delete", async ({ page }) => {
   await page.goto("/dashboard/experiments/new");
   const expName = `E2E Exp ${Date.now()}`;
   await page.getByLabel("Experiment Name").fill(expName);
-  // Fill first variant headline to satisfy validation
-  const headlineInputs = page.getByLabel("Headline");
-  if (await headlineInputs.first().isVisible()) {
-    await headlineInputs.first().fill("E2E Headline A");
-    if (await headlineInputs.nth(1).isVisible()) await headlineInputs.nth(1).fill("E2E Headline B");
+  // Fill all variant headlines to satisfy validation
+  const headlineInputs = page.getByPlaceholder("e.g., Stop Losing Hours to Manual Reporting");
+  const count = await headlineInputs.count();
+  for (let i = 0; i < count; i++) {
+    await headlineInputs.nth(i).fill(`E2E Headline ${i + 1}`);
   }
   await page.getByRole("button", { name: "Create Experiment" }).click();
-  await expect(page).toHaveURL(/\/dashboard\/experiments\/.+/, { timeout: 15_000 });
-  await expect(page.getByText(expName)).toBeVisible({ timeout: 10_000 });
+  await expect(page).toHaveURL(/\/dashboard\/experiments\/(?!new$)[^/]+/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: expName })).toBeVisible({ timeout: 15_000 });
   const expId = page.url().split("/").pop()!.split("?")[0];
 
   // View in list

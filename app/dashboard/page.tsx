@@ -103,6 +103,8 @@ function SignalFunnelChart() {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 export default function DashboardPage() {
   const { user } = useUser();
   const { experiments, error, fetchExperiments } = useExperimentStore();
@@ -117,9 +119,11 @@ export default function DashboardPage() {
       .catch(() => setProject(null));
   }, []);
 
+  const safeExperiments = Array.isArray(experiments) ? experiments : [];
+
   // Compute metrics from real data
-  const totalTraffic = experiments.reduce((sum, e) => sum + e.traffic, 0);
-  const totalHighIntent = experiments.reduce((sum, e) => sum + e.highIntentActions, 0);
+  const totalTraffic = safeExperiments.reduce((sum, e) => sum + (e?.traffic || 0), 0);
+  const totalHighIntent = safeExperiments.reduce((sum, e) => sum + (e?.highIntentActions || 0), 0);
   const podScore = project?.podScore ?? 0;
   const verdict = verdictFromScore(podScore);
 
@@ -282,7 +286,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {experiments.length === 0 ? (
+                    {safeExperiments.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-12 text-center text-sm text-[var(--dash-text-tertiary)]">
                           No experiments created yet.{" "}
@@ -292,15 +296,15 @@ export default function DashboardPage() {
                         </td>
                       </tr>
                     ) : (
-                      experiments.map((exp) => (
+                      safeExperiments.map((exp) => (
                         <tr key={exp.id} className="border-b border-border hover:bg-surface-elevated/80 transition-colors">
                           <td className="py-3 pr-4">
                             <Link href={`/dashboard/experiments/${exp.id}`} className="text-sm font-bold text-[var(--dash-text-primary)] hover:text-blue transition-colors">{exp.name}</Link>
                             <p className="text-[10px] text-[var(--dash-text-tertiary)] font-mono">{exp.id}</p>
                           </td>
-                          <td className="py-3 pr-4 text-sm text-[var(--dash-text-secondary)]">{exp.variants.length} variants</td>
-                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.traffic.toLocaleString()}</td>
-                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.conversionRate}%</td>
+                          <td className="py-3 pr-4 text-sm text-[var(--dash-text-secondary)]">{exp.variants?.length || 0} variants</td>
+                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{(exp.traffic || 0).toLocaleString()}</td>
+                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.conversionRate || 0}%</td>
                           <td className="py-3 pr-4"><StatusPill status={exp.status} /></td>
                         </tr>
                       ))
@@ -325,7 +329,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {experiments.slice(0, 6).map((exp, i) => (
+                {safeExperiments.slice(0, 6).map((exp, i) => (
                   <motion.div key={exp.id}
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.6 + i * 0.05 }}

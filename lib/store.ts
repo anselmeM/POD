@@ -103,9 +103,13 @@ export const useLandingPageStore = create<LandingPageStore>((set, get) => ({
     try {
       const res = await fetch("/api/landing-pages");
       const json = await res.json();
-      set({ landingPages: json.data, loading: false });
+      set({
+        landingPages: Array.isArray(json.data) ? json.data : [],
+        loading: false,
+        error: res.ok ? null : (json.error || "Failed to fetch landing pages"),
+      });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      set({ landingPages: [], error: (e as Error).message, loading: false });
     }
   },
 
@@ -179,9 +183,13 @@ export const useExperimentStore = create<ExperimentStore>((set, get) => ({
       const url = projectId ? `/api/experiments?projectId=${projectId}` : "/api/experiments";
       const res = await fetch(url);
       const json = await res.json();
-      set({ experiments: json.data, loading: false });
+      set({
+        experiments: Array.isArray(json.data) ? json.data : [],
+        loading: false,
+        error: res.ok ? null : (json.error || "Failed to fetch experiments"),
+      });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      set({ experiments: [], error: (e as Error).message, loading: false });
     }
   },
 
@@ -255,9 +263,13 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       const url = experimentId ? `/api/leads?experimentId=${experimentId}` : "/api/leads";
       const res = await fetch(url);
       const json = await res.json();
-      set({ leads: json.data, loading: false });
+      set({
+        leads: Array.isArray(json.data) ? json.data : [],
+        loading: false,
+        error: res.ok ? null : (json.error || "Failed to fetch leads"),
+      });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      set({ leads: [], error: (e as Error).message, loading: false });
     }
   },
 

@@ -9,6 +9,8 @@ import { useLeadStore } from "@/lib/store";
 import type { LeadStatus } from "@/lib/types";
 import { Users, Target, TrendingUp, Search, Filter, AlertCircle, RefreshCw } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default function LeadsPage() {
   const { leads, loading, error, fetchLeads } = useLeadStore();
   const [selected, setSelected] = useState<string | null>(null);
@@ -17,16 +19,17 @@ export default function LeadsPage() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
-  const lead = leads.find((l) => l.id === selected);
+  const safeLeads = Array.isArray(leads) ? leads : [];
+  const lead = safeLeads.find((l) => l.id === selected);
 
-  const filtered = leads.filter((l) => {
-    const matchesSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.company.toLowerCase().includes(search.toLowerCase());
+  const filtered = safeLeads.filter((l) => {
+    const matchesSearch = (l.name || "").toLowerCase().includes(search.toLowerCase()) || (l.company || "").toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || l.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const avgIntent = leads.length > 0 ? Math.round(leads.reduce((s, l) => s + l.intentScore, 0) / leads.length) : 0;
-  const qualified = leads.filter((l) => l.status === "qualified" || l.status === "converted").length;
+  const avgIntent = safeLeads.length > 0 ? Math.round(safeLeads.reduce((s, l) => s + (l.intentScore || 0), 0) / safeLeads.length) : 0;
+  const qualified = safeLeads.filter((l) => l.status === "qualified" || l.status === "converted").length;
 
   if (loading) {
     return (

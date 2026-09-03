@@ -27,25 +27,10 @@ export async function auth(): Promise<AppSession | null> {
     const email = user.emailAddresses?.[0]?.emailAddress?.toLowerCase().trim();
     if (!email) return null;
 
-    // Look up user in Prisma database
-    let dbUser = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        memberships: {
-          include: { workspace: true },
-        },
-      },
-    });
-
-    // Auto-provision user & workspace if new (e.g. first Google Sign-In)
-    if (!dbUser) {
-      const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || email.split("@")[0];
-      dbUser = await prisma.user.create({
-        data: {
-          email,
-          name,
-          image: user.imageUrl || null,
-        },
+    try {
+      // Look up user in Prisma database
+      let dbUser = await prisma.user.findUnique({
+        where: { email },
         include: {
           memberships: {
             include: { workspace: true },
@@ -53,37 +38,64 @@ export async function auth(): Promise<AppSession | null> {
         },
       });
 
-      // Create a default workspace for this new user
-      const workspaceSlug =
-        email.split("@")[0].replace(/[^a-z0-9]/gi, "-").toLowerCase() +
-        "-" +
-        Math.random().toString(36).slice(2, 6);
+      // Auto-provision user & workspace if new (e.g. first Google Sign-In)
+      if (!dbUser) {
+        const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || email.split("@")[0];
+        dbUser = await prisma.user.create({
+          data: {
+            email,
+            name,
+            image: user.imageUrl || null,
+          },
+          include: {
+            memberships: {
+              include: { workspace: true },
+            },
+          },
+        });
 
-      const workspace = await prisma.workspace.create({
-        data: {
-          name: `${name}'s Workspace`,
-          slug: workspaceSlug,
-          ownerId: dbUser.id,
-        },
-      });
+        // Create a default workspace for this new user
+        const workspaceSlug =
+          email.split("@")[0].replace(/[^a-z0-9]/gi, "-").toLowerCase() +
+          "-" +
+          Math.random().toString(36).slice(2, 6);
 
-      await prisma.workspaceMember.create({
-        data: {
-          userId: dbUser.id,
-          workspaceId: workspace.id,
-          role: "owner",
+        const workspace = await prisma.workspace.create({
+          data: {
+            name: `${name}'s Workspace`,
+            slug: workspaceSlug,
+            ownerId: dbUser.id,
+          },
+        });
+
+        await prisma.workspaceMember.create({
+          data: {
+            userId: dbUser.id,
+            workspaceId: workspace.id,
+            role: "owner",
+          },
+        });
+      }
+
+      return {
+        user: {
+          id: dbUser.id,
+          email: dbUser.email,
+          name: dbUser.name,
+          image: dbUser.image,
         },
-      });
+      };
+    } catch (dbErr) {
+      console.error("Database user lookup failed, falling back to Clerk session:", dbErr);
+      return {
+        user: {
+          id: user.id,
+          email,
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || email.split("@")[0],
+          image: user.imageUrl || null,
+        },
+      };
     }
-
-    return {
-      user: {
-        id: dbUser.id,
-        email: dbUser.email,
-        name: dbUser.name,
-        image: dbUser.image,
-      },
-    };
   } catch {
     return null;
   }

@@ -50,6 +50,8 @@ function ExperimentsSkeleton() {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 export default function ExperimentsPage() {
   const router = useRouter();
   const { experiments, loading, error, fetchExperiments } = useExperimentStore();
@@ -63,7 +65,10 @@ export default function ExperimentsPage() {
     fetchExperiments();
   }, [fetchExperiments]);
 
-  const filtered = experiments.filter((exp) => {
+
+  const safeExperiments = Array.isArray(experiments) ? experiments : [];
+
+  const filtered = safeExperiments.filter((exp) => {
     const matchesTab = activeTab === "All" || exp.status === activeTab.toLowerCase();
     const matchesSearch = exp.name.toLowerCase().includes(search.toLowerCase()) || exp.id.toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;

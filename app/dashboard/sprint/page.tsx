@@ -11,12 +11,15 @@ import { useExperimentStore } from "@/lib/store";
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
+export const dynamic = "force-dynamic";
+
 export default function SprintPage() {
   const { experiments, loading, error, fetchExperiments } = useExperimentStore();
 
   useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
 
-  const active = experiments.filter((e) => e.status === "running");
+  const safeExperiments = Array.isArray(experiments) ? experiments : [];
+  const active = safeExperiments.filter((e) => e.status === "running");
 
   if (loading) {
     return (

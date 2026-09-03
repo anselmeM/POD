@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
+export const dynamic = "force-dynamic";
+
 export default function AudiencesPage() {
   const [audience, setAudience] = useState<any>(null);
   const [segments, setSegments] = useState<any[]>([]);
@@ -23,7 +25,7 @@ export default function AudiencesPage() {
       if (!res.ok) throw new Error("Failed to fetch audiences");
       const data = await res.json();
       setAudience(data.audience);
-      setSegments(data.segments);
+      setSegments(Array.isArray(data.segments) ? data.segments : []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -33,9 +35,10 @@ export default function AudiencesPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const totalReach = segments.reduce((s, seg) => s + seg.reach, 0);
-  const avgIntent = segments.length > 0 ? Math.round(segments.reduce((s, seg) => s + seg.intentScore, 0) / segments.length) : 0;
-  const reachData = segments.map((seg) => ({ name: seg.name.length > 15 ? seg.name.slice(0, 15) + "…" : seg.name, reach: seg.reach, intent: seg.intentScore }));
+  const safeSegments = Array.isArray(segments) ? segments : [];
+  const totalReach = safeSegments.reduce((s, seg) => s + (seg?.reach || 0), 0);
+  const avgIntent = safeSegments.length > 0 ? Math.round(safeSegments.reduce((s, seg) => s + (seg?.intentScore || 0), 0) / safeSegments.length) : 0;
+  const reachData = safeSegments.map((seg) => ({ name: (seg?.name || "").length > 15 ? (seg?.name || "").slice(0, 15) + "…" : (seg?.name || ""), reach: seg?.reach || 0, intent: seg?.intentScore || 0 }));
 
   if (loading) {
     return (

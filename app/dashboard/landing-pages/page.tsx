@@ -29,6 +29,8 @@ const filterTabs: { label: string; value: LandingPageStatus | "all" }[] = [
   { label: "Paused", value: "paused" },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default function LandingPagesPage() {
   const { landingPages, loading, fetchLandingPages, deleteLandingPage, updateLandingPageStatus } = useLandingPageStore();
   const [filter, setFilter] = useState<LandingPageStatus | "all">("all");
@@ -48,11 +50,12 @@ export default function LandingPagesPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenu]);
 
-  const filtered = filter === "all" ? landingPages : landingPages.filter((lp) => lp.status === filter);
-  const totalVisitors = landingPages.reduce((s, p) => s + p.visitors, 0);
-  const totalConversions = landingPages.reduce((s, p) => s + p.conversions, 0);
-  const avgBounce = landingPages.length ? Math.round(landingPages.reduce((s, p) => s + p.bounceRate, 0) / landingPages.length) : 0;
-  const avgTime = landingPages.length ? Math.round(landingPages.reduce((s, p) => s + p.avgTimeOnPage, 0) / landingPages.length) : 0;
+  const safeLandingPages = Array.isArray(landingPages) ? landingPages : [];
+  const filtered = filter === "all" ? safeLandingPages : safeLandingPages.filter((lp) => lp.status === filter);
+  const totalVisitors = safeLandingPages.reduce((s, p) => s + (p?.visitors || 0), 0);
+  const totalConversions = safeLandingPages.reduce((s, p) => s + (p?.conversions || 0), 0);
+  const avgBounce = safeLandingPages.length ? Math.round(safeLandingPages.reduce((s, p) => s + (p?.bounceRate || 0), 0) / safeLandingPages.length) : 0;
+  const avgTime = safeLandingPages.length ? Math.round(safeLandingPages.reduce((s, p) => s + (p?.avgTimeOnPage || 0), 0) / safeLandingPages.length) : 0;
 
   return (
     <div className="space-y-6">

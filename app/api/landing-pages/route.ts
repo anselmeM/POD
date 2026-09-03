@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data, total: data.length });
   } catch (e) {
     console.error("Failed to fetch landing pages:", e);
-    return NextResponse.json({ error: "Failed to fetch landing pages" }, { status: 500 });
+    return NextResponse.json({ data: [], total: 0, error: "Failed to fetch landing pages" });
   }
 }
 

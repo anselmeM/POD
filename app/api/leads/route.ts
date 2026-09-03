@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeLead } from "@/lib/serialize";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { createNotification } from "@/lib/notifications";
 
 /** GET /api/leads — list all leads scoped to caller's workspace */
 export async function GET(request: NextRequest) {
@@ -77,6 +78,13 @@ export async function POST(request: NextRequest) {
         events: JSON.stringify(body.events || []),
       },
     });
+    // Dispatch in-app notification
+    createNotification({
+      type: "lead",
+      title: `New Lead: ${lead.name}`,
+      message: `${lead.name} (${lead.company || lead.email}) captured with intent score ${lead.intentScore}/100.`,
+    }).catch(() => {});
+
     return NextResponse.json({ data: serializeLead(lead) }, { status: 201 });
   } catch (e) {
     console.error("Failed to create lead:", e);

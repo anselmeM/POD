@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import { checkWorkspaceLimit } from "@/lib/plan-limits";
+import { createNotification } from "@/lib/notifications";
 
 /** GET /api/experiments — list all experiments for caller's workspace */
 export async function GET(request: NextRequest) {
@@ -112,6 +113,15 @@ export async function POST(request: NextRequest) {
       data: data as Parameters<typeof prisma.experiment.create>[0]["data"],
       include: { variants: true },
     });
+
+    // Dispatch in-app notification
+    createNotification({
+      userId: ctx.user.id,
+      workspaceId: ctx.workspace.id,
+      type: "experiment",
+      title: `Experiment Created: ${created.name}`,
+      message: `New experiment launched with ${created.variants.length} variant(s). Traffic and behavioral signals are now live.`,
+    }).catch(() => {});
 
     return NextResponse.json({ data: serializeExperiment(created) }, { status: 201 });
   } catch (e) {

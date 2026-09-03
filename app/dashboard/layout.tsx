@@ -2,13 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, ChevronDown, Menu, X,
   LogOut, Settings, User,
   LayoutDashboard, FlaskConical, Layout, Activity, Brain,
-  Users, Contact, FileText, Zap, History,
+  Users, Contact, FileText, Zap, History, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrbField } from "@/components/ui/animated-orb";
@@ -42,8 +42,68 @@ const ALL_MOBILE_NAV = [
   ...MORE_NAV.map((m) => ({ label: m.label, href: m.href, icon: m.icon })),
 ];
 
+interface DashboardNotification {
+  id: string;
+  type?: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
+
+function formatNotificationTime(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+function getNotificationIcon(type?: string) {
+  const t = type?.toLowerCase() || "";
+  if (t.includes("experiment")) {
+    return {
+      icon: FlaskConical,
+      badgeClass: "bg-purple-500/15 text-purple-400 border border-purple-500/20",
+    };
+  }
+  if (t.includes("lead")) {
+    return {
+      icon: Contact,
+      badgeClass: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20",
+    };
+  }
+  if (t.includes("insight") || t.includes("ai")) {
+    return {
+      icon: Brain,
+      badgeClass: "bg-blue-500/15 text-blue-400 border border-blue-500/20",
+    };
+  }
+  if (t.includes("sprint")) {
+    return {
+      icon: Zap,
+      badgeClass: "bg-amber-500/15 text-amber-400 border border-amber-500/20",
+    };
+  }
+  return {
+    icon: Bell,
+    badgeClass: "bg-surface-elevated text-[var(--dash-text-secondary)] border border-border",
+  };
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useUser();
   const { signOut } = useClerk();
   const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Founder";
@@ -54,7 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [moreOpen, setMoreOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read: boolean; createdAt: string }[]>([]);
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
   const unread = notifications.filter((n) => !n.read).length;
@@ -64,11 +124,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useKeyboardShortcuts({ onHelp: () => setHelpOpen((v) => !v) });
 
-  useEffect(() => {
+  const fetchNotifications = () => {
     fetch("/api/notifications")
       .then((r) => (r.ok ? r.json() : { data: [] }))
       .then((j) => setNotifications(j.data || []))
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchNotifications();
   }, [user]);
 
   useEffect(() => {
@@ -82,12 +146,66 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   const markAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     await fetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ markAll: true }),
-    });
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    }).catch(() => {});
+  };
+
+  const markAsRead = async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  };
+
+  const deleteNotification = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    await fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  };
+
+  const clearAllNotifications = async () => {
+    setNotifications([]);
+    await fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clearAll: true }),
+    }).catch(() => {});
+  };
+
+  const handleNotificationClick = (notif: DashboardNotification) => {
+    if (!notif.read) {
+      markAsRead(notif.id);
+    }
+    setNotifOpen(false);
+
+    const t = notif.type?.toLowerCase() || "";
+    if (t.includes("experiment")) {
+      router.push("/dashboard/experiments");
+    } else if (t.includes("lead")) {
+      router.push("/dashboard/leads");
+    } else if (t.includes("insight") || t.includes("ai")) {
+      router.push("/dashboard/ai-analyst");
+    } else if (t.includes("sprint")) {
+      router.push("/dashboard/sprint");
+    } else if (t.includes("audience")) {
+      router.push("/dashboard/audiences");
+    } else if (t.includes("page") || t.includes("landing")) {
+      router.push("/dashboard/landing-pages");
+    } else if (t.includes("signal")) {
+      router.push("/dashboard/signals");
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   const isActive = (href: string) => {
@@ -239,37 +357,107 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <AnimatePresence>
                   {notifOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className="absolute right-0 top-full mt-2 w-80 glass-strong rounded-2xl shadow-2xl py-2 z-50 border border-border max-h-[380px] overflow-auto"
+                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-80 sm:w-96 glass-strong rounded-2xl shadow-2xl z-50 border border-border overflow-hidden flex flex-col max-h-[440px]"
                     >
-                      <div className="flex items-center justify-between px-3 pb-2 border-b border-border">
-                        <span className="text-sm font-semibold">Notifications</span>
-                        {unread > 0 && (
-                          <button onClick={markAllRead} className="text-[11px] text-blue hover:underline">
-                            Mark all read
-                          </button>
-                        )}
+                      {/* Dropdown Header */}
+                      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border bg-surface-elevated/40">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-[var(--dash-text-primary)]">Notifications</span>
+                          {unread > 0 && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-blue text-white leading-none">
+                              {unread} new
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          {unread > 0 && (
+                            <button
+                              onClick={markAllRead}
+                              className="text-[11px] font-medium text-blue hover:underline cursor-pointer"
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                          {notifications.length > 0 && (
+                            <button
+                              onClick={clearAllNotifications}
+                              className="text-[11px] text-[var(--dash-text-tertiary)] hover:text-red-400 transition-colors cursor-pointer"
+                              title="Clear all"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {notifications.length === 0 ? (
-                        <p className="text-xs text-text-tertiary text-center py-8">No notifications</p>
-                      ) : (
-                        notifications.map((n) => (
-                          <div
-                            key={n.id}
-                            className={`px-3 py-2.5 hover:bg-surface-elevated border-b border-border/50 last:border-0 ${
-                              !n.read ? "bg-blue/5" : ""
-                            }`}
-                          >
-                            <p className="text-xs font-medium">{n.title}</p>
-                            <p className="text-[11px] text-text-secondary line-clamp-2">{n.message}</p>
-                            <p className="text-[10px] text-text-tertiary mt-1">
-                              {new Date(n.createdAt).toLocaleDateString()}
+
+                      {/* Dropdown Content */}
+                      <div className="overflow-y-auto divide-y divide-border/40">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-10 text-center flex flex-col items-center justify-center">
+                            <div className="w-9 h-9 rounded-full bg-surface-elevated flex items-center justify-center text-[var(--dash-text-tertiary)] mb-2.5">
+                              <Bell className="w-4 h-4 opacity-50" />
+                            </div>
+                            <p className="text-xs font-medium text-[var(--dash-text-primary)]">All caught up!</p>
+                            <p className="text-[11px] text-[var(--dash-text-tertiary)] mt-0.5 max-w-[200px]">
+                              No notifications right now. System events and conversion alerts will appear here.
                             </p>
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          notifications.map((n) => {
+                            const { icon: IconComp, badgeClass } = getNotificationIcon(n.type);
+                            return (
+                              <div
+                                key={n.id}
+                                onClick={() => handleNotificationClick(n)}
+                                className={cn(
+                                  "group relative flex items-start gap-3 p-3 transition-colors cursor-pointer select-none",
+                                  n.read
+                                    ? "hover:bg-surface-elevated/60 opacity-80 hover:opacity-100"
+                                    : "bg-blue/5 hover:bg-blue/10"
+                                )}
+                              >
+                                {/* Unread indicator pip */}
+                                {!n.read && (
+                                  <span className="absolute left-1.5 top-4 w-1.5 h-1.5 rounded-full bg-blue ring-2 ring-blue/20" />
+                                )}
+
+                                {/* Contextual Icon */}
+                                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5", badgeClass)}>
+                                  <IconComp className="w-3.5 h-3.5" />
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                                    <p className={cn("text-xs leading-tight truncate", !n.read ? "font-semibold text-[var(--dash-text-primary)]" : "font-medium text-[var(--dash-text-secondary)]")}>
+                                      {n.title}
+                                    </p>
+                                    <span className="text-[10px] text-[var(--dash-text-tertiary)] shrink-0 whitespace-nowrap ml-1">
+                                      {formatNotificationTime(n.createdAt)}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-[var(--dash-text-secondary)] line-clamp-2 leading-snug">
+                                    {n.message}
+                                  </p>
+                                </div>
+
+                                {/* Dismiss button */}
+                                <button
+                                  onClick={(e) => deleteNotification(n.id, e)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-primary)] hover:bg-surface-elevated transition-all shrink-0 cursor-pointer"
+                                  title="Dismiss notification"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

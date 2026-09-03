@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
-import { auth } from "@/lib/auth";
-import { hasRole, getWorkspaceRole } from "@/lib/rbac";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
+import { hasRole, type WorkspaceRole } from "@/lib/rbac";
 
-/** GET /api/experiments/[id] — get a single experiment with variants */
+/** GET /api/experiments/[id] — get a single experiment with variants (requires auth & workspace check) */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
 
   try {
     const experiment = await prisma.experiment.findUnique({
       where: { id },
-      include: { variants: true },
+      include: { variants: true, project: true },
     });
 
-    if (!experiment) {
+    if (!experiment || experiment.project.workspaceId !== ctx.workspace.id) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
     }
 
@@ -28,21 +32,25 @@ export async function GET(
   }
 }
 
-/** PATCH /api/experiments/[id] — update an experiment (requires auth, member+) */
+/** PATCH /api/experiments/[id] — update an experiment (requires auth, workspace check, member+) */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
   const body = await request.json();
 
   try {
-    const existing = await prisma.experiment.findUnique({ where: { id } });
-    if (!existing) {
+    const existing = await prisma.experiment.findUnique({
+      where: { id },
+      include: { project: true },
+    });
+
+    if (!existing || existing.project.workspaceId !== ctx.workspace.id) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
     }
 
@@ -73,30 +81,30 @@ export async function PATCH(
   }
 }
 
-/** DELETE /api/experiments/[id] — delete an experiment (requires admin+) */
+/** DELETE /api/experiments/[id] — delete an experiment (requires admin+ in workspace) */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
 
   try {
-    const existing = await prisma.experiment.findUnique({ where: { id }, include: { project: true } });
-    if (!existing) {
+    const existing = await prisma.experiment.findUnique({
+      where: { id },
+      include: { project: true },
+    });
+
+    if (!existing || existing.project.workspaceId !== ctx.workspace.id) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
     }
 
-    // RBAC: only admin/owner of the workspace can delete
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (user) {
-      const role = await getWorkspaceRole(user.id, existing.project.workspaceId);
-      if (!hasRole(role, "admin")) {
-        return NextResponse.json({ error: "Forbidden: admin role required" }, { status: 403 });
-      }
+    // Role check: only admin or owner in the workspace can delete
+    if (!hasRole(ctx.role as WorkspaceRole, "admin")) {
+      return NextResponse.json({ error: "Forbidden: admin role required" }, { status: 403 });
     }
 
     await prisma.experiment.delete({ where: { id } });

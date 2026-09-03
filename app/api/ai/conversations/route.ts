@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
 /** GET /api/ai/conversations — list user's AI conversations */
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const session = await auth();
-    let userId: string | null = null;
-
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-      userId = user?.id || null;
-    }
-
-    if (!userId) {
-      // Fallback to first user in database if unauthed dev mode
-      const firstUser = await prisma.user.findFirst();
-      userId = firstUser?.id || null;
-    }
-
-    if (!userId) {
-      return NextResponse.json({ data: [] });
-    }
-
     const conversations = await prisma.aIConversation.findMany({
-      where: { userId },
+      where: { userId: ctx.user.id },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
@@ -56,24 +43,12 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/ai/conversations — save a message or create conversation */
 export async function POST(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const session = await auth();
-    let userId: string | null = null;
-
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-      userId = user?.id || null;
-    }
-
-    if (!userId) {
-      const firstUser = await prisma.user.findFirst();
-      userId = firstUser?.id || null;
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     const body = await request.json();
     const { conversationId, title, message } = body;
 
@@ -84,17 +59,23 @@ export async function POST(request: NextRequest) {
     let conversation;
 
     if (conversationId) {
-      conversation = await prisma.aIConversation.findUnique({ where: { id: conversationId } });
+      conversation = await prisma.aIConversation.findFirst({
+        where: { id: conversationId, userId: ctx.user.id },
+      });
     }
 
     if (!conversation) {
-      // Find default project
-      const firstProj = await prisma.project.findFirst();
+      // Find default project in caller's workspace
+      const proj = await prisma.project.findFirst({
+        where: { workspaceId: ctx.workspace.id },
+        orderBy: { updatedAt: "desc" },
+      });
+
       conversation = await prisma.aIConversation.create({
         data: {
-          userId,
+          userId: ctx.user.id,
           title: title || message.content.slice(0, 40) + "...",
-          projectId: firstProj?.id || null,
+          projectId: proj?.id || null,
         },
       });
     }

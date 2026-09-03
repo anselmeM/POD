@@ -1,13 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
-/** GET /api/funnel — compute funnel stages from signal events */
+/** GET /api/funnel — compute funnel stages from signal events in caller's workspace */
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const experimentId = searchParams.get("experimentId");
 
-    const where: Record<string, string> = {};
+    const where: Record<string, unknown> = {
+      experiment: {
+        project: {
+          workspaceId: ctx.workspace.id,
+        },
+      },
+    };
     if (experimentId) where.experimentId = experimentId;
 
     // Count events by type to build funnel
@@ -44,7 +56,13 @@ export async function GET(request: NextRequest) {
       return { label: stage.label, count, percentage, signalStrength };
     });
 
-    return NextResponse.json({ data: funnel });
+    return NextResponse.json({
+      data: {
+        stages: funnel,
+        totalEvents,
+        experimentId: experimentId || "all",
+      },
+    });
   } catch (error) {
     console.error("Error computing funnel:", error);
     return NextResponse.json({ error: "Failed to compute funnel" }, { status: 500 });

@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import type { LandingPageStatus } from "@/lib/types";
 
-/** GET /api/landing-pages — list all (optional ?status= filter) */
+/** GET /api/landing-pages — list all landing pages scoped to caller's workspace */
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const status = request.nextUrl.searchParams.get("status") as LandingPageStatus | null;
-    const where = status ? { status } : {};
-    const data = await prisma.landingPage.findMany({ where, orderBy: { updatedAt: "desc" } });
+    const where: Record<string, unknown> = {
+      project: {
+        workspaceId: ctx.workspace.id,
+      },
+    };
+    if (status) where.status = status;
+
+    const data = await prisma.landingPage.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+    });
     return NextResponse.json({ data, total: data.length });
   } catch (e) {
     console.error("Failed to fetch landing pages:", e);
@@ -15,8 +30,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/landing-pages — create a new landing page */
+/** POST /api/landing-pages — create a new landing page in caller's workspace */
 export async function POST(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = await request.json();
 
   const required = ["name", "template", "headline", "subheadline", "cta", "slug"];
@@ -24,6 +43,32 @@ export async function POST(request: NextRequest) {
     if (!body[field]) {
       return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
     }
+  }
+
+  // Find or verify project in caller's workspace
+  let projectId = body.projectId;
+  if (projectId) {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: ctx.workspace.id },
+    });
+    if (!project) {
+      return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
+    }
+  } else {
+    // Default to the first project in workspace, or create one if none exist
+    let project = await prisma.project.findFirst({
+      where: { workspaceId: ctx.workspace.id },
+    });
+    if (!project) {
+      project = await prisma.project.create({
+        data: {
+          workspaceId: ctx.workspace.id,
+          name: body.name || "Default Project",
+          status: "active",
+        },
+      });
+    }
+    projectId = project.id;
   }
 
   // Check slug uniqueness
@@ -36,7 +81,7 @@ export async function POST(request: NextRequest) {
     const data = await prisma.landingPage.create({
       data: {
         id: body.id || undefined,
-        projectId: body.projectId || "proj-001",
+        projectId,
         name: body.name,
         template: body.template,
         headline: body.headline,

@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
-import { auth } from "@/lib/auth";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
-/** GET /api/experiments — list all experiments with variants */
+/** GET /api/experiments — list all experiments for caller's workspace */
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const projectId = request.nextUrl.searchParams.get("projectId");
   const status = request.nextUrl.searchParams.get("status");
-  const where: Record<string, string> = {};
+
+  const where: Record<string, unknown> = {
+    project: {
+      workspaceId: ctx.workspace.id,
+    },
+  };
   if (projectId) where.projectId = projectId;
   if (status) where.status = status;
 
@@ -24,10 +34,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/experiments — create a new experiment (requires auth) */
+/** POST /api/experiments — create a new experiment (requires auth & workspace ownership) */
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = await request.json();
@@ -37,6 +47,18 @@ export async function POST(request: NextRequest) {
   }
   if (!body.projectId) {
     return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
+  }
+
+  // Verify that the target project belongs strictly to the caller's workspace
+  const project = await prisma.project.findFirst({
+    where: {
+      id: body.projectId,
+      workspaceId: ctx.workspace.id,
+    },
+  });
+
+  if (!project) {
+    return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
   }
 
   try {
@@ -58,18 +80,22 @@ export async function POST(request: NextRequest) {
           ...(v.id ? { id: String(v.id) } : { id: `${expId}-var-${idx + 1}` }),
           name: String(v.name || "Variant"),
           headline: String(v.headline || ""),
-          subheadline: String((v.subheadline as string) || ""),
-          positioning: String((v.positioning as string) || ""),
-          cta: String(v.cta || "Learn More"),
-          trafficAllocation: Number(v.trafficAllocation ?? 0),
+          subheadline: String(v.subheadline || ""),
+          cta: String(v.cta || "Get Started"),
+          positioning: String(v.positioning || ""),
+          traffic: Number(v.traffic) || 0,
+          conversions: Number(v.conversions) || 0,
+          conversionRate: Number(v.conversionRate) || 0,
         })),
       };
     }
-    const experiment = await prisma.experiment.create({
-      data: data as never,
+
+    const created = await prisma.experiment.create({
+      data: data as Parameters<typeof prisma.experiment.create>[0]["data"],
       include: { variants: true },
     });
-    return NextResponse.json({ data: serializeExperiment(experiment) }, { status: 201 });
+
+    return NextResponse.json({ data: serializeExperiment(created) }, { status: 201 });
   } catch (e) {
     console.error("Failed to create experiment:", e);
     return NextResponse.json({ error: "Failed to create experiment" }, { status: 500 });

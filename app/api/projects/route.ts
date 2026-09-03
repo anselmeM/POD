@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
 /** POST /api/projects — create a Project + initial Experiment from onboarding wizard (requires auth) */
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = await request.json();
@@ -16,11 +16,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Create the project
+    // Create the project strictly scoped to the caller's active workspace
     const project = await prisma.project.create({
       data: {
-        workspaceId: body.workspaceId || "ws-001",
-        name: body.productName,
+        workspaceId: ctx.workspace.id,
+        name: String(body.productName).trim(),
         description: body.description || body.oneLiner || "",
         status: "idea",
       },
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         projectId: project.id,
         name: `${body.productName} — Initial Validation`,
         status: "draft",
-        budget: body.budget || 100,
+        budget: Number(body.budget) || 100,
         channel: JSON.stringify(body.channel || ["linkedin", "meta"]),
       },
     });
@@ -52,10 +52,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** GET /api/projects — list all projects */
-export async function GET() {
+/** GET /api/projects — list projects scoped to caller's workspace */
+export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const data = await prisma.project.findMany({
+      where: { workspaceId: ctx.workspace.id },
       orderBy: { updatedAt: "desc" },
       include: { experiments: true },
     });

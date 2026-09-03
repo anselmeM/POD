@@ -6,7 +6,9 @@ vi.mock("@/lib/prisma", () => ({
     project: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
     audience: { findUnique: vi.fn(), create: vi.fn(), upsert: vi.fn() },
     user: { findUnique: vi.fn(), findFirst: vi.fn() },
-    aIConversation: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+    workspace: { create: vi.fn(), findUnique: vi.fn() },
+    workspaceMember: { create: vi.fn(), findFirst: vi.fn() },
+    aIConversation: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
     aIMessage: { create: vi.fn() },
   },
 }));
@@ -15,7 +17,23 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 describe("Audiences, History, and AI Conversations API", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { email: "alex@example.com" },
+    });
+    (prisma.user.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "usr-1",
+      email: "alex@example.com",
+      memberships: [
+        {
+          workspaceId: "ws-1",
+          role: "owner",
+          workspace: { id: "ws-1", name: "Test WS" },
+        },
+      ],
+    });
+  });
 
   it("GET /api/audiences returns audience and segments", async () => {
     (prisma.project.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "proj-1" });
@@ -78,7 +96,6 @@ describe("Audiences, History, and AI Conversations API", () => {
 
   it("GET /api/ai/conversations returns list of threads", async () => {
     (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ user: { email: "alex@example.com" } });
-    (prisma.user.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "usr-1" });
     (prisma.aIConversation.findMany as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: "conv-1",
@@ -99,7 +116,6 @@ describe("Audiences, History, and AI Conversations API", () => {
 
   it("POST /api/ai/conversations saves message and creates thread", async () => {
     (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ user: { email: "alex@example.com" } });
-    (prisma.user.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "usr-1" });
     (prisma.project.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "proj-1" });
     (prisma.aIConversation.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "conv-new",

@@ -1,19 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeLead } from "@/lib/serialize";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
-/** GET /api/leads/[id] — get a single lead */
+/** GET /api/leads/[id] — get a single lead (requires auth & workspace check) */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
 
   try {
-    const lead = await prisma.lead.findUnique({ where: { id } });
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        experiment: {
+          include: { project: true },
+        },
+      },
+    });
 
-    if (!lead) {
-      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    if (!lead || lead.experiment.project.workspaceId !== ctx.workspace.id) {
+      return NextResponse.json({ error: "Lead not found in your workspace" }, { status: 404 });
     }
 
     return NextResponse.json({ data: serializeLead(lead) });
@@ -23,18 +35,30 @@ export async function GET(
   }
 }
 
-/** PATCH /api/leads/[id] — update a lead (status changes, etc.) */
+/** PATCH /api/leads/[id] — update a lead (requires auth & workspace check) */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   const body = await request.json();
 
   try {
-    const existing = await prisma.lead.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    const existing = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        experiment: {
+          include: { project: true },
+        },
+      },
+    });
+
+    if (!existing || existing.experiment.project.workspaceId !== ctx.workspace.id) {
+      return NextResponse.json({ error: "Lead not found in your workspace" }, { status: 404 });
     }
 
     const data: Record<string, unknown> = {};
@@ -57,17 +81,29 @@ export async function PATCH(
   }
 }
 
-/** DELETE /api/leads/[id] — delete a lead */
+/** DELETE /api/leads/[id] — delete a lead (requires auth & workspace check) */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
 
   try {
-    const existing = await prisma.lead.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    const existing = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        experiment: {
+          include: { project: true },
+        },
+      },
+    });
+
+    if (!existing || existing.experiment.project.workspaceId !== ctx.workspace.id) {
+      return NextResponse.json({ error: "Lead not found in your workspace" }, { status: 404 });
     }
 
     await prisma.lead.delete({ where: { id } });

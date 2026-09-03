@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
-/** GET /api/audiences — return real audience segments data from Prisma */
+/** GET /api/audiences — return real audience segments data from Prisma scoped to caller's workspace */
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     let projectId = searchParams.get("projectId");
 
     if (!projectId) {
-      const firstProject = await prisma.project.findFirst();
+      const firstProject = await prisma.project.findFirst({
+        where: { workspaceId: ctx.workspace.id },
+        orderBy: { updatedAt: "desc" },
+      });
       projectId = firstProject?.id || null;
     }
 
@@ -19,6 +28,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Verify project belongs to caller's workspace
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: ctx.workspace.id },
+    });
+    if (!project) {
+      return NextResponse.json({ error: "Project not found in your workspace" }, { status: 404 });
+    }
+
     let audience = await prisma.audience.findUnique({
       where: { projectId },
       include: { segments: { orderBy: { intentScore: "desc" } } },
@@ -26,11 +43,10 @@ export async function GET(request: NextRequest) {
 
     // If none exists yet for this project, create an initial tailored audience
     if (!audience) {
-      const project = await prisma.project.findUnique({ where: { id: projectId } });
       audience = await prisma.audience.create({
         data: {
           projectId,
-          primarySegment: project?.name ? `Target Market for ${project.name}` : "Operations Leaders & Product Teams",
+          primarySegment: project.name ? `Target Market for ${project.name}` : "Operations Leaders & Product Teams",
           jobTitle: "VP Operations, Head of Product, Founder",
           industry: "B2B SaaS, Technology",
           companySize: "10-250 employees",
@@ -38,7 +54,7 @@ export async function GET(request: NextRequest) {
           seniority: "Director, VP, Executive",
           interests: JSON.stringify(["Process Automation", "Efficiency", "Team Analytics"]),
           painPoints: JSON.stringify([
-            project?.description || "Manual operational overhead",
+            project.description || "Manual operational overhead",
             "Lack of automated reporting",
             "Tool fatigue",
           ]),
@@ -83,12 +99,25 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/audiences — create or update target audience */
 export async function POST(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { projectId, primarySegment, jobTitle, industry, companySize, geography, seniority, interests, painPoints, segments } = body;
 
     if (!projectId || !primarySegment) {
       return NextResponse.json({ error: "projectId and primarySegment are required" }, { status: 400 });
+    }
+
+    // Verify project ownership
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: ctx.workspace.id },
+    });
+    if (!project) {
+      return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
     }
 
     const upserted = await prisma.audience.upsert({

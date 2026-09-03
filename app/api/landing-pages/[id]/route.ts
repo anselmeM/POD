@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
-/** GET /api/landing-pages/:id — get single page (by id or slug) */
+/** GET /api/landing-pages/:id — get single page (by id or slug, public for visitor rendering) */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const page = await prisma.landingPage.findFirst({
@@ -18,18 +19,24 @@ export async function GET(
   return NextResponse.json({ data: page });
 }
 
-/** PATCH /api/landing-pages/:id — update fields */
+/** PATCH /api/landing-pages/:id — update fields (requires auth and workspace ownership) */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
+
   const existing = await prisma.landingPage.findFirst({
     where: { OR: [{ id }, { slug: id }] },
+    include: { project: true },
   });
 
-  if (!existing) {
-    return NextResponse.json({ error: "Landing page not found" }, { status: 404 });
+  if (!existing || existing.project.workspaceId !== ctx.workspace.id) {
+    return NextResponse.json({ error: "Landing page not found in your workspace" }, { status: 404 });
   }
 
   const body = await request.json();
@@ -51,18 +58,24 @@ export async function PATCH(
   return NextResponse.json({ data });
 }
 
-/** DELETE /api/landing-pages/:id — delete page */
+/** DELETE /api/landing-pages/:id — delete page (requires auth and workspace ownership) */
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
+
   const existing = await prisma.landingPage.findFirst({
     where: { OR: [{ id }, { slug: id }] },
+    include: { project: true },
   });
 
-  if (!existing) {
-    return NextResponse.json({ error: "Landing page not found" }, { status: 404 });
+  if (!existing || existing.project.workspaceId !== ctx.workspace.id) {
+    return NextResponse.json({ error: "Landing page not found in your workspace" }, { status: 404 });
   }
 
   const data = await prisma.landingPage.delete({ where: { id: existing.id } });

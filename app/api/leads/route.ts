@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeLead } from "@/lib/serialize";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
-/** GET /api/leads — list all leads */
+/** GET /api/leads — list all leads scoped to caller's workspace */
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const experimentId = request.nextUrl.searchParams.get("experimentId");
   const status = request.nextUrl.searchParams.get("status");
-  const where: Record<string, string> = {};
+
+  const where: Record<string, unknown> = {
+    experiment: {
+      project: {
+        workspaceId: ctx.workspace.id,
+      },
+    },
+  };
   if (experimentId) where.experimentId = experimentId;
   if (status) where.status = status;
 
@@ -22,7 +35,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/leads — create a new lead */
+/** POST /api/leads — capture a new lead from landing pages (public endpoint) */
 export async function POST(request: NextRequest) {
   const body = await request.json();
 

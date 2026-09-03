@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
 function verdictFromScore(score: number): { verdict: string; status: "green" | "blue" | "amber" | "red" } {
   if (score >= 80) return { verdict: "Strong Demand", status: "green" };
@@ -8,10 +9,16 @@ function verdictFromScore(score: number): { verdict: string; status: "green" | "
   return { verdict: "Weak Signal", status: "red" };
 }
 
-/** GET /api/history — return validation history items derived from Prisma database */
-export async function GET() {
+/** GET /api/history — return validation history items scoped to caller's workspace */
+export async function GET(request?: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const projects = await prisma.project.findMany({
+      where: { workspaceId: ctx.workspace.id },
       include: {
         experiments: {
           include: {
@@ -40,9 +47,10 @@ export async function GET() {
       const totalTraffic = proj.experiments.reduce((sum, e) => sum + e.traffic, 0);
       const totalHighIntent = proj.experiments.reduce((sum, e) => sum + e.highIntentActions, 0);
 
-      const dynamicDescription = totalTraffic > 0
-        ? `Evaluated across ${totalTraffic.toLocaleString()} visitors with ${totalHighIntent.toLocaleString()} high-intent demand signals. ${topExp ? `Top performing test: "${topExp.name}".` : ""}`
-        : proj.description || `Validation project for ${proj.name}.`;
+      const description =
+        totalTraffic > 0
+          ? `Evaluated across ${totalTraffic.toLocaleString()} visitors with ${totalHighIntent} high-intent demand signals.${topExp ? ` Top performing test: "${topExp.name}".` : ""}`
+          : `Validation sprint for ${proj.name}. No active experiment traffic recorded yet.`;
 
       return {
         id: `hist-${proj.id}`,
@@ -52,15 +60,15 @@ export async function GET() {
         score: proj.podScore,
         experiments: proj.experiments.length,
         status,
-        description: dynamicDescription,
-        topExperiment: topExp?.name || "Baseline Validation",
-        keyInsight: topInsight?.content || `Confidence index at ${proj.confidence}%.`,
+        description,
+        topExperiment: topExp?.name || "Initial Test",
+        keyInsight: topInsight?.content || "Gathering more visitor interactions to confirm hypothesis.",
       };
     });
 
     return NextResponse.json({ data: historyItems, total: historyItems.length });
-  } catch (error) {
-    console.error("Error fetching validation history:", error);
+  } catch (e) {
+    console.error("Failed to fetch history:", e);
     return NextResponse.json({ error: "Failed to fetch validation history" }, { status: 500 });
   }
 }

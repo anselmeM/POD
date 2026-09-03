@@ -1,13 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { serializeSignalEvent } from "@/lib/serialize";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
 export async function GET(request: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(request);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const experimentId = searchParams.get("experimentId");
 
-    const where: Record<string, string> = {};
+    const where: Record<string, unknown> = {
+      experiment: {
+        project: {
+          workspaceId: ctx.workspace.id,
+        },
+      },
+    };
     if (experimentId) where.experimentId = experimentId;
 
     const signalEvents = await prisma.signalEvent.findMany({

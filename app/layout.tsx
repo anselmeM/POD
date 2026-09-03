@@ -11,24 +11,34 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
-          <link
-            href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.min.css"
-            rel="stylesheet"
-          />
-          <link
-            href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.min.css"
-            rel="stylesheet"
-          />
-        </head>
-        <body className="min-h-screen bg-background text-text-primary antialiased">
-          <Providers>{children}</Providers>
-        </body>
-      </html>
-    </ClerkProvider>
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isConfigured =
+    publishableKey &&
+    !publishableKey.includes("please-provide-clerk-key") &&
+    publishableKey !== "pk_test_...";
+
+  const content = (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.min.css"
+          rel="stylesheet"
+        />
+        <link
+          href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.min.css"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen bg-background text-text-primary antialiased">
+        <Providers>{children}</Providers>
+      </body>
+    </html>
   );
+
+  if (!isConfigured) {
+    return content;
+  }
+
+  return <ClerkProvider publishableKey={publishableKey}>{content}</ClerkProvider>;
 }

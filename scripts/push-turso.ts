@@ -3,8 +3,8 @@ import path from "path";
 import { createClient } from "@libsql/client";
 import "dotenv/config";
 
-const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
+const url = (process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || "").trim();
+const authToken = (process.env.TURSO_AUTH_TOKEN || "").trim();
 
 if (!url || !authToken) {
   console.error("Error: DATABASE_URL and TURSO_AUTH_TOKEN must be set.");

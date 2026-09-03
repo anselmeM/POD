@@ -106,26 +106,51 @@ export default function SignalsPage() {
           <Card>
             <CardHeader><CardTitle>Willingness to Pay</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-center mb-4">
-                <p className="text-5xl font-bold font-mono text-blue">72</p>
-                <p className="text-sm text-text-tertiary">/ 100</p>
-              </div>
-              <div className="space-y-2 text-sm">
-                {[
-                  { label: "Pricing page engagement", s: "strong" },
-                  { label: "Price comparison", s: "strong" },
-                  { label: "Checkout initiation", s: "moderate" },
-                  { label: "Email signup", s: "weak" },
-                  { label: "Demo requests", s: "strong" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-text-secondary">{item.label}</span>
-                    <Badge variant={item.s === "strong" ? "green" : item.s === "moderate" ? "amber" : "red"}>{item.s}</Badge>
-                  </div>
-                ))}
-              </div>
+              {(() => {
+                const landingStage = funnel.find((s) => s.label === "Landing Page");
+                const pricingStage = funnel.find((s) => s.label === "Pricing View");
+                const checkoutStage = funnel.find((s) => s.label === "Checkout");
+                const ctaStage = funnel.find((s) => s.label === "CTA Click");
+
+                const totalVisitors = landingStage?.count || 0;
+                const pricingViews = pricingStage?.count || 0;
+                const checkouts = checkoutStage?.count || 0;
+                const ctaClicks = ctaStage?.count || 0;
+
+                const wtpScore = totalVisitors > 0
+                  ? Math.min(100, Math.round(((pricingViews * 2 + checkouts * 4) / totalVisitors) * 100))
+                  : 0;
+
+                const engagementSignals = [
+                  { label: "Pricing page engagement", s: pricingViews > 10 ? "strong" : pricingViews > 0 ? "moderate" : "weak" },
+                  { label: "Checkout initiation", s: checkouts > 5 ? "strong" : checkouts > 0 ? "moderate" : "weak" },
+                  { label: "Call-to-action click", s: ctaClicks > 10 ? "strong" : ctaClicks > 0 ? "moderate" : "weak" },
+                  { label: "Visitor interest", s: totalVisitors > 50 ? "strong" : totalVisitors > 0 ? "moderate" : "weak" },
+                ];
+
+                return (
+                  <>
+                    <div className="text-center mb-4">
+                      <p className="text-5xl font-bold font-mono text-blue">{wtpScore}</p>
+                      <p className="text-sm text-text-tertiary">/ 100</p>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      {engagementSignals.map((item) => (
+                        <div key={item.label} className="flex items-center justify-between">
+                          <span className="text-text-secondary">{item.label}</span>
+                          <Badge variant={item.s === "strong" ? "green" : item.s === "moderate" ? "amber" : "default"}>
+                            {item.s}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
               <div className="mt-4 pt-4 border-t border-border">
-                <Link href="/dashboard/experiments/new"><Button className="w-full" size="sm">Run Pricing Experiment</Button></Link>
+                <Link href="/dashboard/experiments/new">
+                  <Button className="w-full" size="sm">Run Pricing Experiment</Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -133,24 +158,36 @@ export default function SignalsPage() {
           <Card>
             <CardHeader><CardTitle>PoD Score Breakdown</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {[
-                { label: "Problem Strength", v: 78 },
-                { label: "Audience Fit", v: 82 },
-                { label: "Message Resonance", v: 71 },
-                { label: "Behavioral Intent", v: 85 },
-                { label: "Willingness to Pay", v: 72 },
-                { label: "Acquisition Efficiency", v: 68 },
-              ].map((s) => (
-                <div key={s.label}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-text-secondary">{s.label}</span>
-                    <span className="text-xs font-mono font-semibold">{s.v}</span>
+              {(() => {
+                const landingStage = funnel.find((s) => s.label === "Landing Page");
+                const pricingStage = funnel.find((s) => s.label === "Pricing View");
+                const checkoutStage = funnel.find((s) => s.label === "Checkout");
+                const ctaStage = funnel.find((s) => s.label === "CTA Click");
+
+                const totalVisitors = landingStage?.count || 0;
+                const pricingViews = pricingStage?.count || 0;
+                const checkouts = checkoutStage?.count || 0;
+                const ctaClicks = ctaStage?.count || 0;
+
+                const breakdown = [
+                  { label: "Problem Strength", v: totalVisitors > 0 ? Math.min(100, Math.round((ctaClicks / totalVisitors) * 100)) : 0 },
+                  { label: "Audience Fit", v: totalVisitors > 0 ? Math.min(100, Math.round((pricingViews / totalVisitors) * 100)) : 0 },
+                  { label: "Message Resonance", v: totalVisitors > 0 ? Math.min(100, Math.round((ctaClicks / totalVisitors) * 90)) : 0 },
+                  { label: "Behavioral Intent", v: totalVisitors > 0 ? Math.min(100, Math.round((checkouts / totalVisitors) * 100)) : 0 },
+                ];
+
+                return breakdown.map((s) => (
+                  <div key={s.label}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-text-secondary">{s.label}</span>
+                      <span className="text-xs font-mono font-semibold">{s.v}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-blue transition-all" style={{ width: `${s.v}%` }} />
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
-                    <div className="h-full rounded-full bg-blue" style={{ width: `${s.v}%` }} />
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </CardContent>
           </Card>
         </div>

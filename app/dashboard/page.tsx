@@ -282,18 +282,29 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {experiments.map((exp) => (
-                      <tr key={exp.id} className="border-b border-border hover:bg-surface-elevated/80 transition-colors">
-                        <td className="py-3 pr-4">
-                          <Link href={`/dashboard/experiments/${exp.id}`} className="text-sm font-bold text-[var(--dash-text-primary)] hover:text-blue transition-colors">{exp.name}</Link>
-                          <p className="text-[10px] text-[var(--dash-text-tertiary)] font-mono">{exp.id}</p>
+                    {experiments.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-sm text-[var(--dash-text-tertiary)]">
+                          No experiments created yet.{" "}
+                          <Link href="/dashboard/experiments/new" className="text-blue font-semibold hover:underline">
+                            Launch your first experiment &rarr;
+                          </Link>
                         </td>
-                        <td className="py-3 pr-4 text-sm text-[var(--dash-text-secondary)]">{exp.variants.length} variants</td>
-                        <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.traffic.toLocaleString()}</td>
-                        <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.conversionRate}%</td>
-                        <td className="py-3 pr-4"><StatusPill status={exp.status} /></td>
                       </tr>
-                    ))}
+                    ) : (
+                      experiments.map((exp) => (
+                        <tr key={exp.id} className="border-b border-border hover:bg-surface-elevated/80 transition-colors">
+                          <td className="py-3 pr-4">
+                            <Link href={`/dashboard/experiments/${exp.id}`} className="text-sm font-bold text-[var(--dash-text-primary)] hover:text-blue transition-colors">{exp.name}</Link>
+                            <p className="text-[10px] text-[var(--dash-text-tertiary)] font-mono">{exp.id}</p>
+                          </td>
+                          <td className="py-3 pr-4 text-sm text-[var(--dash-text-secondary)]">{exp.variants.length} variants</td>
+                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.traffic.toLocaleString()}</td>
+                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.conversionRate}%</td>
+                          <td className="py-3 pr-4"><StatusPill status={exp.status} /></td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

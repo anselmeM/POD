@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -189,9 +189,22 @@ export default function ExperimentsPage() {
               </Link>
             </motion.div>
           ))}
-          {filtered.length === 0 && !error && (
+          {experiments.length === 0 && !error ? (
+            <Card className="border-border">
+              <CardContent className="p-12 text-center space-y-3">
+                <FlaskConical className="w-10 h-10 text-blue mx-auto" />
+                <h3 className="text-lg font-bold text-text-primary">No experiments yet</h3>
+                <p className="text-sm text-text-secondary max-w-md mx-auto">
+                  Create your first experiment to generate high-converting landing page variants and start gathering real demand signals.
+                </p>
+                <Link href="/dashboard/experiments/new">
+                  <Button className="mt-2"><Plus className="w-4 h-4 mr-1.5" /> Launch First Experiment</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : filtered.length === 0 && !error ? (
             <Card><CardContent className="p-12 text-center"><FlaskConical className="w-8 h-8 text-text-tertiary mx-auto mb-3" /><p className="text-sm text-text-secondary">No experiments match your filters.</p></CardContent></Card>
-          )}
+          ) : null}
         </div>
       )}
     </div>

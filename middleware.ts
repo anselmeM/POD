@@ -1,29 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export default async function middleware(req: NextRequest, ev: any) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isConfigured =
-    publishableKey &&
-    !publishableKey.includes("please-provide-clerk-key") &&
-    publishableKey !== "pk_test_...";
-
-  if (!isConfigured) {
-    if (req.nextUrl.pathname.startsWith("/dashboard")) {
-      const url = new URL("/sign-in", req.url);
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
+export default function middleware(req: NextRequest) {
+  // Edge-safe route gate: redirect unauthenticated visits on /dashboard to /sign-in
+  if (req.nextUrl.pathname.startsWith("/dashboard")) {
+    const url = new URL("/sign-in", req.url);
+    url.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    return NextResponse.redirect(url);
   }
-
-  const { clerkMiddleware, createRouteMatcher } = await import("@clerk/nextjs/server");
-  const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
-  const handler = clerkMiddleware(async (auth, r) => {
-    if (isProtectedRoute(r)) {
-      await auth.protect();
-    }
-  });
-
-  return handler(req, ev);
+  return NextResponse.next();
 }
 
 export const config = {

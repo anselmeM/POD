@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -100,6 +101,15 @@ export async function POST(req: NextRequest) {
   const ctx = await getAuthenticatedWorkspace(req);
   if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimitResult = checkRateLimit(`ai:${ctx.workspace.id}`, {
+    limit: 20,
+    windowMs: 60000,
+  });
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
   }
 
   try {

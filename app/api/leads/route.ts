@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeLead } from "@/lib/serialize";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 /** GET /api/leads — list all leads scoped to caller's workspace */
 export async function GET(request: NextRequest) {
@@ -37,6 +38,16 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/leads — capture a new lead from landing pages (public endpoint) */
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+  const rateLimitResult = checkRateLimit(`lead:${clientIp}`, {
+    limit: 10,
+    windowMs: 60000,
+  });
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
   const body = await request.json();
 
   if (!body.experimentId) {

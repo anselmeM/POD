@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeSignalEvent, serializeLead } from "@/lib/serialize";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+  const rateLimitResult = checkRateLimit(`track:${clientIp}`, {
+    limit: 60,
+    windowMs: 60000,
+  });
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const { slug, eventType = "page_view", visitorId = "vis-" + Math.random().toString(36).slice(2, 9), metadata = {}, leadData } = body;

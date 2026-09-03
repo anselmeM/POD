@@ -11,7 +11,6 @@ import {
   Users, Contact, FileText, Zap, History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEMO_USER } from "@/lib/constants";
 import { OrbField } from "@/components/ui/animated-orb";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
@@ -47,9 +46,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const userName = user?.fullName || user?.firstName || DEMO_USER.name;
-  const userEmail = user?.primaryEmailAddress?.emailAddress || DEMO_USER.email;
-  const userInitial = (userName[0] || DEMO_USER.initials).toUpperCase();
+  const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Founder";
+  const userEmail = user?.primaryEmailAddress?.emailAddress || "";
+  const userInitial = (userName[0] || "F").toUpperCase();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);

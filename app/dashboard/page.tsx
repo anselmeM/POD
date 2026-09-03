@@ -8,8 +8,9 @@ import {
   Plus, Activity,
   AlertCircle, RefreshCw,
 } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { useExperimentStore } from "@/lib/store";
-import { DEMO_USER, VERDICTS } from "@/lib/constants";
+import { VERDICTS } from "@/lib/constants";
 import type { FunnelStage, Project } from "@/lib/types";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -103,6 +104,7 @@ function SignalFunnelChart() {
 }
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const { experiments, error, fetchExperiments } = useExperimentStore();
   const [project, setProject] = useState<Project | null>(null);
 
@@ -128,6 +130,12 @@ export default function DashboardPage() {
     return "Good evening";
   })();
 
+  const displayName =
+    user?.firstName ||
+    user?.fullName?.split(" ")[0] ||
+    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+    "there";
+
   const metrics = [
     { label: "Demand Score", value: podScore, suffix: "/100", icon: Target, color: "#58A6FF" },
     { label: "Experiment Traffic", value: totalTraffic, suffix: "", icon: Users, color: "#BC8CFF" },
@@ -142,7 +150,7 @@ export default function DashboardPage() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--dash-text-primary)]">
-            {greeting}, {DEMO_USER.firstName}
+            {greeting}, {displayName}
           </h1>
           <p className="text-sm text-[var(--dash-text-secondary)] font-medium mt-1">
             Here&apos;s what your current validation sprint is telling you.

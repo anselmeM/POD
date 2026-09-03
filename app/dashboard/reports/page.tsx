@@ -22,15 +22,17 @@ export default function ReportsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [experiments, setExperiments] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [projRes, insRes] = await Promise.all([
+      const [projRes, insRes, expRes] = await Promise.all([
         fetch("/api/projects"),
         fetch("/api/insights"),
+        fetch("/api/experiments"),
       ]);
       if (projRes.ok) {
         const data = await projRes.json();
@@ -39,6 +41,10 @@ export default function ReportsPage() {
       if (insRes.ok) {
         const data = await insRes.json();
         setInsights(data.data || []);
+      }
+      if (expRes.ok) {
+        const data = await expRes.json();
+        setExperiments(data.data || []);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -55,11 +61,16 @@ export default function ReportsPage() {
   const verdictColor = podScore >= 75 ? "green" : podScore >= 50 ? "blue" : podScore >= 30 ? "amber" : "red";
   const verdictLabel = podScore >= 75 ? "Strong Demand" : podScore >= 50 ? "Promising" : podScore >= 30 ? "Needs Iteration" : "Weak Signal";
 
-  const sprintHistory = [
-    { id: "sprint-003", name: "Sprint 3 — Positioning", startDate: "2026-01-10", endDate: "2026-01-16", visitors: 1842, conversions: 159, leads: 48, podScore: 78 },
-    { id: "sprint-002", name: "Sprint 2 — Messaging", startDate: "2025-12-20", endDate: "2026-01-05", visitors: 1211, conversions: 98, leads: 24, podScore: 64 },
-    { id: "sprint-001", name: "Sprint 1 — Problem Fit", startDate: "2025-12-01", endDate: "2025-12-15", visitors: 820, conversions: 52, leads: 12, podScore: 51 },
-  ];
+  const sprintHistory = experiments.map((e, idx) => ({
+    id: e.id,
+    name: e.name,
+    startDate: e.startDate ? new Date(e.startDate).toLocaleDateString() : "Sprint " + (idx + 1),
+    endDate: e.endDate ? new Date(e.endDate).toLocaleDateString() : "Active",
+    visitors: e.traffic || 0,
+    conversions: e.conversions || 0,
+    leads: e.highIntentActions || 0,
+    podScore: Math.min(100, Math.round((e.conversionRate || 0) * 6 + (e.highIntentRate || 0) * 8 + 40)),
+  }));
 
   if (loading) {
     return (

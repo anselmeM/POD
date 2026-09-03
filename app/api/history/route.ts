@@ -1,13 +1,66 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-/** GET /api/history — return validation history items */
+function verdictFromScore(score: number): { verdict: string; status: "green" | "blue" | "amber" | "red" } {
+  if (score >= 80) return { verdict: "Strong Demand", status: "green" };
+  if (score >= 60) return { verdict: "Promising", status: "blue" };
+  if (score >= 40) return { verdict: "Needs Iteration", status: "amber" };
+  return { verdict: "Weak Signal", status: "red" };
+}
+
+/** GET /api/history — return validation history items derived from Prisma database */
 export async function GET() {
-  // TODO: Replace with real Prisma query when History model is added
-  const historyItems = [
-    { id: "hist-001", date: "Jan 2026", project: "AI Reporting Copilot", verdict: "Promising", score: 78, experiments: 3, status: "blue", description: "Strong signal from operations managers. Variant B (automation + time savings) outperformed by 38% on conversion rate.", topExperiment: "Time-Savings Positioning", keyInsight: "Operations managers at mid-size SaaS companies show the highest willingness to pay for automated reporting." },
-    { id: "hist-002", date: "Dec 2025", project: "Workflow Automator", verdict: "Needs Iteration", score: 54, experiments: 2, status: "amber", description: "Moderate interest but pricing sensitivity detected. Need to test lower price points and alternative positioning.", topExperiment: "Pricing Sensitivity Test", keyInsight: "Users are interested in the concept but current pricing exceeds their perceived value threshold." },
-    { id: "hist-003", date: "Nov 2025", project: "Dev Analytics", verdict: "Strong Demand", score: 89, experiments: 4, status: "green", description: "Exceptional demand from engineering leaders. High-intent signals across all variants with strong conversion rates.", topExperiment: "Developer Pain Points", keyInsight: "Engineering managers actively search for solutions to reduce time spent on manual status reporting." },
-  ];
+  try {
+    const projects = await prisma.project.findMany({
+      include: {
+        experiments: {
+          include: {
+            variants: true,
+            insights: { take: 1, orderBy: { confidence: "desc" } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
 
-  return NextResponse.json({ data: historyItems, total: historyItems.length });
+    const historyItems = projects.map((proj) => {
+      const { verdict, status } = verdictFromScore(proj.podScore);
+      const topExp = proj.experiments.reduce(
+        (best, curr) => (curr.conversionRate > (best?.conversionRate || 0) ? curr : best),
+        proj.experiments[0]
+      );
+      const topInsight = proj.experiments.flatMap((e) => e.insights)[0];
+
+      const monthYear = new Date(proj.updatedAt).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+
+      const totalTraffic = proj.experiments.reduce((sum, e) => sum + e.traffic, 0);
+      const totalHighIntent = proj.experiments.reduce((sum, e) => sum + e.highIntentActions, 0);
+
+      const dynamicDescription = totalTraffic > 0
+        ? `Evaluated across ${totalTraffic.toLocaleString()} visitors with ${totalHighIntent.toLocaleString()} high-intent demand signals. ${topExp ? `Top performing test: "${topExp.name}".` : ""}`
+        : proj.description || `Validation project for ${proj.name}.`;
+
+      return {
+        id: `hist-${proj.id}`,
+        date: monthYear,
+        project: proj.name,
+        verdict,
+        score: proj.podScore,
+        experiments: proj.experiments.length,
+        status,
+        description: dynamicDescription,
+        topExperiment: topExp?.name || "Baseline Validation",
+        keyInsight: topInsight?.content || `Confidence index at ${proj.confidence}%.`,
+      };
+    });
+
+    return NextResponse.json({ data: historyItems, total: historyItems.length });
+  } catch (error) {
+    console.error("Error fetching validation history:", error);
+    return NextResponse.json({ error: "Failed to fetch validation history" }, { status: 500 });
+  }
 }

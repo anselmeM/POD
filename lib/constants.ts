@@ -72,3 +72,58 @@ export const VERDICTS = {
     color: "red" as const,
   },
 } as const;
+
+export const PRICING_TIERS = [
+  {
+    name: "Validation Sprint",
+    price: "$2,500",
+    period: "/week",
+    description: "For founders who want hands-on validation.",
+    features: [
+      "AI demand analysis",
+      "Multi-variant landing pages",
+      "Paid experiment setup",
+      "Audience targeting",
+      "Behavioral signal tracking",
+      "AI analyst",
+      "Validation report",
+      "Expert interpretation",
+    ],
+    cta: "Book a Sprint",
+    highlighted: false,
+  },
+  {
+    name: "Self-Serve",
+    price: "$99",
+    period: "/month",
+    description: "For founders running their own experiments.",
+    features: [
+      "Experiment builder",
+      "Landing page variants",
+      "AI analyst",
+      "Analytics dashboard",
+      "Lead capture",
+      "Reports",
+    ],
+    cta: "Start Building",
+    highlighted: true,
+  },
+  {
+    name: "Startup Studio",
+    price: "Custom",
+    period: "",
+    description: "For venture builders validating multiple concepts.",
+    features: [
+      "Multi-project workspace",
+      "Team collaboration",
+      "Portfolio dashboard",
+      "Batch validation",
+      "API access",
+      "FirstMileDevs integration",
+      "Priority support",
+    ],
+    cta: "Talk to Sales",
+    highlighted: false,
+  },
+] as const;
+

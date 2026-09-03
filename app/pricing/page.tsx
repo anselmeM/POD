@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { demoPricingTiers } from "@/lib/mock-data";
+import { PRICING_TIERS } from "@/lib/constants";
 
 export default function PricingPage() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function PricingPage() {
     window.scrollTo(0, 0);
   }, []);
 
-  const checkout = async (tier: (typeof demoPricingTiers)[number]) => {
+  const checkout = async (tier: (typeof PRICING_TIERS)[number]) => {
     const plan = tier.name.toLowerCase().includes("sprint") ? "sprint" : tier.name.toLowerCase().includes("studio") ? "studio" : "self-serve";
     setLoadingPlan(plan);
     try {
@@ -57,7 +57,7 @@ export default function PricingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {demoPricingTiers.map((tier, i) => (
+            {PRICING_TIERS.map((tier, i) => (
               <motion.div
                 key={tier.name}
                 initial={{ opacity: 0, y: 20 }}

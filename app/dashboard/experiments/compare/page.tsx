@@ -42,7 +42,7 @@ function CompareContent() {
                 <div><p className="text-xs text-text-tertiary">High Intent</p><p className="font-mono">{exp.highIntentActions}</p></div>
               </div>
               <div className="space-y-1">
-                {exp.variants.slice(0, 3).map((v) => (
+                {(exp.variants || []).slice(0, 3).map((v) => (
                   <div key={v.id} className="flex justify-between text-xs"><span>{v.name}</span><span className="font-mono">{v.conversionRate}%</span></div>
                 ))}
               </div>

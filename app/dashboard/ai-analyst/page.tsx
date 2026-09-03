@@ -39,6 +39,8 @@ const analysisTemplates = [
   { id: "tpl-005", name: "Variant Comparison", description: "Deep comparison of variants", prompt: "Compare the variants and recommend which to scale." },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default function AIAnalystPage() {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -58,7 +60,7 @@ export default function AIAnalystPage() {
       const res = await fetch("/api/ai/conversations");
       if (res.ok) {
         const json = await res.json();
-        const convs: ConversationItem[] = json.data || [];
+        const convs: ConversationItem[] = Array.isArray(json.data) ? json.data : [];
         setConversations(convs);
         if (convs.length > 0 && !activeConvId) {
           setActiveConvId(convs[0].id);
@@ -75,7 +77,7 @@ export default function AIAnalystPage() {
       const res = await fetch("/api/insights");
       if (res.ok) {
         const data = await res.json();
-        setInsights(data.data || []);
+        setInsights(Array.isArray(data.data) ? data.data : []);
       }
     } catch {}
   };

@@ -22,12 +22,17 @@ export default function AudiencesPage() {
     setError(null);
     try {
       const res = await fetch("/api/audiences");
-      if (!res.ok) throw new Error("Failed to fetch audiences");
+      if (!res.ok) {
+        setAudience(null);
+        setSegments([]);
+        return;
+      }
       const data = await res.json();
-      setAudience(data.audience);
+      setAudience(data.audience || null);
       setSegments(Array.isArray(data.segments) ? data.segments : []);
     } catch (e) {
-      setError((e as Error).message);
+      setAudience(null);
+      setSegments([]);
     } finally {
       setLoading(false);
     }

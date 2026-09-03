@@ -5,6 +5,8 @@ import { ArrowLeft, Activity } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic";
+
 interface Log { id: string; action: string; entityType: string; entityId: string | null; detail: string; createdAt: string; }
 
 export default function ActivityPage() {
@@ -12,8 +14,13 @@ export default function ActivityPage() {
   const [filter, setFilter] = useState("");
   useEffect(() => {
     const q = filter ? `?type=${filter}` : "";
-    fetch(`/api/activity${q}`).then((r) => r.ok ? r.json() : { data: [] }).then((j) => setLogs(j.data || [])).catch(() => {});
+    fetch(`/api/activity${q}`)
+      .then((r) => r.ok ? r.json() : { data: [] })
+      .then((j) => setLogs(Array.isArray(j.data) ? j.data : []))
+      .catch(() => setLogs([]));
   }, [filter]);
+
+  const safeLogs = Array.isArray(logs) ? logs : [];
 
   return (
     <div className="space-y-6">
@@ -27,7 +34,7 @@ export default function ActivityPage() {
         ))}
       </div>
       <div className="space-y-2">
-        {logs.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-text-tertiary">No activity yet.</CardContent></Card> : logs.map((log) => (
+        {safeLogs.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-text-tertiary">No activity yet.</CardContent></Card> : safeLogs.map((log) => (
           <Card key={log.id}><CardContent className="p-4 flex gap-3">
             <div className="w-8 h-8 rounded-full bg-blue/10 flex items-center justify-center shrink-0"><Activity className="w-4 h-4 text-blue" /></div>
             <div className="flex-1 min-w-0">

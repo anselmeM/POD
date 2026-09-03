@@ -16,6 +16,8 @@ const strengthLabels: Record<string, string> = {
   none: "None", weak: "Weak", moderate: "Moderate", strong: "Strong", very_strong: "Very Strong",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function SignalsPage() {
   const [funnel, setFunnel] = useState<FunnelStage[]>([]);
   const [signalEvents, setSignalEvents] = useState<any[]>([]);
@@ -32,11 +34,17 @@ export default function SignalsPage() {
       ]);
       if (funnelRes.ok) {
         const funnelJson = await funnelRes.json();
-        setFunnel(funnelJson.data || []);
+        const raw = funnelJson.data;
+        const list = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.stages)
+          ? raw.stages
+          : [];
+        setFunnel(list);
       }
       if (signalsRes.ok) {
         const data = await signalsRes.json();
-        setSignalEvents(data.data || []);
+        setSignalEvents(Array.isArray(data.data) ? data.data : []);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -47,7 +55,9 @@ export default function SignalsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const maxCount = funnel.length > 0 ? Math.max(...funnel.map((s) => s.count)) : 1;
+  const safeFunnel = Array.isArray(funnel) ? funnel : [];
+  const safeSignalEvents = Array.isArray(signalEvents) ? signalEvents : [];
+  const maxCount = safeFunnel.length > 0 ? Math.max(...safeFunnel.map((s) => s?.count || 0), 1) : 1;
 
   if (loading) {
     return (
@@ -83,7 +93,7 @@ export default function SignalsPage() {
           <Card>
             <CardHeader><CardTitle>Conversion Funnel</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {funnel.length > 0 ? funnel.map((stage, i) => (
+              {safeFunnel.length > 0 ? safeFunnel.map((stage, i) => (
                 <motion.div key={stage.label} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium">{stage.label}</span>
@@ -107,10 +117,10 @@ export default function SignalsPage() {
             <CardHeader><CardTitle>Willingness to Pay</CardTitle></CardHeader>
             <CardContent>
               {(() => {
-                const landingStage = funnel.find((s) => s.label === "Landing Page");
-                const pricingStage = funnel.find((s) => s.label === "Pricing View");
-                const checkoutStage = funnel.find((s) => s.label === "Checkout");
-                const ctaStage = funnel.find((s) => s.label === "CTA Click");
+                const landingStage = safeFunnel.find((s) => s.label === "Landing Page");
+                const pricingStage = safeFunnel.find((s) => s.label === "Pricing View");
+                const checkoutStage = safeFunnel.find((s) => s.label === "Checkout");
+                const ctaStage = safeFunnel.find((s) => s.label === "CTA Click");
 
                 const totalVisitors = landingStage?.count || 0;
                 const pricingViews = pricingStage?.count || 0;
@@ -159,10 +169,10 @@ export default function SignalsPage() {
             <CardHeader><CardTitle>PoD Score Breakdown</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {(() => {
-                const landingStage = funnel.find((s) => s.label === "Landing Page");
-                const pricingStage = funnel.find((s) => s.label === "Pricing View");
-                const checkoutStage = funnel.find((s) => s.label === "Checkout");
-                const ctaStage = funnel.find((s) => s.label === "CTA Click");
+                const landingStage = safeFunnel.find((s) => s.label === "Landing Page");
+                const pricingStage = safeFunnel.find((s) => s.label === "Pricing View");
+                const checkoutStage = safeFunnel.find((s) => s.label === "Checkout");
+                const ctaStage = safeFunnel.find((s) => s.label === "CTA Click");
 
                 const totalVisitors = landingStage?.count || 0;
                 const pricingViews = pricingStage?.count || 0;
@@ -197,12 +207,12 @@ export default function SignalsPage() {
       <Card>
         <CardHeader><CardTitle>Recent Signal Events</CardTitle></CardHeader>
         <CardContent>
-          {signalEvents.length > 0 ? (
+          {safeSignalEvents.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead><tr className="border-b border-border">{["Event", "Type", "Visitor", "Timestamp", "Value"].map((h) => (<th key={h} className="text-left text-xs font-medium text-text-tertiary pb-3 pr-4">{h}</th>))}</tr></thead>
                 <tbody>
-                  {signalEvents.slice(0, 8).map((evt: any) => (
+                  {safeSignalEvents.slice(0, 8).map((evt: any) => (
                     <tr key={evt.id} className="border-b border-border/50 hover:bg-surface-elevated/50 transition-colors">
                       <td className="py-2.5 pr-4 text-sm">{evt.eventType}</td>
                       <td className="py-2.5 pr-4"><Badge variant="default">{evt.eventType}</Badge></td>

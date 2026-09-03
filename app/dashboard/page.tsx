@@ -68,19 +68,28 @@ function SignalFunnelChart() {
   useEffect(() => {
     fetch("/api/funnel")
       .then((res) => (res.ok ? res.json() : { data: [] }))
-      .then((json) => setStages(json.data || []))
+      .then((json) => {
+        const raw = json.data;
+        const list = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.stages)
+          ? raw.stages
+          : [];
+        setStages(list);
+      })
       .catch(() => setStages([]));
   }, []);
 
-  const maxCount = Math.max(...stages.map((s) => s.count), 1);
+  const safeStages = Array.isArray(stages) ? stages : [];
+  const maxCount = safeStages.length > 0 ? Math.max(...safeStages.map((s) => s?.count || 0), 1) : 1;
 
-  if (stages.length === 0) {
+  if (safeStages.length === 0) {
     return <p className="text-sm text-[var(--dash-text-tertiary)] text-center py-12">No signal events yet.</p>;
   }
 
   return (
     <div className="flex items-end justify-between gap-1 sm:gap-2 h-40 px-2">
-      {stages.map((s, i) => (
+      {safeStages.map((s, i) => (
         <div key={s.label} className="flex-1 flex flex-col items-center gap-1 relative"
           onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
           {hovered === i && (

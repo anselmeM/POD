@@ -33,6 +33,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching signal events:", error);
-    return NextResponse.json({ error: "Failed to fetch signal events" }, { status: 500 });
+    return NextResponse.json({ data: [], total: 0 });
   }
 }

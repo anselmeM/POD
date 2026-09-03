@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
       where: { id: projectId, workspaceId: ctx.workspace.id },
     });
     if (!project) {
-      return NextResponse.json({ error: "Project not found in your workspace" }, { status: 404 });
+      return NextResponse.json({
+        audience: null,
+        segments: [],
+      });
     }
 
     let audience = await prisma.audience.findUnique({

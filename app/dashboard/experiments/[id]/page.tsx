@@ -78,7 +78,13 @@ export default function ExperimentDetailPage() {
 
       if (funnelRes.ok) {
         const funnelJson = await funnelRes.json();
-        setFunnel(funnelJson.data || []);
+        const raw = funnelJson.data;
+        const list = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.stages)
+          ? raw.stages
+          : [];
+        setFunnel(list);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -119,7 +125,11 @@ export default function ExperimentDetailPage() {
     );
   }
 
-  const winnerIdx = experiment.variants.reduce((best, v, i, arr) => v.conversionRate > arr[best].conversionRate ? i : best, 0);
+  const safeVariants = Array.isArray(experiment?.variants) ? experiment.variants : [];
+  const winnerIdx = safeVariants.length > 0
+    ? safeVariants.reduce((best, v, i, arr) => (v?.conversionRate || 0) > (arr[best]?.conversionRate || 0) ? i : best, 0)
+    : 0;
+  const safeFunnel = Array.isArray(funnel) ? funnel : [];
 
   return (
     <div className="space-y-8">
@@ -238,7 +248,7 @@ export default function ExperimentDetailPage() {
         <Card>
           <CardHeader><CardTitle>Behavioral Funnel</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {funnel.length > 0 ? funnel.map((stage, i) => {
+            {safeFunnel.length > 0 ? safeFunnel.map((stage, i) => {
               const colors = ["bg-text-tertiary", "bg-red", "bg-amber", "bg-blue", "bg-blue-bright", "bg-green", "bg-green"];
               return (
                 <motion.div key={stage.label} className="flex items-center gap-3" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>

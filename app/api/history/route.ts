@@ -69,6 +69,6 @@ export async function GET(request?: NextRequest) {
     return NextResponse.json({ data: historyItems, total: historyItems.length });
   } catch (e) {
     console.error("Failed to fetch history:", e);
-    return NextResponse.json({ error: "Failed to fetch validation history" }, { status: 500 });
+    return NextResponse.json({ data: [], total: 0 });
   }
 }

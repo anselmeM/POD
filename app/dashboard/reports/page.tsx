@@ -18,6 +18,8 @@ const verdictTextColors: Record<string, string> = {
   green: "text-green", blue: "text-blue-bright", amber: "text-amber", red: "text-red",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function ReportsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [insights, setInsights] = useState<AIInsight[]>([]);
@@ -36,15 +38,15 @@ export default function ReportsPage() {
       ]);
       if (projRes.ok) {
         const data = await projRes.json();
-        if (data.data && data.data.length > 0) setProject(data.data[0]);
+        if (Array.isArray(data.data) && data.data.length > 0) setProject(data.data[0]);
       }
       if (insRes.ok) {
         const data = await insRes.json();
-        setInsights(data.data || []);
+        setInsights(Array.isArray(data.data) ? data.data : []);
       }
       if (expRes.ok) {
         const data = await expRes.json();
-        setExperiments(data.data || []);
+        setExperiments(Array.isArray(data.data) ? data.data : []);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -55,13 +57,16 @@ export default function ReportsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const safeExperiments = Array.isArray(experiments) ? experiments : [];
+  const safeInsights = Array.isArray(insights) ? insights : [];
+
   // PoD score derived from project data
   const podScore = project?.podScore || 0;
   const confidence = project?.confidence || 0;
   const verdictColor = podScore >= 75 ? "green" : podScore >= 50 ? "blue" : podScore >= 30 ? "amber" : "red";
   const verdictLabel = podScore >= 75 ? "Strong Demand" : podScore >= 50 ? "Promising" : podScore >= 30 ? "Needs Iteration" : "Weak Signal";
 
-  const sprintHistory = experiments.map((e, idx) => ({
+  const sprintHistory = safeExperiments.map((e, idx) => ({
     id: e.id,
     name: e.name,
     startDate: e.startDate ? new Date(e.startDate).toLocaleDateString() : "Sprint " + (idx + 1),
@@ -231,7 +236,7 @@ export default function ReportsPage() {
                   doc.setFontSize(18); doc.text(`Validation Report — ${project?.name || "Project"}`, 14, 18);
                   doc.setFontSize(10); doc.text(`Generated ${new Date().toLocaleDateString()} • PoD ${podScore} • ${confidence}% • ${verdictLabel}`, 14, 26);
                   let y = 36;
-                  insights.slice(0, 5).forEach((ins) => {
+                  safeInsights.slice(0, 5).forEach((ins) => {
                     const lines = doc.splitTextToSize(`${ins.title} (${ins.confidence}%): ${ins.content}`, 180);
                     if (y + (lines as string[]).length * 5 > 280) { doc.addPage(); y = 14; }
                     doc.setFontSize(9); doc.text(lines as unknown as string, 14, y); y += (lines as string[]).length * 5 + 4;

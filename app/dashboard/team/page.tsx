@@ -18,6 +18,8 @@ interface Member {
   createdAt: string;
 }
 
+export const dynamic = "force-dynamic";
+
 export default function TeamPage() {
   const { user } = useUser();
   const [workspace, setWorkspace] = useState<any>(null);
@@ -40,14 +42,14 @@ export default function TeamPage() {
       const wsRes = await fetch("/api/workspaces");
       if (!wsRes.ok) throw new Error("Failed to load workspace");
       const wsJson = await wsRes.json();
-      const currentWs = wsJson.data?.[0];
+      const currentWs = Array.isArray(wsJson.data) ? wsJson.data[0] : null;
       if (!currentWs) return;
       setWorkspace(currentWs);
 
       const memRes = await fetch(`/api/workspaces/${currentWs.id}/members`);
       if (memRes.ok) {
         const memJson = await memRes.json();
-        setMembers(memJson.data || []);
+        setMembers(Array.isArray(memJson.data) ? memJson.data : []);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -206,7 +208,7 @@ export default function TeamPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {members.map((m) => {
+              {(Array.isArray(members) ? members : []).map((m) => {
                 const isCurrent = user?.primaryEmailAddress?.emailAddress === m.email;
                 return (
                   <div

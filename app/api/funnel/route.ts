@@ -57,14 +57,18 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      data: {
-        stages: funnel,
-        totalEvents,
-        experimentId: experimentId || "all",
-      },
+      data: funnel,
+      stages: funnel,
+      totalEvents,
+      experimentId: experimentId || "all",
     });
   } catch (error) {
     console.error("Error computing funnel:", error);
-    return NextResponse.json({ error: "Failed to compute funnel" }, { status: 500 });
+    return NextResponse.json({
+      data: [],
+      stages: [],
+      totalEvents: 0,
+      experimentId: "all",
+    });
   }
 }

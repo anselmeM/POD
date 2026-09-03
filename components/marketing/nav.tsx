@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight, LayoutDashboard } from "lucide-react";
+import { Show, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { BRAND, NAV_ITEMS } from "@/lib/constants";
@@ -59,19 +60,30 @@ export function MarketingNav() {
 
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/sign-in">
-            <Button variant="ghost" size="sm">
-              Sign In
-            </Button>
-          </Link>
-          <MagneticButton strength={0.2}>
-            <Link href="/sign-up">
-              <Button size="sm" className="group">
-                Start Validation
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          <Show when="signed-out">
+            <Link href="/sign-in">
+              <Button variant="ghost" size="sm">
+                Sign In
               </Button>
             </Link>
-          </MagneticButton>
+            <MagneticButton strength={0.2}>
+              <Link href="/sign-up">
+                <Button size="sm" className="group">
+                  Start Validation
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              </Link>
+            </MagneticButton>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/dashboard">
+              <Button size="sm" variant="ghost" className="gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <UserButton />
+          </Show>
         </div>
 
         {/* Mobile toggle */}
@@ -112,17 +124,31 @@ export function MarketingNav() {
                 </motion.div>
               ))}
               <div className="pt-4 border-t border-white/[0.06] flex flex-col gap-2">
-                <Link href="/sign-in">
-                  <Button variant="ghost" className="w-full">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/sign-up">
-                  <Button className="w-full">
-                    Start Validation
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
+                <Show when="signed-out">
+                  <Link href="/sign-in" onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/sign-up" onClick={() => setOpen(false)}>
+                    <Button className="w-full">
+                      Start Validation
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </Show>
+                <Show when="signed-in">
+                  <Link href="/dashboard" onClick={() => setOpen(false)}>
+                    <Button className="w-full gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      Open Dashboard
+                    </Button>
+                  </Link>
+                  <div className="flex items-center gap-2 pt-2 px-2">
+                    <UserButton />
+                    <span className="text-sm text-text-secondary">My Account</span>
+                  </div>
+                </Show>
               </div>
             </div>
           </motion.div>

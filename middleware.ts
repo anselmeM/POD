@@ -1,14 +1,12 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default function middleware(req: NextRequest) {
-  // Edge-safe route gate: redirect unauthenticated visits on /dashboard to /sign-in
-  if (req.nextUrl.pathname.startsWith("/dashboard")) {
-    const url = new URL("/sign-in", req.url);
-    url.searchParams.set("callbackUrl", req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
@@ -16,5 +14,6 @@ export const config = {
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
     "/(api|trpc)(.*)",
+    "/__clerk/:path*",
   ],
 };

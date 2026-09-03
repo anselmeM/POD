@@ -11,13 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isConfigured =
-    publishableKey &&
-    !publishableKey.includes("please-provide-clerk-key") &&
-    publishableKey !== "pk_test_...";
-
-  const content = (
+  return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
@@ -31,14 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-background text-text-primary antialiased">
-        <Providers>{children}</Providers>
+        <ClerkProvider>
+          <Providers>{children}</Providers>
+        </ClerkProvider>
       </body>
     </html>
   );
-
-  if (!isConfigured) {
-    return content;
-  }
-
-  return <ClerkProvider publishableKey={publishableKey}>{content}</ClerkProvider>;
 }

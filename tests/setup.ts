@@ -22,6 +22,12 @@ vi.mock("@clerk/nextjs", () => ({
   SignIn: () => React.createElement("div", { "data-testid": "clerk-sign-in" }, "Sign In"),
   SignUp: () => React.createElement("div", { "data-testid": "clerk-sign-up" }, "Sign Up"),
   UserButton: () => React.createElement("button", { "data-testid": "clerk-user-button" }, "User"),
+  SignedIn: ({ children }: { children: React.ReactNode }) => children,
+  SignedOut: ({ children }: { children: React.ReactNode }) => null,
+  SignInButton: ({ children }: { children: React.ReactNode }) => children || React.createElement("button", null, "Sign In"),
+  SignUpButton: ({ children }: { children: React.ReactNode }) => children || React.createElement("button", null, "Sign Up"),
+  Show: ({ when, children }: { when?: string; children: React.ReactNode }) =>
+    when === "signed-in" ? children : null,
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({

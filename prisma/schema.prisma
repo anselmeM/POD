@@ -75,9 +75,12 @@ model Workspace {
   id        String   @id @default(cuid())
   name      String
   plan      String   @default("trial")
-  ownerId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  ownerId              String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   owner   User?             @relation("WorkspaceOwner", fields: [ownerId], references: [id])
   members WorkspaceMember[]

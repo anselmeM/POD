@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkWorkspaceLimit } from "@/lib/plan-limits";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -81,6 +82,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   if (!callerMembership && workspace.ownerId !== caller.id) {
     return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 });
+  }
+
+  // Enforce plan quota on team members
+  const quota = await checkWorkspaceLimit(id, "teamMembers");
+  if (!quota.allowed) {
+    return NextResponse.json(
+      {
+        error: quota.message,
+        upgradeRequired: true,
+        current: quota.current,
+        limit: quota.limit,
+      },
+      { status: 402 }
+    );
   }
 
   // Find or create target user

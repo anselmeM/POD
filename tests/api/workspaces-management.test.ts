@@ -11,6 +11,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
     },
     activityLog: { create: vi.fn() },
   },
@@ -107,6 +108,7 @@ describe("Workspace Management & Team API", () => {
     (prisma.workspaceMember.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       role: "owner",
     });
+    (prisma.workspaceMember.count as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(1);
     (prisma.user.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "usr-2",
       email: "newmember@example.com",

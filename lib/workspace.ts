@@ -14,6 +14,8 @@ export interface AuthenticatedWorkspaceContext {
     name: string;
     plan: string;
     ownerId: string | null;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
   };
   role: string;
 }

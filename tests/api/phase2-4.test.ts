@@ -70,6 +70,18 @@ describe("phase 2-4 API — auth guards", () => {
   });
 
   it("POST /api/ai returns stream (mock) when no OPENAI key", async () => {
+    (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ user: { email: "alex@example.com" } });
+    (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "u1",
+      email: "alex@example.com",
+      memberships: [
+        {
+          workspaceId: "ws-1",
+          role: "owner",
+          workspace: { id: "ws-1", name: "Alex WS" },
+        },
+      ],
+    });
     const { POST } = await import("@/app/api/ai/route");
     // mock prisma for context
     (prisma.experiment.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);

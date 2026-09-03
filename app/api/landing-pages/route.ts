@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
+import { checkWorkspaceLimit } from "@/lib/plan-limits";
 import type { LandingPageStatus } from "@/lib/types";
 
 /** GET /api/landing-pages — list all landing pages scoped to caller's workspace */
@@ -43,6 +44,20 @@ export async function POST(request: NextRequest) {
     if (!body[field]) {
       return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
     }
+  }
+
+  // Enforce landing pages plan limit
+  const quota = await checkWorkspaceLimit(ctx.workspace.id, "landingPages");
+  if (!quota.allowed) {
+    return NextResponse.json(
+      {
+        error: quota.message,
+        upgradeRequired: true,
+        current: quota.current,
+        limit: quota.limit,
+      },
+      { status: 402 }
+    );
   }
 
   // Find or verify project in caller's workspace

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
+import { checkWorkspaceLimit } from "@/lib/plan-limits";
 
 /** GET /api/experiments — list all experiments for caller's workspace */
 export async function GET(request: NextRequest) {
@@ -59,6 +60,23 @@ export async function POST(request: NextRequest) {
 
   if (!project) {
     return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
+  }
+
+  // Enforce plan limit for active experiments
+  const isTargetActive = body.status === "active" || body.status === "testing";
+  if (isTargetActive) {
+    const quota = await checkWorkspaceLimit(ctx.workspace.id, "activeExperiments");
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: quota.message,
+          upgradeRequired: true,
+          current: quota.current,
+          limit: quota.limit,
+        },
+        { status: 402 }
+      );
+    }
   }
 
   try {

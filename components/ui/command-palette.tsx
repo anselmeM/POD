@@ -107,11 +107,12 @@ export function CommandPalette() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] bg-surface-elevated hover:bg-surface border border-border transition-all duration-200"
+        className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] bg-surface-elevated hover:bg-surface border border-border transition-all duration-200 shrink-0"
+        title="Search (⌘K)"
       >
-        <Command className="w-3 h-3" />
-        <span>Search...</span>
-        <kbd className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-surface border border-border font-mono">⌘K</kbd>
+        <Search className="w-3.5 h-3.5 shrink-0" />
+        <span className="hidden xl:inline">Search...</span>
+        <kbd className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[10px] bg-surface border border-border font-mono">⌘K</kbd>
       </button>
 
       <AnimatePresence>

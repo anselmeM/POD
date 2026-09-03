@@ -45,12 +45,12 @@ export function MarketingNav() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.label}
               href={item.href}
-              className="relative px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors group"
+              className="relative px-2.5 lg:px-4 py-2 text-xs lg:text-sm text-text-secondary hover:text-text-primary transition-colors group whitespace-nowrap"
             >
               {item.label}
               <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-blue group-hover:w-4/5 transition-all duration-300" />
@@ -59,7 +59,7 @@ export function MarketingNav() {
         </div>
 
         {/* Desktop actions */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0">
           <Show when="signed-out">
             <Link href="/sign-in">
               <Button variant="ghost" size="sm">

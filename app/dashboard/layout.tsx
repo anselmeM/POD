@@ -103,11 +103,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <header className="sticky top-0 z-50 glass border-b border-border">
-          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between gap-4">
+          <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 lg:gap-4">
             
             {/* Left: Brand & Workspace */}
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+              <Link href="/dashboard" className="flex items-center gap-2 group shrink-0">
                 <div className="relative w-8 h-8">
                   <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue to-purple opacity-90 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute inset-[1.5px] rounded-[6.5px] bg-[var(--dash-bg)] flex items-center justify-center">
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Center: Oval Translucent Glass Navigation Tabs */}
-            <nav className="hidden lg:flex items-center gap-1 bg-surface-elevated/40 dark:bg-surface-elevated/20 backdrop-blur-md p-1 rounded-full border border-border/70 shadow-xs">
+            <nav className="hidden lg:flex items-center gap-0.5 bg-surface-elevated/50 dark:bg-surface-elevated/30 backdrop-blur-md p-1 rounded-full border border-border/80 shadow-xs shrink-0">
               {PRIMARY_NAV.map((item) => {
                 const active = isActive(item.href);
                 const Icon = item.icon;
@@ -134,13 +134,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+                      "relative flex items-center gap-1.5 px-2.5 xl:px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200",
                       active
                         ? "text-[var(--dash-text-primary)] font-semibold"
                         : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] hover:bg-surface-elevated/50"
                     )}
                   >
-                    <Icon className="w-3.5 h-3.5 relative z-10" />
+                    <Icon className="w-3.5 h-3.5 relative z-10 shrink-0" />
                     <span className="relative z-10">{item.label}</span>
                     {active && (
                       <motion.div
@@ -158,7 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <button
                   onClick={() => setMoreOpen(!moreOpen)}
                   className={cn(
-                    "relative flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+                    "relative flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200",
                     isMoreActive
                       ? "text-[var(--dash-text-primary)] font-semibold"
                       : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] hover:bg-surface-elevated/50"
@@ -217,10 +217,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </nav>
 
             {/* Right: Quick Utilities */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <CommandPalette />
 
-              <div className="h-4 w-px bg-border hidden sm:block mx-0.5" />
+              <div className="h-4 w-px bg-border hidden xl:block mx-0.5" />
 
               <ThemeToggle />
 

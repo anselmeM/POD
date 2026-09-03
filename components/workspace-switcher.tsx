@@ -34,11 +34,11 @@ export function WorkspaceSwitcher() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface border border-border transition-colors"
+        className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface border border-border transition-colors shrink-0 max-w-[140px] sm:max-w-[200px]"
       >
-        <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
-        <span className="text-xs font-semibold text-[var(--dash-text-primary)] hidden sm:block">{active.name}</span>
-        <ChevronDown className={cn("w-3 h-3 text-text-tertiary transition-transform", open && "rotate-180")} />
+        <Building2 className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+        <span className="text-xs font-semibold text-[var(--dash-text-primary)] hidden sm:block truncate">{active.name}</span>
+        <ChevronDown className={cn("w-3 h-3 text-text-tertiary transition-transform shrink-0", open && "rotate-180")} />
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-2 w-56 glass-strong rounded-xl shadow-xl py-1.5 z-50 border border-border">

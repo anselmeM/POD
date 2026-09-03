@@ -1,20 +1,18 @@
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const { auth } = NextAuth(authConfig);
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
-export default auth((req) => {
-  // authorized callback in auth.config handles redirects — this is fallback
-  const isLoggedIn = !!req.auth;
-  const { pathname } = req.nextUrl;
-  const isDashboard = pathname.startsWith("/dashboard");
-  if (isDashboard && !isLoggedIn) {
-    const url = new URL("/sign-in", req.nextUrl);
-    url.searchParams.set("callbackUrl", pathname);
-    return Response.redirect(url);
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
 });
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/sign-in", "/sign-up"],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };

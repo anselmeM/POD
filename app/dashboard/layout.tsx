@@ -18,7 +18,7 @@ import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ShortcutHelp } from "@/components/ui/shortcut-help";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { useSession, signOut } from "next-auth/react";
+import { useUser, useClerk } from "@clerk/nextjs";
 
 // Primary high-frequency navigation tabs
 const PRIMARY_NAV = [
@@ -45,9 +45,10 @@ const ALL_MOBILE_NAV = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const userName = session?.user?.name || DEMO_USER.name;
-  const userEmail = session?.user?.email || DEMO_USER.email;
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const userName = user?.fullName || user?.firstName || DEMO_USER.name;
+  const userEmail = user?.primaryEmailAddress?.emailAddress || DEMO_USER.email;
   const userInitial = (userName[0] || DEMO_USER.initials).toUpperCase();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -69,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then((r) => (r.ok ? r.json() : { data: [] }))
       .then((j) => setNotifications(j.data || []))
       .catch(() => {});
-  }, [session]);
+  }, [user]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -324,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </Link>
                       <div className="border-t border-border mt-1 pt-1">
                         <button
-                          onClick={() => signOut({ callbackUrl: "/" })}
+                          onClick={() => signOut({ redirectUrl: "/" })}
                           className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red hover:bg-red/10 transition-colors text-left cursor-pointer"
                         >
                           <LogOut className="w-4 h-4" /> Log out

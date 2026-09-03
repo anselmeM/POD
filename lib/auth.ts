@@ -1,43 +1,95 @@
-import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import { auth as clerkAuth, currentUser as clerkCurrentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { authConfig } from "../auth.config";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  ...authConfig,
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  providers: [
-    Credentials({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+export interface AppSession {
+  user: {
+    id: string;
+    email: string;
+    name?: string | null;
+    image?: string | null;
+  };
+}
+
+/**
+ * Bridges Clerk authentication with the PoD database.
+ * Returns a session object compatible with existing API route contracts.
+ * If the user is authenticated via Clerk but doesn't exist in Prisma yet,
+ * it lazily auto-creates the User record and default Workspace.
+ */
+export async function auth(): Promise<AppSession | null> {
+  try {
+    const { userId } = await clerkAuth();
+    if (!userId) return null;
+
+    const user = await clerkCurrentUser();
+    if (!user) return null;
+
+    const email = user.emailAddresses?.[0]?.emailAddress?.toLowerCase().trim();
+    if (!email) return null;
+
+    // Look up user in Prisma database
+    let dbUser = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        memberships: {
+          include: { workspace: true },
+        },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
-        const email = String(credentials.email).toLowerCase().trim();
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user?.password) return null;
-        const valid = await bcrypt.compare(String(credentials.password), user.password);
-        if (!valid) return null;
-        return { id: user.id, email: user.email, name: user.name, image: user.image };
+    });
+
+    // Auto-provision user & workspace if new (e.g. first Google Sign-In)
+    if (!dbUser) {
+      const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || email.split("@")[0];
+      dbUser = await prisma.user.create({
+        data: {
+          email,
+          name,
+          image: user.imageUrl || null,
+        },
+        include: {
+          memberships: {
+            include: { workspace: true },
+          },
+        },
+      });
+
+      // Create a default workspace for this new user
+      const workspaceSlug =
+        email.split("@")[0].replace(/[^a-z0-9]/gi, "-").toLowerCase() +
+        "-" +
+        Math.random().toString(36).slice(2, 6);
+
+      const workspace = await prisma.workspace.create({
+        data: {
+          name: `${name}'s Workspace`,
+          slug: workspaceSlug,
+          ownerId: dbUser.id,
+        },
+      });
+
+      await prisma.workspaceMember.create({
+        data: {
+          userId: dbUser.id,
+          workspaceId: workspace.id,
+          role: "owner",
+        },
+      });
+    }
+
+    return {
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        image: dbUser.image,
       },
-    }),
-  ],
-  callbacks: {
-    ...authConfig.callbacks,
-    jwt({ token, user }) {
-      if (user) token.id = (user as { id: string }).id;
-      return token;
-    },
-    session({ session, token }) {
-      if (token?.id && session.user) {
-        (session.user as { id: string }).id = token.id as string;
-      }
-      return session;
-    },
-  },
-});
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getCurrentUser() {
+  const session = await auth();
+  return session?.user || null;
+}

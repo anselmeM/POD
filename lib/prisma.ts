@@ -5,11 +5,11 @@ import { PrismaLibSql } from "@prisma/adapter-libsql";
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
-  const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
-  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+  const dbUrl = (process.env.DATABASE_URL || "file:./dev.db").trim();
+  const tursoToken = process.env.TURSO_AUTH_TOKEN?.trim();
 
   // If using Turso or remote LibSQL database
-  if (dbUrl.startsWith("libsql://") || tursoToken) {
+  if (dbUrl.startsWith("libsql://") || dbUrl.startsWith("https://") || tursoToken) {
     const adapter = new PrismaLibSql({
       url: dbUrl,
       authToken: tursoToken,

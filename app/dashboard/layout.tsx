@@ -107,19 +107,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             
             {/* Left: Brand & Workspace */}
             <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-              <Link href="/dashboard" className="flex items-center gap-2 group shrink-0">
+              <Link href="/dashboard" className="flex items-center group shrink-0" title="PoD Engine">
                 <div className="relative w-8 h-8">
                   <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue to-purple opacity-90 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute inset-[1.5px] rounded-[6.5px] bg-[var(--dash-bg)] flex items-center justify-center">
                     <span className="text-blue font-bold text-xs">P</span>
                   </div>
                 </div>
-                <span className="text-sm font-bold text-[var(--dash-text-primary)] tracking-tight hidden sm:block">
-                  PoD Engine
-                </span>
               </Link>
 
-              <div className="h-4 w-px bg-border hidden sm:block" />
+              <div className="h-4 w-px bg-border" />
 
               <WorkspaceSwitcher />
             </div>

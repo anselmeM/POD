@@ -17,6 +17,27 @@ The following 6 feature pillars represent the next evolutionary stage of PoD.
 
 ---
 
+## Core Product Principles & Explicit Non-Goals
+
+To maintain high speed, rock-solid reliability, and product focus, PoD adheres to these architectural boundaries:
+
+> [!IMPORTANT]
+> **PoD is an Idea Validation Engine, NOT an Ad Agency / AdTech Tool**
+>
+> ❌ **Explicit Non-Goals (DO NOT BUILD)**:
+> - **No Direct Campaign Creators or Ad Account Managers**: Do not build Meta, Google, or LinkedIn campaign creators inside PoD.
+> - **No Bidding Algorithms / Budget Management**: Do not attempt to manage ad spend, CPC bidding, or ad delivery status.
+> - **No Third-Party Ad Billing**: Do not handle ad spend payments or credit card processing for external ad platforms.
+>
+> Doing so would clutter the dashboard, create high-maintenance API dependencies, trigger lengthy compliance audits, and distract from PoD's core purpose.
+>
+> ✅ **The Right Approach (Attribution & Insights Only)**:
+> - **Lightweight Pixel & Tag Injection**: Allow founders to paste their Meta Pixel ID, Google Tag, or LinkedIn Partner ID in Settings so conversion events (`Lead`, `HighIntentAction`) fire automatically.
+> - **First-Party UTM Capture**: Automatically extract `utm_source`, `utm_campaign`, `gclid`, and `fbclid` from landing page traffic to attribute signups and calculate channel conversion rates.
+> - **AI Ad Copy Generator**: Provide ready-to-copy headlines, descriptions, and pre-tagged UTM links for founders to paste into their own Ad Managers in 30 seconds.
+
+---
+
 ## Feature 1: Instant AI Smoke Test & Copy Generator
 
 ### Overview

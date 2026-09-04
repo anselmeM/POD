@@ -31,29 +31,31 @@ const marqueeItems = [
 
 export default function LandingPage() {
   return (
-    <SmoothScroll>
-      <PageLoader />
-      <CustomCursor />
-      <NoiseOverlay />
-      <ScrollProgress />
-      <MarketingNav />
-      <main>
-        <HeroSection />
-        <DashboardPreview />
-        <Marquee items={marqueeItems} speed={35} className="py-6 border-y border-white/[0.06]" />
-        <ProblemSection />
-        <FrameworkSection />
-        <SignalLadderSection />
-        <ScrollRevealSection
-          eyebrow="The result"
-          heading="Demand signals you can actually trust."
-          subheading="Every data point is real traffic, real behavior, and real buying intent — not surveys, not guesses, not vibes."
-        />
-        <AIAnalysisSection />
-        <TestimonialsSection />
-        <CTASection />
-      </main>
-      <MarketingFooter />
-    </SmoothScroll>
+    <div className="landing-theme min-h-screen bg-[#F8F0E3] text-[#1F1E1B] antialiased">
+      <SmoothScroll>
+        <PageLoader />
+        <CustomCursor />
+        <NoiseOverlay />
+        <ScrollProgress />
+        <MarketingNav />
+        <main>
+          <HeroSection />
+          <DashboardPreview />
+          <Marquee items={marqueeItems} speed={35} className="py-6 border-y border-[#E8DFC8] bg-[#F2E9DC]/60" />
+          <ProblemSection />
+          <FrameworkSection />
+          <SignalLadderSection />
+          <ScrollRevealSection
+            eyebrow="The result"
+            heading="Demand signals you can actually trust."
+            subheading="Every data point is real traffic, real behavior, and real buying intent — not surveys, not guesses, not vibes."
+          />
+          <AIAnalysisSection />
+          <TestimonialsSection />
+          <CTASection />
+        </main>
+        <MarketingFooter />
+      </SmoothScroll>
+    </div>
   );
 }

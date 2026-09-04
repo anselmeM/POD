@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Doppio+One&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -31,6 +32,7 @@
   /* Typography */
   --font-sans: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", "JetBrains Mono", "Fira Code", monospace;
+  --font-doppio: "Doppio One", sans-serif;
 
   /* Radius */
   --radius-sm: 8px;
@@ -49,6 +51,11 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Headings — Google Fonts Doppio One */
+h1, h2, h3, .font-heading {
+  font-family: var(--font-doppio, "Doppio One", sans-serif);
 }
 
 /* Scrollbar */
@@ -534,8 +541,56 @@ html.dark .dashboard-theme {
   --dash-orange: #F97316;
   --dash-nav-bg: rgba(18, 18, 20, 0.85);
   --dash-nav-active: #F8FAFC;
-  --dash-dark-card: #18181B;
   background-color: var(--dash-bg);
   color: var(--dash-text-primary);
 }
+
+/* ============================================================
+   Landing Page Theme (#F8F0E3 & Doppio One)
+   ============================================================ */
+
+.landing-theme {
+  --color-background: #F8F0E3;
+  --color-surface: #FFFDF9;
+  --color-surface-elevated: #F2E9DC;
+  --color-surface-glass: rgba(248, 240, 227, 0.85);
+  --color-border: #E8DFC8;
+  --color-border-subtle: #F0E8D5;
+  --color-text-primary: #1F1E1B;
+  --color-text-secondary: #57534E;
+  --color-text-tertiary: #8C827A;
+  background-color: #F8F0E3 !important;
+  color: #1F1E1B !important;
+}
+
+.landing-theme h1,
+.landing-theme h2,
+.landing-theme h3 {
+  font-family: var(--font-doppio, "Doppio One", sans-serif) !important;
+  color: #1F1E1B !important;
+}
+
+.landing-theme .glass {
+  background: rgba(255, 253, 249, 0.82) !important;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(232, 223, 200, 0.85) !important;
+  box-shadow: 0 4px 20px -2px rgba(80, 60, 40, 0.05);
+}
+
+.landing-theme .glass-strong {
+  background: rgba(255, 253, 249, 0.94) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(232, 223, 200, 0.9) !important;
+  box-shadow: 0 10px 30px -5px rgba(80, 60, 40, 0.07);
+}
+
+.landing-theme .glass-subtle {
+  background: rgba(248, 240, 227, 0.6) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 223, 200, 0.6) !important;
+}
+
 

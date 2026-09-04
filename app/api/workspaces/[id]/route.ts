@@ -4,6 +4,23 @@ import { prisma } from "@/lib/prisma";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
+/** GET /api/workspaces/[id] — get workspace details */
+export async function GET(_request: NextRequest, { params }: RouteParams) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const workspace = await prisma.workspace.findUnique({ where: { id } });
+  if (!workspace) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+
+  return NextResponse.json({ data: workspace });
+}
+
 /** PATCH /api/workspaces/[id] — update workspace details */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await auth();
@@ -36,8 +53,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const updated = await prisma.workspace.update({
     where: { id },
     data: {
-      ...(body.name ? { name: String(body.name).trim() } : {}),
-      ...(body.plan ? { plan: String(body.plan).trim() } : {}),
+      ...(body.name !== undefined ? { name: String(body.name).trim() } : {}),
+      ...(body.plan !== undefined ? { plan: String(body.plan).trim() } : {}),
+      ...(body.metaPixelId !== undefined ? { metaPixelId: body.metaPixelId ? String(body.metaPixelId).trim() : null } : {}),
+      ...(body.googleAdsId !== undefined ? { googleAdsId: body.googleAdsId ? String(body.googleAdsId).trim() : null } : {}),
+      ...(body.linkedinPartnerId !== undefined ? { linkedinPartnerId: body.linkedinPartnerId ? String(body.linkedinPartnerId).trim() : null } : {}),
     },
   });
 

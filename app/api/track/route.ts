@@ -18,6 +18,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { slug, eventType = "page_view", visitorId = "vis-" + Math.random().toString(36).slice(2, 9), metadata = {}, leadData } = body;
 
+    const utmSource = metadata?.utm_source || body.utm_source || "";
+    const utmMedium = metadata?.utm_medium || body.utm_medium || "";
+    const utmCampaign = metadata?.utm_campaign || body.utm_campaign || "";
+    const gclid = metadata?.gclid || body.gclid || "";
+    const fbclid = metadata?.fbclid || body.fbclid || "";
+    const liFatId = metadata?.li_fat_id || body.li_fat_id || "";
+
+    const enrichedMetadata = {
+      slug,
+      ...metadata,
+      ...(utmSource ? { utm_source: utmSource } : {}),
+      ...(utmMedium ? { utm_medium: utmMedium } : {}),
+      ...(utmCampaign ? { utm_campaign: utmCampaign } : {}),
+      ...(gclid ? { gclid } : {}),
+      ...(fbclid ? { fbclid } : {}),
+      ...(liFatId ? { li_fat_id: liFatId } : {}),
+    };
+
     if (!slug) {
       return NextResponse.json({ error: "Slug is required" }, { status: 400 });
     }
@@ -63,7 +81,7 @@ export async function POST(request: NextRequest) {
             visitorId,
             eventType: "page_view",
             variantId: page.id,
-            metadata: JSON.stringify({ slug, ...metadata }),
+            metadata: JSON.stringify(enrichedMetadata),
           },
         });
       }
@@ -103,7 +121,7 @@ export async function POST(request: NextRequest) {
             visitorId,
             eventType: "cta_click",
             variantId: page.id,
-            metadata: JSON.stringify({ slug, ...metadata }),
+            metadata: JSON.stringify(enrichedMetadata),
           },
         });
       }
@@ -127,7 +145,7 @@ export async function POST(request: NextRequest) {
             visitorId,
             eventType: "pricing_view",
             variantId: page.id,
-            metadata: JSON.stringify({ slug, ...metadata }),
+            metadata: JSON.stringify(enrichedMetadata),
           },
         });
       }
@@ -143,7 +161,7 @@ export async function POST(request: NextRequest) {
             visitorId,
             eventType: "scroll",
             variantId: page.id,
-            metadata: JSON.stringify({ slug, ...metadata }),
+            metadata: JSON.stringify(enrichedMetadata),
           },
         });
       }
@@ -160,6 +178,9 @@ export async function POST(request: NextRequest) {
 
       const expId = page.experimentId || (await prisma.experiment.findFirst())?.id || "EXP-2048";
       
+      const rawSource = leadData.source || utmSource;
+      const effectiveSource = rawSource ? String(rawSource).trim() : "/p/" + slug;
+
       const leadId = "lead-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
       createdLead = await prisma.lead.create({
         data: {
@@ -170,14 +191,14 @@ export async function POST(request: NextRequest) {
           email: leadData.email,
           company: leadData.company || "",
           role: leadData.role || "",
-          source: "/p/" + slug,
+          source: effectiveSource,
           intentScore: 90,
           pricingInteraction: Boolean(leadData.pricingInteraction ?? true),
           status: "new",
           events: JSON.stringify([
             { type: "page_view", timestamp: new Date().toISOString() },
             { type: "cta_click", timestamp: new Date().toISOString() },
-            { type: "lead_captured", timestamp: new Date().toISOString(), metadata },
+            { type: "lead_captured", timestamp: new Date().toISOString(), metadata: enrichedMetadata },
           ]),
         },
       });

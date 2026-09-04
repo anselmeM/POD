@@ -10,13 +10,39 @@ export async function GET(
   const { id } = await params;
   const page = await prisma.landingPage.findFirst({
     where: { OR: [{ id }, { slug: id }] },
+    include: { project: true },
   });
 
   if (!page) {
     return NextResponse.json({ error: "Landing page not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ data: page });
+  let trackingPixels = {
+    metaPixelId: null as string | null,
+    googleAdsId: null as string | null,
+    linkedinPartnerId: null as string | null,
+  };
+
+  if (page.project?.workspaceId) {
+    const ws = await prisma.workspace.findUnique({
+      where: { id: page.project.workspaceId },
+      select: {
+        metaPixelId: true,
+        googleAdsId: true,
+        linkedinPartnerId: true,
+      },
+    });
+    if (ws) {
+      trackingPixels = ws;
+    }
+  }
+
+  return NextResponse.json({
+    data: {
+      ...page,
+      trackingPixels,
+    },
+  });
 }
 
 /** PATCH /api/landing-pages/:id — update fields (requires auth and workspace ownership) */

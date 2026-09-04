@@ -115,7 +115,7 @@ export default function LeadsPage() {
                         <td className="py-3 pr-3 text-sm font-medium">{l.name}</td>
                         <td className="py-3 pr-3 text-sm text-text-secondary">{l.company}</td>
                         <td className="py-3 pr-3 text-sm text-text-secondary">{l.role}</td>
-                        <td className="py-3 pr-3 text-sm text-text-secondary">{l.source}</td>
+                        <td className="py-3 pr-3"><LeadSourceBadge source={l.source} /></td>
                         <td className="py-3 pr-3"><IntentScore score={l.intentScore} /></td>
                         <td className="py-3 pr-3">{l.pricingInteraction ? <Badge variant="green">Yes</Badge> : <span className="text-xs text-text-tertiary">No</span>}</td>
                         <td className="py-3 pr-3"><LeadStatusBadge status={l.status} /></td>
@@ -155,7 +155,10 @@ export default function LeadsPage() {
                     </div>
                   </div>
                   <div><p className="text-xs text-text-tertiary">Email</p><p className="text-sm">{lead.email}</p></div>
-                  <div><p className="text-xs text-text-tertiary">Source</p><p className="text-sm">{lead.source}</p></div>
+                  <div>
+                    <p className="text-xs text-text-tertiary mb-1">Acquisition Source</p>
+                    <LeadSourceBadge source={lead.source} />
+                  </div>
                   <div><p className="text-xs text-text-tertiary">Intent Score</p><IntentScore score={lead.intentScore} /></div>
                   <div>
                     <p className="text-xs text-text-tertiary mb-2">Events</p>
@@ -200,4 +203,51 @@ function LeadStatusBadge({ status }: { status: string }) {
   };
   const s = map[status] || { variant: "default" as const, label: status };
   return <Badge variant={s.variant}>{s.label}</Badge>;
+}
+
+function LeadSourceBadge({ source }: { source?: string }) {
+  const s = (source || "direct").toLowerCase();
+  if (s.includes("linkedin")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/25 whitespace-nowrap">
+        LinkedIn
+      </span>
+    );
+  }
+  if (s.includes("meta") || s.includes("facebook") || s.includes("instagram")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/25 whitespace-nowrap">
+        Meta
+      </span>
+    );
+  }
+  if (s.includes("google") || s.includes("gsearch") || s.includes("gads")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 whitespace-nowrap">
+        Google
+      </span>
+    );
+  }
+  if (s.includes("twitter") || s.includes("x.com")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neutral-500/15 text-neutral-300 border border-neutral-500/25 whitespace-nowrap">
+        X / Twitter
+      </span>
+    );
+  }
+  if (s.includes("reddit")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/25 whitespace-nowrap">
+        Reddit
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-elevated text-text-tertiary border border-border whitespace-nowrap truncate max-w-[120px]"
+      title={source}
+    >
+      {source?.startsWith("/p/") ? source.replace("/p/", "") : (source || "Direct")}
+    </span>
+  );
 }

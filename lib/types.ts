@@ -8,6 +8,9 @@ export interface Workspace {
   id: string;
   name: string;
   plan: Plan;
+  metaPixelId?: string | null;
+  googleAdsId?: string | null;
+  linkedinPartnerId?: string | null;
   members: Member[];
   createdAt: string;
 }
@@ -206,6 +209,11 @@ export interface LandingPage {
   bounceRate: number;
   avgTimeOnPage: number;
   conversionRate: number;
+  trackingPixels?: {
+    metaPixelId?: string | null;
+    googleAdsId?: string | null;
+    linkedinPartnerId?: string | null;
+  };
   createdAt: string;
   updatedAt: string;
 }

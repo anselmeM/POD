@@ -37,6 +37,16 @@ function IntentModal({
       visitorId = `vis-${Math.random().toString(36).slice(2, 9)}`;
     }
 
+    const trackingParams = (() => {
+      try {
+        return JSON.parse(sessionStorage.getItem("pod_tracking_params") || "{}");
+      } catch {
+        return {};
+      }
+    })();
+
+    const leadSource = trackingParams.utm_source ? String(trackingParams.utm_source).toLowerCase() : "/p/" + page.slug;
+
     try {
       await fetch("/api/track", {
         method: "POST",
@@ -50,11 +60,37 @@ function IntentModal({
             email,
             company,
             role,
+            source: leadSource,
             pricingInteraction: true,
           },
-          metadata: { cta: page.cta, positioning: page.positioning },
+          metadata: {
+            cta: page.cta,
+            positioning: page.positioning,
+            ...trackingParams,
+          },
         }),
       });
+
+      // Fire client-side pixel conversion events
+      if (typeof window !== "undefined") {
+        const w = window as unknown as {
+          fbq?: (cmd: string, event: string, params?: Record<string, unknown>) => void;
+          gtag?: (cmd: string, event: string, params?: Record<string, unknown>) => void;
+          lintrk?: (cmd: string, params?: Record<string, unknown>) => void;
+        };
+        try {
+          if (typeof w.fbq === "function") {
+            w.fbq("track", "Lead", { content_name: page.name });
+          }
+          if (typeof w.gtag === "function") {
+            w.gtag("event", "generate_lead", { event_label: page.slug });
+          }
+          if (typeof w.lintrk === "function") {
+            w.lintrk("track");
+          }
+        } catch {}
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error("Failed to submit intent:", err);

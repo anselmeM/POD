@@ -332,3 +332,66 @@ export interface PortfolioSummary {
   avgPir: number;
   totalCapitalSaved: number;
 }
+
+// ============================================================
+// Automated Slack & Email Sprint Digests
+// ============================================================
+
+export interface SprintDigestMetrics {
+  totalVisitors: number;
+  visitorsGrowth: number; // WoW % change
+  totalLeads: number;
+  leadsGrowth: number;    // WoW % change
+  conversionRate: number; // %
+  paidIntentRate: number; // %
+  totalPreorders: number;
+  totalDepositHeld: number; // in USD
+  capitalPreserved: number; // in USD
+  avgPodScore: number;
+}
+
+export interface SprintTopVariant {
+  experimentId: string;
+  experimentName: string;
+  variantId: string;
+  variantName: string;
+  headline: string;
+  conversionRate: number;
+  visitors: number;
+  leads: number;
+  preorders: number;
+  isSignificant: boolean;
+  pValue: number;
+}
+
+export interface SprintStageGateChange {
+  projectId: string;
+  projectName: string;
+  verdict: StageGateVerdict;
+  podScore: number;
+  reason: string;
+  capitalSaved: number;
+}
+
+export interface SprintDigestSummary {
+  workspaceId: string;
+  workspaceName: string;
+  periodStart: string; // ISO string
+  periodEnd: string;   // ISO string
+  sprintNumber: number;
+  sprintDay: number;   // e.g. 7 of 7
+  metrics: SprintDigestMetrics;
+  topVariant: SprintTopVariant | null;
+  stageGateChanges: SprintStageGateChange[];
+  aiExecutiveTakeaway: string;
+  generatedAt: string;
+}
+
+export interface DigestDeliveryConfig {
+  slackWebhookUrl?: string | null;
+  emailRecipients: string[];
+  sendSlack: boolean;
+  sendEmail: boolean;
+  frequency: "weekly" | "daily_sprint";
+  active: boolean;
+}

@@ -294,12 +294,23 @@ export default function SettingsPage() {
           {[
             { key: "email" as const, label: "Email notifications", desc: "Receive email alerts for important events." },
             { key: "experiment" as const, label: "Experiment updates", desc: "Notify when experiments reach significance." },
-            { key: "weekly" as const, label: "Weekly digest", desc: "Receive a weekly validation summary every Monday." },
+            {
+              key: "weekly" as const,
+              label: "Weekly sprint digest",
+              desc: "Receive a weekly validation summary every Monday via Slack & Email.",
+              actionLink: "/dashboard/settings/integrations",
+              actionLabel: "Configure channels →",
+            },
           ].map((n) => (
             <div key={n.key} className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">{n.label}</p>
                 <p className="text-xs text-text-tertiary">{n.desc}</p>
+                {"actionLink" in n && n.actionLink && (
+                  <Link href={n.actionLink} className="text-xs text-blue hover:underline mt-0.5 inline-block">
+                    {n.actionLabel}
+                  </Link>
+                )}
               </div>
               <button
                 type="button"

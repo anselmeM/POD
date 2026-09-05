@@ -33,7 +33,6 @@ const MORE_NAV = [
   { label: "Live Pages", href: "/dashboard/experiments?view=pages", icon: Layout, desc: "Published smoke pages & copy variants" },
   { label: "Team", href: "/dashboard/team", icon: Users, desc: "Manage collaborators & permissions" },
   { label: "Activity Log", href: "/dashboard/history/activity", icon: History, desc: "Audit trail & event timeline" },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings, desc: "Workspace, domains & integrations" },
 ];
 
 const ALL_MOBILE_NAV = [

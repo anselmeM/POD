@@ -161,15 +161,15 @@ Keep founders, product managers, and team members motivated and informed through
 
 ## Prioritization Matrix
 
-| Feature | Impact | Effort | Target Milestone |
+| Feature | Impact | Effort | Status |
 | :--- | :--- | :--- | :--- |
-| **Functional Notification System** | High | Low | **Immediate (Now)** |
+| **Instant AI Smoke Test Generator** | Critical | Medium | **✅ Shipped** |
+| **Stripe Pre-Order & Card Reservation** | High | Medium | **✅ Shipped** |
+| **Functional Notification System** | High | Low | **✅ Shipped** |
 | **High-Intent Micro-Surveys** | High | Low | **Sprint 1** |
-| **Instant AI Smoke Test Generator** | Critical | Medium | **Sprint 2** |
-| **Traffic & Ad Campaign Kit** | High | Medium | **Sprint 3** |
-| **Stripe Pre-Order & Card Reservation** | High | Medium | **Sprint 4** |
-| **Studio Portfolio & Leaderboard** | Medium | Medium | **Sprint 5** |
-| **Slack / Email Sprint Digests** | Medium | Low | **Sprint 6** |
+| **Traffic & Ad Campaign Kit** | High | Medium | **Sprint 2** |
+| **Studio Portfolio & Leaderboard** | Medium | Medium | **Sprint 3** |
+| **Slack / Email Sprint Digests** | Medium | Low | **Sprint 4** |
 
 ---
 

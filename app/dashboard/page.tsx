@@ -199,18 +199,14 @@ export default function DashboardPage() {
             {greeting}, {displayName}
           </h1>
           <p className="text-sm text-[var(--dash-text-secondary)] font-medium mt-1">
-            {safeExperiments.length > 0
-              ? "Here's what your current validation sprint is telling you."
-              : "Welcome to your demand validation workspace."}
+            Here&apos;s what your current validation sprint is telling you.
           </p>
         </div>
-        {safeExperiments.length > 0 && (
-          <Link href="/dashboard/experiments/new">
-            <button className="flex items-center gap-2 bg-blue text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue/20 hover:shadow-blue/30 hover:scale-[1.02] transition-all">
-              <Plus className="w-4 h-4" /> New Experiment
-            </button>
-          </Link>
-        )}
+        <Link href="/dashboard/experiments/new">
+          <button className="flex items-center gap-2 bg-blue text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue/20 hover:shadow-blue/30 hover:scale-[1.02] transition-all">
+            <Plus className="w-4 h-4" /> New Experiment
+          </button>
+        </Link>
       </motion.div>
 
       {error && (
@@ -223,54 +219,15 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Pillar 1: Unified Sprint Status & Quota Progress (Active Sprints) */}
-      {safeExperiments.length > 0 ? (
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <SprintBanner
-            experiments={safeExperiments}
-            confidence={project?.confidence}
-            initialExpanded={isSprintView}
-          />
-        </motion.div>
-      ) : (
-        /* Zero-State: Single Unified Onboarding Hero Card */
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <Card className="border border-blue/30 bg-gradient-to-r from-blue/5 via-surface-elevated to-purple/5 p-6 sm:p-7 rounded-2xl shadow-xs relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
-              <div className="space-y-1.5 max-w-2xl">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue/15 text-blue flex items-center justify-center font-bold">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold text-text-primary">Welcome to Proof of Demand</h3>
-                </div>
-                <p className="text-sm text-text-secondary leading-relaxed">
-                  Validate buyer demand with empirical signals before building. Launch a 7-day smoke test to measure true buying intent, or load sample data to explore the 4 pillars.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <Button
-                  variant="secondary"
-                  size="default"
-                  onClick={handleLoadDemoData}
-                  disabled={loadingDemo}
-                  className="gap-2 h-10 px-4"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loadingDemo ? "animate-spin" : ""}`} />
-                  <span>{loadingDemo ? "Seeding..." : "Load Demo Dataset"}</span>
-                </Button>
-                <Link href="/dashboard/experiments/new">
-                  <Button size="default" className="gap-2 h-10 px-4 bg-blue text-white hover:bg-blue-bright shadow-lg shadow-blue/20">
-                    <Plus className="w-4 h-4" />
-                    <span>Start 7-Day Sprint</span>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      )}
+      {/* Pillar 1: Unified Sprint Status & Quota Progress */}
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <SprintBanner
+          experiments={safeExperiments}
+          confidence={project?.confidence}
+          initialExpanded={isSprintView}
+        />
+      </motion.div>
+
 
 
 
@@ -385,13 +342,29 @@ export default function DashboardPage() {
                   <tbody>
                     {safeExperiments.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-sm text-[var(--dash-text-tertiary)]">
-                          No experiments created yet.{" "}
-                          <Link href="/dashboard/experiments/new" className="text-blue font-semibold hover:underline">
-                            Launch your first experiment &rarr;
-                          </Link>
+                        <td colSpan={5} className="py-10 text-center text-sm text-[var(--dash-text-tertiary)]">
+                          <p className="mb-3">No experiments created yet.</p>
+                          <div className="flex items-center justify-center gap-3">
+                            <Link href="/dashboard/experiments/new">
+                              <Button size="sm" className="gap-1.5 bg-blue text-white hover:bg-blue-bright">
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Launch Experiment</span>
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleLoadDemoData}
+                              disabled={loadingDemo}
+                              className="gap-1.5"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 ${loadingDemo ? "animate-spin" : ""}`} />
+                              <span>{loadingDemo ? "Seeding..." : "Load Demo Dataset"}</span>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
+
                     ) : (
                       safeExperiments.map((exp) => (
                         <tr key={exp.id} className="border-b border-border hover:bg-surface-elevated/80 transition-colors">

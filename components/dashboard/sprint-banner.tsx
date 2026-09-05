@@ -21,12 +21,11 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
   const [expanded, setExpanded] = useState(initialExpanded);
 
   const safeExperiments = Array.isArray(experiments) ? experiments : [];
-  if (safeExperiments.length === 0) return null;
-
   const runningExperiments = safeExperiments.filter(
     (e) => (e.status as string) === "running" || (e.status as string) === "active"
   );
   const hasActiveSprint = runningExperiments.length > 0;
+
 
 
 

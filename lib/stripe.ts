@@ -26,7 +26,7 @@ export const PRICE_MAP: Record<string, PlanConfig> = {
     currency: "usd",
     interval: "month",
     mode: "subscription",
-    priceId: process.env.STRIPE_PRICE_SELF_SERVE,
+    priceId: process.env.STRIPE_PRICE_SELF_SERVE || process.env.STRIPE_PRICE_ID_SELF_SERVE,
     description: "For founders running their own continuous demand experiments.",
   },
   studio: {
@@ -35,7 +35,7 @@ export const PRICE_MAP: Record<string, PlanConfig> = {
     currency: "usd",
     interval: "month",
     mode: "subscription",
-    priceId: process.env.STRIPE_PRICE_STUDIO,
+    priceId: process.env.STRIPE_PRICE_STUDIO || process.env.STRIPE_PRICE_ID_STUDIO,
     description: "For venture builders validating multiple concepts simultaneously.",
   },
   sprint: {
@@ -43,7 +43,7 @@ export const PRICE_MAP: Record<string, PlanConfig> = {
     amount: 250000, // $2,500.00 one-time
     currency: "usd",
     mode: "payment",
-    priceId: process.env.STRIPE_PRICE_SPRINT,
+    priceId: process.env.STRIPE_PRICE_SPRINT || process.env.STRIPE_PRICE_ID_SPRINT,
     description: "Hands-on high-conviction 1-week validation sprint with expert review.",
   },
 };

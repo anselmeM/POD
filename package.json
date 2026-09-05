@@ -11,6 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "build:vercel": "prisma generate && next build",
+    "db:push:turso": "npx tsx scripts/push-turso.ts",
+    "db:clean": "npx tsx scripts/clean-mock-data.ts",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset": "npx prisma migrate reset --force && npm run db:seed",
     "postinstall": "prisma generate"

@@ -19,22 +19,21 @@ import { ShortcutHelp } from "@/components/ui/shortcut-help";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useUser, useClerk } from "@clerk/nextjs";
 
-// Primary high-frequency navigation tabs
+// 4 Core Validation Pillars
 const PRIMARY_NAV = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },
-  { label: "Landing Pages", href: "/dashboard/landing-pages", icon: Layout },
-  { label: "Signals", href: "/dashboard/signals", icon: Activity },
-  { label: "AI Analyst", href: "/dashboard/ai-analyst", icon: Brain },
+  { label: "Demand", href: "/dashboard/leads", icon: Contact },
+  { label: "AI Verdict", href: "/dashboard/ai-analyst", icon: Brain },
 ];
 
-// Secondary / Specialized features in 'More' dropdown
+// Secondary / Specialized features & operations in 'More' dropdown
 const MORE_NAV = [
-  { label: "Audiences", href: "/dashboard/audiences", icon: Users, desc: "Segment analytics & cohorts" },
-  { label: "Leads", href: "/dashboard/leads", icon: Contact, desc: "High-intent CRM pipeline" },
-  { label: "Sprint Mode", href: "/dashboard/sprint", icon: Zap, desc: "7-day validation countdown" },
-  { label: "Reports", href: "/dashboard/reports", icon: FileText, desc: "Executive exports & summaries" },
+  { label: "Sprint Mode", href: "/dashboard?view=sprint", icon: Zap, desc: "7-day sprint countdown & lead quota" },
+  { label: "Live Pages", href: "/dashboard/experiments?view=pages", icon: Layout, desc: "Published smoke pages & copy variants" },
+  { label: "Team", href: "/dashboard/team", icon: Users, desc: "Manage collaborators & permissions" },
   { label: "Activity Log", href: "/dashboard/history/activity", icon: History, desc: "Audit trail & event timeline" },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, desc: "Workspace, domains & integrations" },
 ];
 
 const ALL_MOBILE_NAV = [
@@ -196,24 +195,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } else if (t.includes("insight") || t.includes("ai")) {
       router.push("/dashboard/ai-analyst");
     } else if (t.includes("sprint")) {
-      router.push("/dashboard/sprint");
+      router.push("/dashboard?view=sprint");
     } else if (t.includes("audience")) {
-      router.push("/dashboard/audiences");
+      router.push("/dashboard/leads?tab=attribution");
     } else if (t.includes("page") || t.includes("landing")) {
-      router.push("/dashboard/landing-pages");
+      router.push("/dashboard/experiments?view=pages");
     } else if (t.includes("signal")) {
-      router.push("/dashboard/signals");
+      router.push("/dashboard/leads?tab=signals");
+    } else if (t.includes("report")) {
+      router.push("/dashboard/ai-analyst?export=ready");
     } else {
       router.push("/dashboard");
     }
   };
 
   const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(href);
+    const cleanHref = href.split("?")[0];
+    if (cleanHref === "/dashboard") return pathname === "/dashboard";
+    if (cleanHref === "/dashboard/leads") {
+      return (
+        pathname.startsWith("/dashboard/leads") ||
+        pathname.startsWith("/dashboard/signals") ||
+        pathname.startsWith("/dashboard/audiences")
+      );
+    }
+    if (cleanHref === "/dashboard/experiments") {
+      return (
+        pathname.startsWith("/dashboard/experiments") ||
+        pathname.startsWith("/dashboard/landing-pages") ||
+        pathname.startsWith("/dashboard/firstmile")
+      );
+    }
+    if (cleanHref === "/dashboard/ai-analyst") {
+      return pathname.startsWith("/dashboard/ai-analyst") || pathname.startsWith("/dashboard/reports");
+    }
+    return pathname.startsWith(cleanHref);
   };
 
-  const isMoreActive = MORE_NAV.some((m) => pathname.startsWith(m.href));
+  const isMoreActive = MORE_NAV.some((m) => {
+    const clean = m.href.split("?")[0];
+    if (clean === "/dashboard" || clean === "/dashboard/experiments") return false;
+    return pathname.startsWith(clean);
+  });
 
   return (
     <div className="dashboard-theme min-h-screen font-sans grain-overlay relative">

@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Shield, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { User, Shield, AlertCircle, Plug, Users, History, HelpCircle, ArrowRight } from "lucide-react";
 
 function ConfirmDialog({
   open,
@@ -119,6 +120,65 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-text-secondary">Manage your workspace and personal account settings.</p>
+      </div>
+
+      {/* Operations & Secondary Tools Hub */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <Link
+          href="/dashboard/settings/integrations"
+          className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between text-text-tertiary mb-2">
+            <Plug className="w-4 h-4 text-blue" />
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-primary">Integrations</p>
+            <p className="text-[10px] text-text-tertiary">Pixels, GA4 & Stripe</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/dashboard/team"
+          className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between text-text-tertiary mb-2">
+            <Users className="w-4 h-4 text-emerald-500" />
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-primary">Team & Roles</p>
+            <p className="text-[10px] text-text-tertiary">Members & RBAC</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/dashboard/history/activity"
+          className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between text-text-tertiary mb-2">
+            <History className="w-4 h-4 text-purple-400" />
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-primary">Audit Log</p>
+            <p className="text-[10px] text-text-tertiary">Event timeline</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/dashboard/help"
+          className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between text-text-tertiary mb-2">
+            <HelpCircle className="w-4 h-4 text-amber-500" />
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-primary">Help & Docs</p>
+            <p className="text-[10px] text-text-tertiary">Keys & guides</p>
+          </div>
+        </Link>
       </div>
 
       {error && (

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FileText, Download, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
+import { FileText, Download, ArrowRight, AlertCircle, RefreshCw, Brain } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,29 @@ export default function ReportsPage() {
           });
           doc.save(`pod-report-${(project?.name || "project").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`);
         }}><Download className="w-4 h-4" />Export PDF</Button>
+      </div>
+
+      {/* Streamline Notice Banner */}
+      <div className="p-4 rounded-xl bg-blue/10 border border-blue/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue/20 flex items-center justify-center text-blue shrink-0">
+            <Brain className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-[var(--dash-text-primary)]">
+              Executive reporting is now unified into the AI Verdict & Analyst Engine.
+            </p>
+            <p className="text-xs text-[var(--dash-text-secondary)]">
+              Access real-time GO / PIVOT / KILL recommendations, WTP elasticity, and 1-click PDF briefs in one destination.
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard/ai-analyst?export=ready" className="shrink-0">
+          <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+            <span>Open AI Verdict Engine</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
       </div>
 
       {error && (

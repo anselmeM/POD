@@ -13,16 +13,14 @@ import { cn } from "@/lib/utils";
 interface CommandItem { label: string; href: string; icon: React.ElementType; section: string; keywords?: string[]; }
 
 const commands: CommandItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, section: "Navigation" },
-  { label: "Experiments", href: "/dashboard/experiments", icon: FlaskConical, section: "Navigation", keywords: ["test", "ab", "variant"] },
-  { label: "Signals", href: "/dashboard/signals", icon: Activity, section: "Navigation", keywords: ["demand", "intent"] },
-  { label: "Audiences", href: "/dashboard/audiences", icon: Users, section: "Navigation", keywords: ["segment", "target"] },
-  { label: "Leads", href: "/dashboard/leads", icon: Contact, section: "Navigation", keywords: ["contact", "signup"] },
-  { label: "AI Analyst", href: "/dashboard/ai-analyst", icon: Brain, section: "Navigation", keywords: ["ai", "analysis", "insight"] },
-  { label: "Landing Pages", href: "/dashboard/landing-pages", icon: Layout, section: "Navigation", keywords: ["page", "lp", "variant"] },
-  { label: "Reports", href: "/dashboard/reports", icon: FileText, section: "Navigation", keywords: ["export", "pdf"] },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings, section: "Quick Actions" },
-  { label: "Help", href: "/dashboard/help", icon: HelpCircle, section: "Quick Actions", keywords: ["docs", "support"] },
+  { label: "Overview & Sprint", href: "/dashboard", icon: LayoutDashboard, section: "Validation Pillars", keywords: ["home", "dashboard", "sprint", "summary"] },
+  { label: "Experiments & Live Pages", href: "/dashboard/experiments", icon: FlaskConical, section: "Validation Pillars", keywords: ["test", "ab", "variant", "smoke", "pages"] },
+  { label: "Demand & Signals Hub", href: "/dashboard/leads", icon: Contact, section: "Validation Pillars", keywords: ["crm", "waitlist", "attribution", "telemetry", "traffic", "signals", "audiences"] },
+  { label: "AI Verdict & Executive Brief", href: "/dashboard/ai-analyst", icon: Brain, section: "Validation Pillars", keywords: ["verdict", "go", "pivot", "kill", "pdf", "export", "report"] },
+  { label: "Team & Permissions", href: "/dashboard/team", icon: Users, section: "Operations", keywords: ["members", "rbac", "collaborators"] },
+  { label: "Audit & Activity Log", href: "/dashboard/history/activity", icon: Activity, section: "Operations", keywords: ["audit", "history", "logs"] },
+  { label: "Workspace Settings", href: "/dashboard/settings", icon: Settings, section: "Operations", keywords: ["workspace", "billing", "keys"] },
+  { label: "Help & Shortcuts", href: "/dashboard/help", icon: HelpCircle, section: "Operations", keywords: ["docs", "support", "keys"] },
 ];
 
 export function CommandPalette() {

@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertCircle, RefreshCw, ArrowLeft, Beaker } from "lucide-react";
+import { AlertCircle, RefreshCw, ArrowLeft, ArrowRight, Beaker, Layout, BarChart3, ExternalLink, Copy, Check } from "lucide-react";
+
+
 import type { Experiment, AIInsight, FunnelStage } from "@/lib/types";
 import { wilsonCI, significance, formatPValue, sampleSize } from "@/lib/stats";
 
@@ -47,6 +49,17 @@ export default function ExperimentDetailPage() {
   const [funnel, setFunnel] = useState<FunnelStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"performance" | "variants">("performance");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyUrl = (variantId: string) => {
+    if (typeof window !== "undefined") {
+      const url = `${window.location.origin}/p/${id}`;
+      navigator.clipboard.writeText(url);
+      setCopiedId(variantId);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -158,8 +171,39 @@ export default function ExperimentDetailPage() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader><CardTitle>Variant Performance</CardTitle></CardHeader>
+      {/* Pillar 2: View Switcher (Performance vs Smoke Pages) */}
+      <div className="flex items-center gap-2 p-1 rounded-xl bg-surface-elevated/40 border border-border/60 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab("performance")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === "performance"
+              ? "bg-surface-elevated text-blue shadow-xs border border-border"
+              : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)]"
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Statistical Performance & Funnel</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("variants")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === "variants"
+              ? "bg-surface-elevated text-blue shadow-xs border border-border"
+              : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)]"
+          }`}
+        >
+          <Layout className="w-3.5 h-3.5" />
+          <span>Smoke Pages & Copy Variants ({safeVariants.length})</span>
+        </button>
+      </div>
+
+      {activeTab === "performance" ? (
+        <>
+          <Card>
+            <CardHeader><CardTitle>Variant Performance</CardTitle></CardHeader>
+
         <CardContent>
           {experiment.variants.length > 0 ? (
             <>
@@ -282,6 +326,112 @@ export default function ExperimentDetailPage() {
           </CardContent>
         </Card>
       </div>
+    </>
+  ) : (
+
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-surface-elevated/40 border border-border/60">
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-[var(--dash-text-primary)]">
+                Smoke Test Landing Page Variants ({safeVariants.length})
+              </h3>
+              <p className="text-xs text-[var(--dash-text-secondary)]">
+                Review copy, value positioning, and test links for each variant in this experiment.
+              </p>
+            </div>
+            <Link href={`/p/${id}`} target="_blank">
+              <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open Live Test Page</span>
+              </Button>
+            </Link>
+          </div>
+
+          {safeVariants.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-xs text-text-tertiary">
+                No variants configured for this experiment.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {safeVariants.map((v, i) => (
+                <Card key={v.id} className="relative overflow-hidden border border-border/80">
+                  <CardHeader className="pb-3 border-b border-border/60 bg-surface/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[var(--dash-text-primary)]">{v.name}</span>
+                        {i === winnerIdx && (
+                          <Badge variant="green" className="text-[10px] py-0">Winner</Badge>
+                        )}
+                      </div>
+                      <Badge variant="blue" className="text-[10px]">
+                        {v.trafficAllocation}% Traffic
+                      </Badge>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-5 space-y-4">
+                    {/* Headline */}
+                    <div>
+                      <span className="text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider block mb-1">
+                        Headline Offer
+                      </span>
+                      <p className="text-sm font-semibold text-[var(--dash-text-primary)] leading-snug">
+                        &quot;{v.headline || "Untitled Headline"}&quot;
+                      </p>
+                    </div>
+
+                    {/* Positioning Angle */}
+                    {v.positioning && (
+                      <div>
+                        <span className="text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider block mb-1">
+                          Positioning Angle
+                        </span>
+                        <p className="text-xs text-[var(--dash-text-secondary)]">
+                          {v.positioning}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* CTA Preview */}
+                    <div>
+                      <span className="text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider block mb-1.5">
+                        Conversion Call-to-Action
+                      </span>
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue/10 border border-blue/20 text-blue text-xs font-bold">
+                        <span>{v.cta || "Join Waitlist"}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </div>
+
+                    {/* Conversion Metrics Footer */}
+                    <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-[var(--dash-text-secondary)]">
+                      <div>
+                        <span className="font-bold text-[var(--dash-text-primary)]">{v.conversionRate}%</span> CVR
+                      </div>
+                      <div>
+                        <span className="font-bold text-[var(--dash-text-primary)]">{v.visitors}</span> views
+                      </div>
+                      <div>
+                        <span className="font-bold text-[var(--dash-text-primary)]">{v.highIntent}</span> high-intent
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyUrl(v.id)}
+                        className="text-xs text-blue hover:underline flex items-center gap-1 ml-auto"
+                      >
+                        {copiedId === v.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedId === v.id ? "Copied!" : "Copy Link"}</span>
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

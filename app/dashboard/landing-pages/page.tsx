@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Plus, Layout, TrendingUp, Clock, MousePointerClick, Eye, MoreVertical, Trash2, Pause, Play } from "lucide-react";
+import { Plus, Layout, TrendingUp, Clock, MousePointerClick, Eye, MoreVertical, Trash2, Pause, Play, FlaskConical, ArrowRight } from "lucide-react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,31 @@ export default function LandingPagesPage() {
         <Link href="/dashboard/landing-pages/new"><Button><Plus className="w-4 h-4" />New Page</Button></Link>
       </div>
 
+      {/* Streamline Notice Banner */}
+      <div className="p-4 rounded-xl bg-blue/10 border border-blue/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue/20 flex items-center justify-center text-blue shrink-0">
+            <FlaskConical className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-[var(--dash-text-primary)]">
+              Landing pages are now co-located directly inside the Experiments Hub.
+            </p>
+            <p className="text-xs text-[var(--dash-text-secondary)]">
+              Manage test hypotheses, copy variants, and live pages in one unified testing suite.
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard/experiments?view=pages" className="shrink-0">
+          <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+            <span>View in Experiments Hub</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+      </div>
+
       {/* Summary Stats */}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Visitors", value: totalVisitors.toLocaleString(), icon: Eye },

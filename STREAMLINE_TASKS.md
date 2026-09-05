@@ -62,20 +62,21 @@ graph TD
 ### Phase 2: Pillar 2 — Unified Experiments & Page Builder (`/dashboard/experiments`)
 *Merge First Mile Wizard, Landing Pages Manager, and Experiments into one cohesive testing suite.*
 
-- [ ] **Task 2.1: Embed First Mile Wizard as Default "New Experiment" Experience**
+- [x] **Task 2.1: Embed First Mile Wizard as Default "New Experiment" Experience** ✅
   - **File:** `app/dashboard/experiments/new/page.tsx`, `components/experiments/experiment-wizard.tsx`
   - **Description:** Refactor the guided 4-step wizard from `/dashboard/firstmile` into `/dashboard/experiments/new`. Guide users from hypothesis → audience selection → landing page generation → live launch in one continuous flow.
   - **Acceptance Criteria:** Clicking "New Experiment" offers both "Quick Setup" and "Guided AI Smoke Test" without leaving `/dashboard/experiments`.
 
-- [ ] **Task 2.2: Co-locate Landing Page Variants inside Experiment Detail**
+- [x] **Task 2.2: Co-locate Landing Page Variants inside Experiment Detail** ✅
   - **File:** `app/dashboard/experiments/[id]/page.tsx`
   - **Description:** Add a "Landing Pages & Variants" tab directly inside each experiment detail view. Show variant headline, copy, and live `/p/[slug]` iframe preview right next to its conversion stats.
   - **Acceptance Criteria:** Founders no longer need to jump back and forth between `/dashboard/landing-pages` and `/dashboard/experiments`.
 
-- [ ] **Task 2.3: Add "All Pages" View within Experiments**
+- [x] **Task 2.3: Add "All Pages" View within Experiments** ✅
   - **File:** `app/dashboard/experiments/page.tsx`
   - **Description:** Add a top toggle: `[ Experiments (List) ] | [ Live Smoke Pages ]`.
   - **Acceptance Criteria:** Founders can view all live public URLs from one unified hub. Redirect `/dashboard/landing-pages` to `/dashboard/experiments?view=pages`.
+
 
 ---
 

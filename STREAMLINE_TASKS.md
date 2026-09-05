@@ -83,18 +83,19 @@ graph TD
 ### Phase 3: Pillar 3 — Unified Demand & Signals (`/dashboard/demand` or `/dashboard/leads`)
 *Consolidate Leads CRM, Channel Attribution, and Live Event Telemetry into a 3-tab Demand center.*
 
-- [ ] **Task 3.1: Create 3-Tab Demand Hub Layout**
-  - **File:** `app/dashboard/demand/page.tsx` (or update `app/dashboard/leads/page.tsx`)
+- [x] **Task 3.1: Create 3-Tab Demand Hub Layout** ✅
+  - **File:** `app/dashboard/leads/page.tsx`
   - **Description:** Create a unified interface with 3 tabs:
     - **Tab 1: Leads CRM**: The existing high-intent waitlist table with search, status filters, and source badges.
     - **Tab 2: Channel Attribution**: Visual traffic source breakdown (Meta, Google, LinkedIn, Organic, Direct) and conversion rate per channel.
     - **Tab 3: Live Signal Stream**: Real-time telemetry feed of visitor clicks, scrolls, and pricing interactions.
   - **Acceptance Criteria:** Single destination for all incoming customer interest and telemetry data.
 
-- [ ] **Task 3.2: Redirect Signals & Audiences URLs**
+- [x] **Task 3.2: Redirect Signals & Audiences URLs** ✅
   - **File:** `app/dashboard/signals/page.tsx`, `app/dashboard/audiences/page.tsx`
-  - **Description:** Forward `/dashboard/signals` to `/dashboard/demand?tab=signals` and `/dashboard/audiences` to `/dashboard/demand?tab=attribution`.
+  - **Description:** Forward `/dashboard/signals` to `/dashboard/leads?tab=signals` and `/dashboard/audiences` to `/dashboard/leads?tab=attribution`.
   - **Acceptance Criteria:** Zero broken bookmarks; clean tab switching with URL query sync.
+
 
 ---
 

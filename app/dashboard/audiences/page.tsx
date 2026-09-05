@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Users, Target, TrendingUp, Globe, Building2, Briefcase, AlertCircle, RefreshCw, BarChart3 } from "lucide-react";
+import { Users, Target, TrendingUp, Globe, Building2, Briefcase, AlertCircle, RefreshCw, BarChart3, ArrowRight } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,30 @@ export default function AudiencesPage() {
         <div><h1 className="text-2xl font-bold">Audiences</h1><p className="text-sm text-text-secondary">Target audience segments and reach analysis for your experiments.</p></div>
         <Link href="/dashboard/audiences/cohorts"><Button variant="secondary" size="sm"><BarChart3 className="w-4 h-4" /> Cohort Analysis</Button></Link>
       </div>
+
+      {/* Streamline Notice Banner */}
+      <div className="p-4 rounded-xl bg-blue/10 border border-blue/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue/20 flex items-center justify-center text-blue shrink-0">
+            <Globe className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-[var(--dash-text-primary)]">
+              Audience and channel attribution are now integrated directly into the Demand Hub.
+            </p>
+            <p className="text-xs text-[var(--dash-text-secondary)]">
+              Track conversion by acquisition channel (Meta, Google, LinkedIn) and customer segments in one place.
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard/leads?tab=attribution" className="shrink-0">
+          <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+            <span>View in Demand Hub</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+      </div>
+
 
       {error && (
         <Card className="border-red/30 bg-red/5">

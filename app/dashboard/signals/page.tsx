@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Users, ArrowRight } from "lucide-react";
 import Link from "next/link";
+
 import type { FunnelStage } from "@/lib/types";
 
 const strengthColors: Record<string, string> = {
@@ -77,6 +78,30 @@ export default function SignalsPage() {
         <h1 className="text-2xl font-bold">Behavioral Signals</h1>
         <p className="text-sm text-text-secondary">Track how visitors progress through your validation funnel.</p>
       </div>
+
+      {/* Streamline Notice Banner */}
+      <div className="p-4 rounded-xl bg-blue/10 border border-blue/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue/20 flex items-center justify-center text-blue shrink-0">
+            <Users className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-[var(--dash-text-primary)]">
+              Behavioral signals are now co-located directly inside the Demand & Signals Hub.
+            </p>
+            <p className="text-xs text-[var(--dash-text-secondary)]">
+              Inspect live funnel progress, willingness-to-pay, and prospect actions in one place.
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard/leads?tab=signals" className="shrink-0">
+          <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+            <span>View in Demand Hub</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+      </div>
+
 
       {error && (
         <Card className="border-red/30 bg-red/5">

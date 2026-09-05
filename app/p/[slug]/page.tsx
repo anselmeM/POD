@@ -1,3 +1,37 @@
+/**
+ * ============================================================================
+ * PUBLIC SMOKE TEST LANDING PAGE & INTENT MEASUREMENT RUNTIME
+ * ============================================================================
+ * 
+ * Architectural Purpose:
+ * ----------------------
+ * This component is the public customer-facing surface of Proof of Demand.
+ * Every smoke test landing page created by founders lives under `/p/[slug]`.
+ * 
+ * Core Capabilities:
+ * 1. Dynamic Template Rendering:
+ *    - Renders one of multiple high-converting landing page templates:
+ *      (e.g., Hero, Waitlist, Split, Video, Micro-SaaS) via `templateRenderers`.
+ * 2. Automated Traffic & UTM Attribution:
+ *    - Extracts `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`,
+ *      and platform click identifiers (`gclid`, `fbclid`, `li_fat_id`).
+ *    - Persists attribution parameters in browser `sessionStorage` and `localStorage`
+ *      so that conversions (email captures, fake-door button clicks, pre-orders) are
+ *      accurately attributed back to the winning acquisition channel.
+ * 3. Passive Engagement Measurement:
+ *    - Automatically sends a `page_view` beacon on initial load.
+ *    - Instruments passive scroll depth tracking at 25%, 50%, and 75% thresholds
+ *      to measure reader retention and filter bounce traffic.
+ * 4. Multi-Platform Ad Retargeting Injections:
+ *    - Conditionally mounts Meta Pixel (`fbq`), Google Ads/Analytics Tag (`gtag`),
+ *      and LinkedIn Insight Tag (`lintrk`) configured in the workspace settings.
+ * 5. Stripe Pre-Order Confirmation States:
+ *    - Reads query parameters (`preorder_success=1`, `preorder_cancelled=1`) following
+ *      redirect from Stripe Checkout to show instant confirmation banners.
+ * 
+ * @module app/p/[slug]/page
+ */
+
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
@@ -7,6 +41,10 @@ import Script from "next/script";
 import type { LandingPage } from "@/lib/types";
 import { templateRenderers } from "./templates";
 
+/**
+ * PublicLandingPage:
+ * Top-level dynamic component rendering public smoke test pages.
+ */
 export default function PublicLandingPage() {
   const params = useParams();
   const slug = params?.slug as string | undefined;
@@ -39,6 +77,8 @@ export default function PublicLandingPage() {
   useEffect(() => {
     if (!slug || !page) return;
 
+    // STEP 1: Deterministic anonymous visitor identity stored in localStorage
+    // Enables multi-touch attribution (first touch page view -> later fake door click)
     let visitorId = "vis-anon";
     try {
       visitorId = localStorage.getItem("pod_vid") || "";
@@ -50,7 +90,7 @@ export default function PublicLandingPage() {
       visitorId = `vis-${Math.random().toString(36).slice(2, 9)}`;
     }
 
-    // Capture URL UTM parameters & platform click IDs
+    // STEP 2: Capture URL UTM parameters & platform click IDs
     const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     const urlTracking = {
       utm_source: searchParams?.get("utm_source") || "",
@@ -63,6 +103,7 @@ export default function PublicLandingPage() {
       li_fat_id: searchParams?.get("li_fat_id") || "",
     };
 
+    // Cache active campaign parameters into sessionStorage for multi-page session persistence
     if (urlTracking.utm_source || urlTracking.gclid || urlTracking.fbclid || urlTracking.li_fat_id) {
       try {
         sessionStorage.setItem("pod_tracking_params", JSON.stringify(urlTracking));
@@ -79,7 +120,7 @@ export default function PublicLandingPage() {
 
     const activeTracking = { ...savedTracking, ...urlTracking };
 
-    // Fire Page View Beacon
+    // STEP 3: Fire initial Page View Beacon via beacon API /track
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -95,7 +136,8 @@ export default function PublicLandingPage() {
       }),
     }).catch(() => {});
 
-    // Instrument Scroll Depth
+    // STEP 4: Instrument Passive Scroll Depth (25%, 50%, 75%)
+    // Filters accidental bounces from high-attention visitors who read content
     const handleScroll = () => {
       const h = document.documentElement;
       const b = document.body;

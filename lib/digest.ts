@@ -1,3 +1,32 @@
+/**
+ * ============================================================================
+ * AUTOMATED WEEKLY SPRINT DIGEST & MULTI-CHANNEL DISPATCH ENGINE
+ * ============================================================================
+ *
+ * This module coordinates Proof of Demand's automated reporting pipeline.
+ * Every Monday at 9:00 AM EST (or on-demand via the dashboard), this engine:
+ *
+ * 1. AGGREGATES 7-DAY SPRINT METRICS:
+ *    - Compares current 7-day traffic & lead volumes against the prior 7-day window
+ *      to compute week-over-week (WoW) percentage trajectories.
+ *    - Identifies the highest-converting variant across all active experiments and
+ *      evaluates two-tailed normal approximation p-values for statistical significance ($p < 0.05$).
+ *    - Summarizes Stage-Gate portfolio movements (`BUILD`, `ITERATE`, `KILL`) and
+ *      calculates cumulative engineering capital preserved ($45k per kill, $15k per pivot).
+ *    - Synthesizes an executive takeaway advising where founders should allocate outbound spend.
+ *
+ * 2. MULTI-CHANNEL FORMATTING:
+ *    - Slack Block Kit: Generates structured, responsive message cards with section
+ *      grids, variant spotlight callouts, and deep-link buttons back to `/dashboard/portfolio`.
+ *    - Responsive HTML Email: Generates email layouts with dark-mode aesthetic,
+ *      inline CSS, metric tiles, and Stage-Gate matrix tables for investor updates.
+ *
+ * 3. MULTI-CHANNEL DISPATCH & RECORDING:
+ *    - Dispatches HTTP POST payloads to Slack incoming webhooks.
+ *    - Sends branded emails via Resend API (or simulates in development mode).
+ *    - Creates an in-app `Notification` record for the user's dashboard notification drawer.
+ */
+
 import { prisma } from "@/lib/prisma";
 import {
   SprintDigestSummary,

@@ -1,20 +1,59 @@
-// ============================================================
-// Proof of Demand — TypeScript Types
-// ============================================================
+/**
+ * ============================================================================
+ * PROOF OF DEMAND (PoD) — CORE DOMAIN TYPE SYSTEM
+ * ============================================================================
+ *
+ * This module defines the complete TypeScript contracts and data structures
+ * that model Proof of Demand's validation lifecycle.
+ *
+ * The 4 Validation Pillars of PoD:
+ * --------------------------------
+ * 1. Pillar 1 — Hypothesis & Persona Definition:
+ *    Models startup ideas, target ICP (Ideal Customer Profile), problem statements,
+ *    and pricing assumptions (`Project`, `Hypothesis`, `AudienceConfig`).
+ *
+ * 2. Pillar 2 — Smoke Test Experiments & Multi-Channel Copy:
+ *    Models variant splits, fake-door landing pages, Meta/LinkedIn/Google ad variations,
+ *    and UTM tracking (`Experiment`, `Variant`, `LandingPage`, `AdCopyVariation`).
+ *
+ * 3. Pillar 3 — Behavioral Telemetry & Intent Capture:
+ *    Models fake-door clicks, micro-surveys, qualified leads, and Stripe card reservations
+ *    (`SignalEvent`, `Lead`, `MicroSurveyResponse`, `ChannelAttribution`).
+ *
+ * 4. Pillar 4 — AI Verdict, Stage-Gate Matrix & Portfolio:
+ *    Models automated go/no-go verdicts, willingness-to-pay elasticity, capital preserved,
+ *    and weekly sprint digests (`ValidationVerdict`, `PoDScore`, `StudioConcept`, `SprintDigestSummary`).
+ */
 
+// ============================================================================
+// 1. Workspaces, Members & Subscriptions
+// ============================================================================
+
+/**
+ * Subscription plan tiers controlling quotas for active tests, AI generations, and team seats.
+ */
 export type Plan = "sprint" | "self-serve" | "studio" | "trial";
 
+/**
+ * Multi-tenant organization workspace container.
+ */
 export interface Workspace {
   id: string;
   name: string;
   plan: Plan;
+  /** Meta/Facebook Pixel ID injected into public landing pages */
   metaPixelId?: string | null;
+  /** Google Ads conversion tag or GA4 Measurement ID */
   googleAdsId?: string | null;
+  /** LinkedIn Insight Tag Partner ID */
   linkedinPartnerId?: string | null;
   members: Member[];
   createdAt: string;
 }
 
+/**
+ * Collaborator membership within a workspace.
+ */
 export interface Member {
   id: string;
   name: string;
@@ -23,20 +62,41 @@ export interface Member {
   avatarUrl?: string;
 }
 
-export type ProjectStatus = "idea" | "hypothesis" | "testing" | "validated" | "paused" | "weak";
+// ============================================================================
+// 2. Projects & Hypotheses (Pillar 1)
+// ============================================================================
 
+/**
+ * Lifecycle state of a startup validation concept.
+ */
+export type ProjectStatus =
+  | "idea"
+  | "hypothesis"
+  | "testing"
+  | "validated"
+  | "paused"
+  | "weak";
+
+/**
+ * Core validation project containing experiments, smoke tests, and market signals.
+ */
 export interface Project {
   id: string;
   workspaceId: string;
   name: string;
   description: string;
   status: ProjectStatus;
+  /** Proof of Demand Score (0-100) combining conversion rate, intent, and willingness to pay */
   podScore: number;
+  /** Statistical confidence percentage (0-100%) */
   confidence: number;
   createdAt: string;
   updatedAt: string;
 }
 
+/**
+ * Falsifiable startup hypothesis tested during a validation sprint.
+ */
 export interface Hypothesis {
   id: string;
   projectId: string;
@@ -48,9 +108,22 @@ export interface Hypothesis {
   selected: boolean;
 }
 
-export type ExperimentStatus = "draft" | "running" | "paused" | "completed" | "winner";
+// ============================================================================
+// 3. Experiments, Variants & Traffic (Pillar 2)
+// ============================================================================
+
+export type ExperimentStatus =
+  | "draft"
+  | "running"
+  | "paused"
+  | "completed"
+  | "winner";
+
 export type Channel = "linkedin" | "meta" | "google" | "twitter";
 
+/**
+ * A/B or multi-variant smoke test testing competing value propositions.
+ */
 export interface Experiment {
   id: string;
   projectId: string;
@@ -71,6 +144,9 @@ export interface Experiment {
   updatedAt?: string;
 }
 
+/**
+ * A single positioning or copy variant within an experiment.
+ */
 export interface Variant {
   id: string;
   experimentId: string;
@@ -87,6 +163,13 @@ export interface Variant {
   costPerAction: number;
 }
 
+// ============================================================================
+// 4. Behavioral Telemetry, Signals & Micro-Surveys (Pillar 3)
+// ============================================================================
+
+/**
+ * Categorical events emitted by landing page visitors.
+ */
 export type EventType =
   | "page_view"
   | "scroll"
@@ -100,6 +183,9 @@ export type EventType =
   | "preorder_placed"
   | "survey_response";
 
+/**
+ * 2-Step qualitative feedback response captured during fake-door CTA clicks.
+ */
 export interface MicroSurveyResponse {
   problem: string;
   willingPrice: string;
@@ -108,6 +194,9 @@ export interface MicroSurveyResponse {
   name?: string;
 }
 
+/**
+ * Immutable time-series telemetry event for funnel and statistical analysis.
+ */
 export interface ExperimentEvent {
   id: string;
   experimentId: string;
@@ -118,8 +207,16 @@ export interface ExperimentEvent {
   metadata?: Record<string, unknown>;
 }
 
-export type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "disqualified";
+export type LeadStatus =
+  | "new"
+  | "contacted"
+  | "qualified"
+  | "converted"
+  | "disqualified";
 
+/**
+ * Qualified prospective customer captured via smoke test CTA or Stripe card hold.
+ */
 export interface Lead {
   id: string;
   experimentId: string;
@@ -129,9 +226,12 @@ export interface Lead {
   company: string;
   role: string;
   source: string;
+  /** Intent score (0-100) reflecting depth of engagement (e.g. 98 for card reservations) */
   intentScore: number;
   pricingInteraction: boolean;
+  /** Flag indicating whether the customer authorized a card pre-order reservation */
   isPreorder?: boolean;
+  /** Refundable deposit amount in cents (e.g. 100 for $1.00 or 2500 for $25.00) */
   depositAmount?: number;
   stripeSessionId?: string | null;
   status: LeadStatus;
@@ -139,7 +239,16 @@ export interface Lead {
   createdAt: string;
 }
 
-export type InsightType = "demand" | "audience" | "variant" | "pricing" | "recommendation";
+// ============================================================================
+// 5. AI Verdicts & Scoring Engine (Pillar 4)
+// ============================================================================
+
+export type InsightType =
+  | "demand"
+  | "audience"
+  | "variant"
+  | "pricing"
+  | "recommendation";
 
 export interface AIInsight {
   id: string;
@@ -162,6 +271,9 @@ export interface ValidationVerdict {
   color: "green" | "blue" | "amber" | "red";
 }
 
+/**
+ * Multi-dimensional Proof of Demand score breakdown across key validation vectors.
+ */
 export interface PoDScore {
   overall: number;
   problemStrength: number;
@@ -198,12 +310,17 @@ export interface ReportSection {
   data?: Record<string, unknown>;
 }
 
-// ============================================================
-// Landing Pages
-// ============================================================
+// ============================================================================
+// 6. Public Landing Pages
+// ============================================================================
 
 export type LandingPageStatus = "draft" | "live" | "paused" | "archived";
-export type LandingPageTemplate = "hero" | "problem" | "social-proof" | "pricing" | "minimal";
+export type LandingPageTemplate =
+  | "hero"
+  | "problem"
+  | "social-proof"
+  | "pricing"
+  | "minimal";
 
 export interface LandingPage {
   id: string;
@@ -236,9 +353,9 @@ export interface LandingPage {
   updatedAt: string;
 }
 
-// ============================================================
-// Validation History
-// ============================================================
+// ============================================================================
+// 7. Validation History & Sprint Log
+// ============================================================================
 
 export interface HistoryItem {
   id: string;
@@ -253,12 +370,15 @@ export interface HistoryItem {
   keyInsight: string;
 }
 
-// ============================================================
-// Traffic & Multi-Channel Ad Campaign Kit
-// ============================================================
+// ============================================================================
+// 8. Traffic & Multi-Channel Ad Campaign Kit
+// ============================================================================
 
 export type AdPlatform = "meta" | "linkedin" | "google" | "twitter";
 
+/**
+ * Platform-compliant ad creative tailored for Meta, LinkedIn, Google Search, or Twitter.
+ */
 export interface AdCopyVariation {
   id: string;
   platform: AdPlatform;
@@ -283,6 +403,9 @@ export interface UtmCampaignPreset {
   content?: string;
 }
 
+/**
+ * First-party multi-channel traffic attribution row.
+ */
 export interface ChannelAttribution {
   channel: string;
   source: string;
@@ -294,12 +417,15 @@ export interface ChannelAttribution {
   isWinner?: boolean;
 }
 
-// ============================================================
-// Startup Studio Portfolio & Leaderboard
-// ============================================================
+// ============================================================================
+// 9. Startup Studio Portfolio & Leaderboard
+// ============================================================================
 
 export type StageGateVerdict = "BUILD" | "ITERATE" | "KILL" | "TESTING";
 
+/**
+ * Portfolio concept evaluated under the Stage-Gate Decision Matrix.
+ */
 export interface StudioConcept {
   id: string;
   projectId: string;
@@ -322,6 +448,9 @@ export interface StudioConcept {
   partnerNotes?: string;
 }
 
+/**
+ * Studio-wide aggregated performance and capital preservation summary.
+ */
 export interface PortfolioSummary {
   totalConcepts: number;
   greenlitCount: number;
@@ -333,9 +462,9 @@ export interface PortfolioSummary {
   totalCapitalSaved: number;
 }
 
-// ============================================================
-// Automated Slack & Email Sprint Digests
-// ============================================================
+// ============================================================================
+// 10. Automated Slack & Email Sprint Digests
+// ============================================================================
 
 export interface SprintDigestMetrics {
   totalVisitors: number;

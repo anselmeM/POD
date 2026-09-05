@@ -1,3 +1,38 @@
+/**
+ * ============================================================================
+ * SCHEDULED SPRINT DIGEST CRON JOB (SLACK & EMAIL DISPATCHER)
+ * ============================================================================
+ * 
+ * Architectural Role:
+ * -------------------
+ * This route is invoked by Vercel Cron (or external job schedulers) on a weekly basis
+ * (e.g., every Monday at 09:00 UTC) to generate and broadcast 7-day validation performance
+ * digests across all active workspaces.
+ * 
+ * Execution Lifecycle:
+ * --------------------
+ * 1. Cryptographic Authentication:
+ *    - Validates `Authorization: Bearer <CRON_SECRET>` against the environment secret.
+ *    - Rejects unauthorized invocations with HTTP 401.
+ * 2. Tenant Enumeration:
+ *    - Iterates over all workspaces in the multi-tenant database.
+ * 3. Configuration & Guard Checks:
+ *    - Checks if Slack webhooks or email recipient lists are enabled for each workspace.
+ *    - Skips inactive workspaces to avoid unnecessary compute and external API calls.
+ * 4. Aggregate Metric Synthesis:
+ *    - Invokes `generateSprintDigest` to compute 7-day week-over-week trends,
+ *      top-converting variants, and Stage-Gate verdicts.
+ * 5. Multi-Channel Dispatch:
+ *    - Dispatches rich Slack Block Kit payloads to founder channels and responsive
+ *      HTML email reports via Resend.
+ * 
+ * Endpoint Support:
+ * - GET: Used by standard Vercel Cron jobs.
+ * - POST: Used by manual admin triggers or external CI/CD webhooks.
+ * 
+ * @module app/api/cron/sprint-digest/route
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
@@ -6,6 +41,11 @@ import {
   dispatchSprintDigest,
 } from "@/lib/digest";
 
+/**
+ * Shared execution handler for cron triggers.
+ * 
+ * @param request - Inbound NextRequest from cron scheduler or administrative trigger.
+ */
 async function handleCron(request: NextRequest) {
   // 1. Verify Authorization Header (Vercel Cron or secret)
   const authHeader = request.headers.get("authorization");

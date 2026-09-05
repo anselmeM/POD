@@ -1,8 +1,54 @@
+/**
+ * ============================================================================
+ * FIRST-PARTY MULTI-CHANNEL TRAFFIC & ATTRIBUTION ENGINE
+ * ============================================================================
+ * 
+ * Architectural Role:
+ * -------------------
+ * This endpoint aggregates raw inbound `SignalEvent` telemetry (page views, clicks)
+ * and verified `Lead` conversions (email waitlists, fake-door button clicks, Stripe pre-orders)
+ * into a structured multi-channel acquisition breakdown.
+ * 
+ * Attribution Model:
+ * ------------------
+ * 1. Rule-Based Channel Normalization:
+ *    - Maps raw `utm_source`, referral headers, or platform click parameters
+ *      (`gclid`, `fbclid`, `li_fat_id`) into discrete standard channels:
+ *      • Meta Ads (Facebook / Instagram)
+ *      • LinkedIn Ads (B2B CPC / InMail)
+ *      • Google Search (AdWords / CPC)
+ *      • X / Twitter
+ *      • Reddit Ads
+ *      • Email & Newsletter
+ *      • Direct / Organic (Fallback)
+ * 
+ * 2. Multi-Level Scoping & Multi-Tenancy:
+ *    - Scoped by workspace ID (`ctx.workspace.id`) to guarantee strict cross-tenant data isolation.
+ *    - Optionally filtered by `?experimentId=` for single-experiment campaign analysis.
+ * 
+ * 3. Conversion Rate (CVR) & Winning Channel Discovery:
+ *    - Calculates percentage CVR (`(leads / visitors) * 100`) per channel.
+ *    - Enforces a minimum sample floor (>= 5 visitors) before crowning a "top winning channel"
+ *      to eliminate small-sample statistical artifacts.
+ * 
+ * 4. Graceful Cold-Start Demodata:
+ *    - If no live traffic has been recorded yet, returns realistic baseline attribution metrics
+ *      so that first-time founders can immediately evaluate campaign distribution previews.
+ * 
+ * @module app/api/traffic/attribution/route
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import type { ChannelAttribution } from "@/lib/types";
 
+/**
+ * Normalizes varied UTM strings and platform tracking click IDs into a unified channel category.
+ * 
+ * @param source - Raw string from `utm_source`, referrer, or lead source field.
+ * @returns Human-readable channel name and standardized dictionary key.
+ */
 function normalizeChannel(source?: string | null): { channelName: string; key: string } {
   const s = (source || "direct").toLowerCase().trim();
   if (s.includes("meta") || s.includes("facebook") || s.includes("fb") || s.includes("instagram")) {

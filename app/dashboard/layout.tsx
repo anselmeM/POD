@@ -1,3 +1,43 @@
+/**
+ * ============================================================================
+ * UNIFIED DASHBOARD APPLICATION SHELL & NAVIGATION ARCHITECTURE
+ * ============================================================================
+ * 
+ * Architectural Role:
+ * -------------------
+ * This client component serves as the root visual and navigational layout for all
+ * authenticated routes under `/dashboard/*`.
+ * 
+ * Navigation Hierarchy & UX Structure:
+ * -------------------------------------
+ * 1. Primary Pillar Navigation (Desktop Topbar & Mobile Drawer):
+ *    - Overview (`/dashboard`): High-level conversion funnel, PoD score, and quick actions.
+ *    - Experiments (`/dashboard/experiments`): Smoke tests, landing pages, and variant AB splits.
+ *    - Demand (`/dashboard/leads`): Captured waitlists, pre-orders, and signal events.
+ *    - Portfolio (`/dashboard/portfolio`): Multi-idea Stage-Gate leaderboard and capital savings.
+ *    - AI Verdict (`/dashboard/ai-analyst`): Synthesis of statistical significance and market recommendations.
+ * 
+ * 2. Secondary Settings & Utility Access:
+ *    - Grouped cleanly inside the User Profile Dropdown (top right) and mobile drawer
+ *      to keep the primary desktop navbar uncluttered:
+ *      • Traffic & Ads (`/dashboard/traffic`)
+ *      • Team & Roles (`/dashboard/team`)
+ *      • Billing & Plans (`/dashboard/billing`)
+ *      • Workspace Settings (`/dashboard/settings`)
+ * 
+ * 3. Global Notification Center:
+ *    - Real-time polling and badge counter for experiment conversions, sprint digests,
+ *      and system signals.
+ *    - Type-specific contextual routing directly to corresponding dashboard views.
+ * 
+ * 4. Ambient Visuals & Productivity Tools:
+ *    - Dark/light responsive background orb particle field (`OrbField`).
+ *    - Global keyboard shortcut system (`useKeyboardShortcuts`, `Cmd/Ctrl + K` Command Palette).
+ *    - Multi-tenant workspace context switcher (`WorkspaceSwitcher`).
+ * 
+ * @module app/dashboard/layout
+ */
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -19,7 +59,9 @@ import { ShortcutHelp } from "@/components/ui/shortcut-help";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useUser, useClerk } from "@clerk/nextjs";
 
-// 5 Primary Validation Pillars
+/**
+ * 5 Core Primary Navigation Pillars displayed directly in the desktop header.
+ */
 const PRIMARY_NAV = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },
@@ -28,6 +70,9 @@ const PRIMARY_NAV = [
   { label: "AI Verdict", href: "/dashboard/ai-analyst", icon: Brain },
 ];
 
+/**
+ * Complete navigation items exposed in the responsive mobile sheet.
+ */
 const ALL_MOBILE_NAV = [
   ...PRIMARY_NAV,
   { label: "Traffic & Ads", href: "/dashboard/traffic", icon: Megaphone },

@@ -53,6 +53,7 @@ export default function NewLandingPagePage() {
   const [preorderEnabled, setPreorderEnabled] = useState(false);
   const [depositAmount, setDepositAmount] = useState(100);
   const [priceAnchor, setPriceAnchor] = useState(4900);
+  const [surveyEnabled, setSurveyEnabled] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
 
@@ -86,6 +87,7 @@ export default function NewLandingPagePage() {
       preorderEnabled,
       depositAmount,
       priceAnchor,
+      surveyEnabled,
       visitors: 0,
       conversions: 0,
       bounceRate: 0,
@@ -248,6 +250,26 @@ export default function NewLandingPagePage() {
                       </div>
                     </div>
                   )}
+
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">High-Intent Micro-Survey</p>
+                      <p className="text-xs text-text-tertiary">3-step modal capturing core bottleneck & price elasticity upon CTA click</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSurveyEnabled(!surveyEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        surveyEnabled ? "bg-blue" : "bg-surface-elevated border border-border"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          surveyEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -260,7 +282,7 @@ export default function NewLandingPagePage() {
                     id: "preview", projectId: "proj-001", name: pageName || headline.slice(0, 40) || "Preview", template: templateMap[selectedTemplate] || "hero",
                     headline: headline || "Your headline here", subheadline: subheadline || "Your subheadline will appear here.", cta: selectedCta,
                     positioning: positioningMap[selectedPositioning] || selectedPositioning, status: "draft", slug: "preview",
-                    preorderEnabled, depositAmount, priceAnchor,
+                    preorderEnabled, depositAmount, priceAnchor, surveyEnabled,
                     visitors: 0, conversions: 0, bounceRate: 0, avgTimeOnPage: 0, conversionRate: 0,
                     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
                   };

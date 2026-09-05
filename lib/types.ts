@@ -97,7 +97,16 @@ export type EventType =
   | "checkout_initiate"
   | "payment_start"
   | "form_submit"
-  | "preorder_placed";
+  | "preorder_placed"
+  | "survey_response";
+
+export interface MicroSurveyResponse {
+  problem: string;
+  willingPrice: string;
+  customNotes?: string;
+  email?: string;
+  name?: string;
+}
 
 export interface ExperimentEvent {
   id: string;
@@ -211,6 +220,8 @@ export interface LandingPage {
   preorderEnabled?: boolean;
   depositAmount?: number;
   priceAnchor?: number;
+  surveyEnabled?: boolean;
+  surveyQuestions?: string;
   visitors: number;
   conversions: number;
   bounceRate: number;

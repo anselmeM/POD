@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
         preorderEnabled: Boolean(body.preorderEnabled),
         depositAmount: typeof body.depositAmount === "number" ? body.depositAmount : 100,
         priceAnchor: typeof body.priceAnchor === "number" ? body.priceAnchor : 4900,
+        surveyEnabled: body.surveyEnabled !== undefined ? Boolean(body.surveyEnabled) : true,
+        surveyQuestions: typeof body.surveyQuestions === "string" ? body.surveyQuestions : "[]",
       },
     });
 

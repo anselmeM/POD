@@ -10,7 +10,7 @@ import type { LeadStatus, FunnelStage } from "@/lib/types";
 import {
   Users, Target, TrendingUp, Search, Filter, AlertCircle, RefreshCw,
   Globe, Building2, Briefcase, Activity, Zap, ExternalLink, ArrowRight,
-  MousePointerClick, BarChart3, Download, CreditCard,
+  MousePointerClick, BarChart3, Download, CreditCard, MessageSquare, DollarSign, Quote, Sparkles,
 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import Link from "next/link";
@@ -81,6 +81,21 @@ export default function LeadsPage() {
   const [funnel, setFunnel] = useState<FunnelStage[]>([]);
   const [signalEvents, setSignalEvents] = useState<any[]>([]);
   const [signalsLoading, setSignalsLoading] = useState(false);
+  const [surveyAnalytics, setSurveyAnalytics] = useState<{
+    totalResponses: number;
+    avgAcceptablePrice: number;
+    problemDistribution: Array<{ label: string; count: number; percentage: number }>;
+    priceElasticity: Array<{ tier: string; count: number; percentage: number }>;
+    recentResponses: Array<{
+      id: string;
+      timestamp: string;
+      problem: string;
+      willingPrice: string;
+      customNotes?: string;
+      email?: string;
+      name?: string;
+    }>;
+  } | null>(null);
 
   useEffect(() => {
     fetchLeads();
@@ -112,12 +127,16 @@ export default function LeadsPage() {
     }
   }, [activeTab, segments.length]);
 
-  // Fetch Signals & Funnel if switching to signals tab
+  // Fetch Signals, Funnel & Survey Analytics if switching to signals tab
   useEffect(() => {
-    if (activeTab === "signals" && funnel.length === 0) {
+    if (activeTab === "signals") {
       setSignalsLoading(true);
-      Promise.all([fetch("/api/funnel"), fetch("/api/signals")])
-        .then(async ([fRes, sRes]) => {
+      Promise.all([
+        fetch("/api/funnel"),
+        fetch("/api/signals"),
+        fetch("/api/signals/survey"),
+      ])
+        .then(async ([fRes, sRes, surRes]) => {
           if (fRes.ok) {
             const fData = await fRes.json();
             const raw = fData.data;
@@ -127,11 +146,17 @@ export default function LeadsPage() {
             const sData = await sRes.json();
             setSignalEvents(Array.isArray(sData.data) ? sData.data : []);
           }
+          if (surRes.ok) {
+            const surData = await surRes.json();
+            if (surData?.data) {
+              setSurveyAnalytics(surData.data);
+            }
+          }
         })
         .catch(() => {})
         .finally(() => setSignalsLoading(false));
     }
-  }, [activeTab, funnel.length]);
+  }, [activeTab]);
 
   const safeLeads = Array.isArray(leads) ? leads : [];
   const lead = safeLeads.find((l) => l.id === selected);
@@ -592,26 +617,151 @@ export default function LeadsPage() {
             </div>
 
             <Card>
-              <CardHeader><CardTitle>Willingness-to-Pay Index</CardTitle></CardHeader>
-              <CardContent className="space-y-4 text-center">
-                <div className="p-4 rounded-xl bg-blue/10 border border-blue/20 inline-block mx-auto">
-                  <p className="text-4xl font-black font-mono text-blue">84</p>
-                  <p className="text-xs text-text-tertiary">/ 100 WTP Score</p>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Willingness-to-Pay Index</span>
+                  <Badge variant="blue" className="text-[10px] font-mono">Elasticity</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="p-3 rounded-xl bg-blue/10 border border-blue/20 inline-block mx-auto mb-2">
+                    <p className="text-3xl font-black font-mono text-blue">
+                      ${surveyAnalytics?.avgAcceptablePrice || 49}
+                      <span className="text-xs font-normal text-text-tertiary">/mo</span>
+                    </p>
+                    <p className="text-[11px] text-text-tertiary">Avg Acceptable Price</p>
+                  </div>
                 </div>
-                <div className="text-xs text-text-secondary text-left space-y-2 pt-2 border-t border-border">
-                  <p className="flex items-center justify-between">
-                    <span>Pricing Modal Views</span>
-                    <strong className="text-text-primary font-mono">Strong intent</strong>
-                  </p>
-                  <p className="flex items-center justify-between">
-                    <span>Deposit / Pilot Clicks</span>
-                    <strong className="text-text-primary font-mono">High intent</strong>
-                  </p>
-                  <p className="flex items-center justify-between">
-                    <span>Scroll Depth &gt; 75%</span>
-                    <strong className="text-text-primary font-mono">82% engagement</strong>
-                  </p>
+
+                <div className="space-y-2.5 pt-2 border-t border-border">
+                  <p className="text-xs font-semibold text-text-secondary">Price Sensitivity Curve</p>
+                  {surveyAnalytics?.priceElasticity && surveyAnalytics.priceElasticity.length > 0 ? (
+                    surveyAnalytics.priceElasticity.map((tier) => (
+                      <div key={tier.tier} className="text-xs">
+                        <div className="flex justify-between text-text-secondary mb-1">
+                          <span className="font-medium text-text-primary">{tier.tier}</span>
+                          <span className="font-mono text-text-tertiary">{tier.count} votes ({tier.percentage}%)</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue rounded-full transition-all duration-500"
+                            style={{ width: `${Math.max(tier.percentage, 4)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-text-tertiary space-y-1.5">
+                      <p className="flex items-center justify-between">
+                        <span>Starter ($19/mo)</span>
+                        <span className="font-mono">Pending</span>
+                      </p>
+                      <p className="flex items-center justify-between">
+                        <span>Pro ($49/mo)</span>
+                        <span className="font-mono">Pending</span>
+                      </p>
+                      <p className="flex items-center justify-between">
+                        <span>Growth ($99/mo)</span>
+                        <span className="font-mono">Pending</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Micro-Survey Problem Discovery & Feedback Stream */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-blue" />
+                    <span>Customer Friction & Bottlenecks</span>
+                  </CardTitle>
+                  <Badge variant="default" className="text-[10px]">
+                    {surveyAnalytics?.totalResponses || 0} Responses
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {surveyAnalytics?.problemDistribution && surveyAnalytics.problemDistribution.length > 0 ? (
+                  surveyAnalytics.problemDistribution.map((item, idx) => (
+                    <div key={item.label} className="p-3 rounded-xl bg-surface-elevated/60 border border-border">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-medium text-text-primary flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-blue/10 text-blue text-[10px] font-bold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          {item.label}
+                        </span>
+                        <span className="text-xs font-mono text-text-secondary">
+                          {item.count} ({item.percentage}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue/80 rounded-full"
+                          style={{ width: `${item.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-8 h-8 text-text-tertiary mx-auto mb-2 opacity-50" />
+                    <p className="text-xs text-text-secondary font-medium">No friction responses recorded yet</p>
+                    <p className="text-[11px] text-text-tertiary mt-1 max-w-xs mx-auto">
+                      When prospects click CTAs on your landing pages, the micro-survey captures their #1 problem before capturing lead info.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Quote className="w-4 h-4 text-emerald-400" />
+                  <span>Voice of Customer Insights</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-[360px] overflow-auto">
+                {surveyAnalytics?.recentResponses && surveyAnalytics.recentResponses.length > 0 ? (
+                  surveyAnalytics.recentResponses.map((res) => (
+                    <div key={res.id} className="p-3 rounded-xl bg-surface-elevated/70 border border-border text-xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-text-primary">
+                          {res.email ? res.email : "Anonymous Visitor"}
+                        </span>
+                        <Badge variant="green" className="text-[10px] font-mono">
+                          {res.willingPrice || "No price"}
+                        </Badge>
+                      </div>
+                      <p className="text-text-secondary italic">
+                        &quot;{res.problem}&quot;
+                      </p>
+                      {res.customNotes && (
+                        <p className="text-[11px] text-text-tertiary">
+                          Urgency: <span className="text-text-secondary">{res.customNotes}</span>
+                        </p>
+                      )}
+                      <p className="text-[10px] text-text-tertiary pt-1">
+                        {new Date(res.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Quote className="w-8 h-8 text-text-tertiary mx-auto mb-2 opacity-50" />
+                    <p className="text-xs text-text-secondary font-medium">Feed waiting for responses</p>
+                    <p className="text-[11px] text-text-tertiary mt-1 max-w-xs mx-auto">
+                      Qualitative answers and customer quotes will stream here live as visitors engage.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

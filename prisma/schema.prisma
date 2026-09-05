@@ -307,6 +307,8 @@ model LandingPage {
   preorderEnabled Boolean @default(false)
   depositAmount   Int      @default(100)
   priceAnchor     Int      @default(4900)
+  surveyEnabled   Boolean  @default(true)
+  surveyQuestions String   @default("[]") // JSON string of custom survey options
   visitors       Int      @default(0)
   conversions    Int      @default(0)
   conversionRate Float    @default(0)

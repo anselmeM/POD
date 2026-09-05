@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle2, Star, Users, Shield, Clock, TrendingUp, X, Sparkles, CreditCard, ShieldCheck, Lock } from "lucide-react";
+import { ArrowRight, CheckCircle2, Star, Users, Shield, Clock, TrendingUp, X, Sparkles, CreditCard, ShieldCheck, Lock, MessageSquare, DollarSign, ChevronRight } from "lucide-react";
 import type { LandingPage } from "@/lib/types";
 
 const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
@@ -18,6 +18,13 @@ function IntentModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const surveyEnabled = page.surveyEnabled !== false;
+  const [step, setStep] = useState<1 | 2 | 3>(surveyEnabled ? 1 : 3);
+  const [selectedProblem, setSelectedProblem] = useState("");
+  const [customProblem, setCustomProblem] = useState("");
+  const [selectedPrice, setSelectedPrice] = useState("");
+  const [urgency, setUrgency] = useState("");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -30,6 +37,49 @@ function IntentModal({
   const depositAmount = page.depositAmount || 100;
   const depositFormatted = (depositAmount / 100).toFixed(2);
   const anchorFormatted = ((page.priceAnchor || 4900) / 100).toFixed(0);
+
+  const effectiveProblem = selectedProblem === "Other" && customProblem ? customProblem : selectedProblem;
+
+  const sendSurveyBeacon = async (problemVal: string, priceVal: string, urgencyVal?: string, userEmail?: string, userName?: string) => {
+    try {
+      let visitorId = "vis-anon";
+      try {
+        visitorId = localStorage.getItem("pod_vid") || "";
+      } catch {}
+      if (!visitorId) {
+        visitorId = `vis-${Math.random().toString(36).slice(2, 9)}`;
+        try { localStorage.setItem("pod_vid", visitorId); } catch {}
+      }
+
+      await fetch("/api/signals/survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: page.slug,
+          visitorId,
+          problem: problemVal || "Not specified",
+          willingPrice: priceVal || "Not specified",
+          customNotes: urgencyVal || "",
+          email: userEmail || "",
+          name: userName || "",
+        }),
+      });
+    } catch (err) {
+      console.warn("Survey beacon failed:", err);
+    }
+  };
+
+  const handleStep1Next = () => {
+    if (effectiveProblem) {
+      sendSurveyBeacon(effectiveProblem, selectedPrice, urgency);
+    }
+    setStep(2);
+  };
+
+  const handleStep2Next = () => {
+    sendSurveyBeacon(effectiveProblem, selectedPrice, urgency);
+    setStep(3);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +104,11 @@ function IntentModal({
     const leadSource = trackingParams.utm_source ? String(trackingParams.utm_source).toLowerCase() : "/p/" + page.slug;
 
     try {
+      // Record linked micro-survey response if questions were answered
+      if (surveyEnabled && (effectiveProblem || selectedPrice)) {
+        await sendSurveyBeacon(effectiveProblem, selectedPrice, urgency, email, name);
+      }
+
       if (isPreorder) {
         // Pre-order checkout flow
         const preorderRes = await fetch("/api/stripe/preorder", {
@@ -93,6 +148,9 @@ function IntentModal({
               positioning: page.positioning,
               depositAmount,
               isPreorder: true,
+              problemFriction: effectiveProblem,
+              willingPrice: selectedPrice,
+              urgency,
               ...trackingParams,
             },
           }),
@@ -124,6 +182,9 @@ function IntentModal({
             metadata: {
               cta: page.cta,
               positioning: page.positioning,
+              problemFriction: effectiveProblem,
+              willingPrice: selectedPrice,
+              urgency,
               ...trackingParams,
             },
           }),
@@ -189,120 +250,317 @@ function IntentModal({
 
           {!submitted ? (
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-xs font-semibold text-blue mb-4">
-                {isPreorder ? (
-                  <>
-                    <CreditCard className="w-3.5 h-3.5 text-blue" />
-                    <span>Founding Pre-Order Reservation (${depositFormatted})</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" /> Early Access Priority
-                  </>
-                )}
-              </div>
+              {surveyEnabled && (
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${step === 1 ? "bg-blue/20 text-blue border border-blue/30" : "text-slate-400"}`}>1. Bottleneck</span>
+                    <ChevronRight className="w-3 h-3 text-slate-600" />
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${step === 2 ? "bg-blue/20 text-blue border border-blue/30" : "text-slate-400"}`}>2. Valuation</span>
+                    <ChevronRight className="w-3 h-3 text-slate-600" />
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${step === 3 ? "bg-blue/20 text-blue border border-blue/30" : "text-slate-400"}`}>3. Reservation</span>
+                  </div>
+                  {step < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setStep(3)}
+                      className="text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Skip questions →
+                    </button>
+                  )}
+                </div>
+              )}
 
-              <h2 className="text-2xl font-bold text-white mb-2">
-                {isPreorder ? "Reserve Your Founding Slot" : "Join the Private Beta"}
-              </h2>
-              <p className="text-sm text-slate-300 mb-6 leading-relaxed">
-                {isPreorder
-                  ? `Hold a founding spot for $${depositFormatted} today to lock in founding pricing ($${anchorFormatted}/mo). Fully refundable upon request.`
-                  : "We are onboarding our founding cohort this week. Reserve your spot to lock in 50% lifetime discount pricing."}
-              </p>
+              {step === 1 && surveyEnabled && (
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-xs font-semibold text-blue mb-3">
+                    <MessageSquare className="w-3.5 h-3.5" /> 30-Second Micro-Survey
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-1.5">
+                    What&apos;s the #1 frustration you need fixed?
+                  </h2>
+                  <p className="text-xs text-slate-300 mb-5 leading-relaxed">
+                    Help us tailor our upcoming release to solve your most critical bottleneck first.
+                  </p>
 
-              {isPreorder && (
-                <div className="mb-5 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80 flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-slate-300 leading-relaxed">
-                    <strong className="text-white font-medium">100% Refundable Guarantee:</strong> If this product does not launch or doesn&apos;t meet your standards, your ${depositFormatted} deposit is refunded immediately.
+                  <div className="space-y-2 mb-4">
+                    {[
+                      "Too much manual, repetitive workflow overhead",
+                      "Current tools are too slow, bloated, or overpriced",
+                      "Lack of real-time visibility & clear analytics",
+                      "Lost conversions and unpredictable customer churn",
+                      "Other",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setSelectedProblem(option)}
+                        className={`w-full text-left p-3 rounded-xl border text-sm transition-all flex items-center justify-between ${
+                          selectedProblem === option
+                            ? "bg-blue/15 border-blue text-white shadow-sm"
+                            : "bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        }`}
+                      >
+                        <span>{option}</span>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            selectedProblem === option ? "border-blue bg-blue" : "border-slate-500"
+                          }`}
+                        >
+                          {selectedProblem === option && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedProblem === "Other" && (
+                    <div className="mb-4">
+                      <label className="block text-xs text-slate-300 mb-1 font-medium">Please specify:</label>
+                      <input
+                        type="text"
+                        placeholder="Describe your biggest friction..."
+                        value={customProblem}
+                        onChange={(e) => setCustomProblem(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setStep(3)}
+                      className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Skip directly to access
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStep1Next}
+                      disabled={!selectedProblem || (selectedProblem === "Other" && !customProblem.trim())}
+                      className="py-2.5 px-5 rounded-xl bg-blue hover:bg-blue/90 text-white font-semibold text-sm transition-all disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Next: Valuation</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              {step === 2 && surveyEnabled && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Alex Morgan"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    Work Email <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="alex@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Company (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Acme Inc."
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
-                    />
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-xs font-semibold text-blue mb-3">
+                    <DollarSign className="w-3.5 h-3.5" /> Willingness to Pay
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Role (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Head of Ops"
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full mt-4 py-3.5 px-6 rounded-xl bg-blue hover:bg-blue/90 text-white font-semibold text-sm transition-all shadow-lg shadow-blue/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {loading ? (
-                    "Confirming..."
-                  ) : isPreorder ? (
-                    <>
-                      <span>Lock In Founding Pre-Order (${depositFormatted})</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  ) : (
-                    <>
-                      <span>{page.cta} — Get Priority Access</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                {isPreorder && (
-                  <p className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
-                    <Lock className="w-3 h-3 text-slate-400" />
-                    Encrypted card hold via Stripe. Never billed without consent.
+                  <h2 className="text-xl font-bold text-white mb-1.5">
+                    What monthly price feels like a total no-brainer?
+                  </h2>
+                  <p className="text-xs text-slate-300 mb-5 leading-relaxed">
+                    Founding members lock in their selected tier for life upon release.
                   </p>
-                )}
-              </form>
+
+                  <div className="grid grid-cols-2 gap-2.5 mb-4">
+                    {[
+                      { price: "$19/mo", label: "Starter", desc: "Solopreneurs & indie hackers" },
+                      { price: "$49/mo", label: "Pro", desc: "Fast-moving startup teams" },
+                      { price: "$99/mo", label: "Growth", desc: "Scaleups needing automation" },
+                      { price: "$199/mo", label: "Enterprise", desc: "High-volume demand engines" },
+                    ].map((tier) => (
+                      <button
+                        key={tier.price}
+                        type="button"
+                        onClick={() => setSelectedPrice(tier.price)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          selectedPrice === tier.price
+                            ? "bg-blue/15 border-blue text-white shadow-sm"
+                            : "bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-white">{tier.price}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/80 text-slate-300">{tier.label}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-snug">{tier.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mb-5">
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                      How urgently do you need this?
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["Urgent (This week)", "Next 30 days", "Just researching"].map((urg) => (
+                        <button
+                          key={urg}
+                          type="button"
+                          onClick={() => setUrgency(urg)}
+                          className={`py-2 px-2 text-[11px] rounded-lg border text-center font-medium transition-all ${
+                            urgency === urg
+                              ? "bg-blue/20 border-blue text-white"
+                              : "bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          {urg}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStep2Next}
+                      disabled={!selectedPrice}
+                      className="py-2.5 px-5 rounded-xl bg-blue hover:bg-blue/90 text-white font-semibold text-sm transition-all disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Next: Reserve Access</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(step === 3 || !surveyEnabled) && (
+                <div>
+                  {surveyEnabled && (effectiveProblem || selectedPrice) && (
+                    <div className="mb-4 px-3 py-2 rounded-xl bg-blue/10 border border-blue/20 text-xs text-blue flex items-center justify-between">
+                      <span className="truncate max-w-[280px]">
+                        Target: {selectedPrice || "Standard"} • {effectiveProblem ? effectiveProblem.slice(0, 24) + "..." : "Early Access"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="text-[11px] underline text-blue/80 hover:text-white cursor-pointer ml-2 flex-shrink-0"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-xs font-semibold text-blue mb-4">
+                    {isPreorder ? (
+                      <>
+                        <CreditCard className="w-3.5 h-3.5 text-blue" />
+                        <span>Founding Pre-Order Reservation (${depositFormatted})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" /> Early Access Priority
+                      </>
+                    )}
+                  </div>
+
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    {isPreorder ? "Reserve Your Founding Slot" : "Join the Private Beta"}
+                  </h2>
+                  <p className="text-sm text-slate-300 mb-6 leading-relaxed">
+                    {isPreorder
+                      ? `Hold a founding spot for $${depositFormatted} today to lock in founding pricing ($${anchorFormatted}/mo). Fully refundable upon request.`
+                      : "We are onboarding our founding cohort this week. Reserve your spot to lock in 50% lifetime discount pricing."}
+                  </p>
+
+                  {isPreorder && (
+                    <div className="mb-5 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80 flex items-start gap-3">
+                      <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-slate-300 leading-relaxed">
+                        <strong className="text-white font-medium">100% Refundable Guarantee:</strong> If this product does not launch or doesn&apos;t meet your standards, your ${depositFormatted} deposit is refunded immediately.
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                        Your Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Alex Morgan"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                        Work Email <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="alex@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                          Company (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Acme Inc."
+                          value={company}
+                          onChange={(e) => setCompany(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                          Role (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Head of Ops"
+                          value={role}
+                          onChange={(e) => setRole(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full mt-4 py-3.5 px-6 rounded-xl bg-blue hover:bg-blue/90 text-white font-semibold text-sm transition-all shadow-lg shadow-blue/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {loading ? (
+                        "Confirming..."
+                      ) : isPreorder ? (
+                        <>
+                          <span>Lock In Founding Pre-Order (${depositFormatted})</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <span>{page.cta} — Get Priority Access</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    {isPreorder && (
+                      <p className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        Encrypted card hold via Stripe. Never billed without consent.
+                      </p>
+                    )}
+                  </form>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-6">

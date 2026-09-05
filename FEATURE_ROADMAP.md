@@ -166,7 +166,7 @@ Keep founders, product managers, and team members motivated and informed through
 | **Instant AI Smoke Test Generator** | Critical | Medium | **✅ Shipped** |
 | **Stripe Pre-Order & Card Reservation** | High | Medium | **✅ Shipped** |
 | **Functional Notification System** | High | Low | **✅ Shipped** |
-| **High-Intent Micro-Surveys** | High | Low | **Sprint 1** |
+| **High-Intent Micro-Surveys** | High | Low | **✅ Shipped** |
 | **Traffic & Ad Campaign Kit** | High | Medium | **Sprint 2** |
 | **Studio Portfolio & Leaderboard** | Medium | Medium | **Sprint 3** |
 | **Slack / Email Sprint Digests** | Medium | Low | **Sprint 4** |

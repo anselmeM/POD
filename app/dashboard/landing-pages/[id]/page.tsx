@@ -38,6 +38,7 @@ export default function LandingPageDetailPage() {
   const [preorderEnabled, setPreorderEnabled] = useState(false);
   const [depositAmount, setDepositAmount] = useState(100);
   const [priceAnchor, setPriceAnchor] = useState(4900);
+  const [surveyEnabled, setSurveyEnabled] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function LandingPageDetailPage() {
       setPreorderEnabled(Boolean(page.preorderEnabled));
       setDepositAmount(page.depositAmount ?? 100);
       setPriceAnchor(page.priceAnchor ?? 4900);
+      setSurveyEnabled(page.surveyEnabled !== false);
     }
   }, [page]);
 
@@ -75,6 +77,7 @@ export default function LandingPageDetailPage() {
       preorderEnabled,
       depositAmount,
       priceAnchor,
+      surveyEnabled,
     });
     setEditing(false);
   };
@@ -213,6 +216,26 @@ export default function LandingPageDetailPage() {
                       </div>
                     </div>
                   )}
+
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">High-Intent Micro-Survey</p>
+                      <p className="text-xs text-text-tertiary">3-step modal capturing bottleneck & price elasticity upon CTA click</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSurveyEnabled(!surveyEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        surveyEnabled ? "bg-blue" : "bg-surface-elevated border border-border"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          surveyEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="rounded-lg border border-border overflow-hidden">
@@ -220,7 +243,7 @@ export default function LandingPageDetailPage() {
                 <div className="max-h-[420px] overflow-auto bg-surface">
                   {(() => {
                     const Preview = templateRenderers[template] || templateRenderers.hero;
-                    const previewPage = { ...page, headline: headline || page.headline, subheadline: subheadline || page.subheadline, cta: cta || page.cta, template, positioning, preorderEnabled, depositAmount, priceAnchor };
+                    const previewPage = { ...page, headline: headline || page.headline, subheadline: subheadline || page.subheadline, cta: cta || page.cta, template, positioning, preorderEnabled, depositAmount, priceAnchor, surveyEnabled };
                     return <div className="scale-[0.55] origin-top-left w-[182%] h-[380px] overflow-hidden"><Preview page={previewPage as never} /></div>;
                   })()}
                 </div>

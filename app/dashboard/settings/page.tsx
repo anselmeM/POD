@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { User, Shield, AlertCircle, Plug, Users, History, HelpCircle, ArrowRight } from "lucide-react";
+import { User, Shield, AlertCircle, Plug, Users, History, HelpCircle, ArrowRight, CreditCard } from "lucide-react";
 
 function ConfirmDialog({
   open,
@@ -123,7 +123,21 @@ export default function SettingsPage() {
       </div>
 
       {/* Operations & Secondary Tools Hub */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        <Link
+          href="/dashboard/billing"
+          className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between text-text-tertiary mb-2">
+            <CreditCard className="w-4 h-4 text-blue" />
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-primary">Billing</p>
+            <p className="text-[10px] text-text-tertiary">Plans & Quotas</p>
+          </div>
+        </Link>
+
         <Link
           href="/dashboard/settings/integrations"
           className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
@@ -134,7 +148,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <p className="text-xs font-semibold text-text-primary">Integrations</p>
-            <p className="text-[10px] text-text-tertiary">Pixels, GA4 & Stripe</p>
+            <p className="text-[10px] text-text-tertiary">Pixels & Webhooks</p>
           </div>
         </Link>
 
@@ -180,6 +194,7 @@ export default function SettingsPage() {
           </div>
         </Link>
       </div>
+
 
       {error && (
         <Card className="border-red/30 bg-red/5">
@@ -256,16 +271,12 @@ export default function SettingsPage() {
                 <Button onClick={handleSaveWorkspace} disabled={saving || !workspaceName.trim()}>
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={async () => {
-                    const res = await fetch("/api/stripe/portal", { method: "POST" });
-                    const json = await res.json();
-                    if (json.url) window.location.href = json.url;
-                  }}
-                >
-                  Manage Billing
-                </Button>
+                <Link href="/dashboard/billing">
+                  <Button variant="secondary">
+                    View Quotas & Billing
+                  </Button>
+                </Link>
+
               </div>
               {saved && <p className="text-sm text-green font-medium">Workspace updated successfully.</p>}
             </>

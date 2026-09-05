@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { Project } from "@/lib/types";
 import { EXPERIMENT_TEMPLATES } from "@/lib/experiment-templates";
+import { QuotaGuardModal } from "@/components/billing/quota-guard-modal";
 
 const CHANNELS = [
   { id: "linkedin", label: "LinkedIn" },
@@ -45,6 +46,10 @@ export default function NewExperimentPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
 
+  // Quota & Tier Gating Modal
+  const [quotaModalOpen, setQuotaModalOpen] = useState(false);
+  const [quotaDetail, setQuotaDetail] = useState<{ current?: number; limit?: number; message?: string }>({});
+
   // Mode: "guided" (AI Smoke Test Wizard) vs "custom" (Manual Configuration)
   const [mode, setMode] = useState<"guided" | "custom">("guided");
 
@@ -66,6 +71,7 @@ export default function NewExperimentPage() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     fetch("/api/projects")
@@ -153,7 +159,15 @@ export default function NewExperimentPage() {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to create experiment");
+      if (!res.ok) {
+        if (res.status === 402 || json.upgradeRequired) {
+          setQuotaDetail({ current: json.current, limit: json.limit, message: json.error });
+          setQuotaModalOpen(true);
+          setLoading(false);
+          return;
+        }
+        throw new Error(json.error || "Failed to create experiment");
+      }
       router.push(`/dashboard/experiments/${json.data.id}`);
     } catch (e) {
       setError((e as Error).message);
@@ -195,13 +209,22 @@ export default function NewExperimentPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to create experiment");
+      if (!res.ok) {
+        if (res.status === 402 || json.upgradeRequired) {
+          setQuotaDetail({ current: json.current, limit: json.limit, message: json.error });
+          setQuotaModalOpen(true);
+          setLoading(false);
+          return;
+        }
+        throw new Error(json.error || "Failed to create experiment");
+      }
       router.push(`/dashboard/experiments/${json.data.id}`);
     } catch (e) {
       setError((e as Error).message);
       setLoading(false);
     }
   };
+
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -623,6 +646,17 @@ export default function NewExperimentPage() {
           </div>
         </>
       )}
+
+      {/* Plan Quota Tier Gating Modal */}
+      <QuotaGuardModal
+        open={quotaModalOpen}
+        onClose={() => setQuotaModalOpen(false)}
+        resource="activeExperiments"
+        current={quotaDetail.current}
+        limit={quotaDetail.limit}
+        description={quotaDetail.message}
+      />
     </div>
   );
 }
+

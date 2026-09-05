@@ -26,7 +26,13 @@ export const PRICE_MAP: Record<string, PlanConfig> = {
     currency: "usd",
     interval: "month",
     mode: "subscription",
-    priceId: process.env.STRIPE_PRICE_SELF_SERVE || process.env.STRIPE_PRICE_ID_SELF_SERVE,
+    priceId:
+      process.env.STRIPE_PRICE_SELF_SERVE ||
+      process.env.STRIPE_PRICE_ID_SELF_SERVE ||
+      process.env.STRIPE_PRICE_ID_STARTER ||
+      process.env.STRIPE_PRICE_STARTER ||
+      process.env.STRIPE_PRICE_ID_GROWTH ||
+      process.env.STRIPE_PRICE_GROWTH,
     description: "For founders running their own continuous demand experiments.",
   },
   studio: {
@@ -35,7 +41,11 @@ export const PRICE_MAP: Record<string, PlanConfig> = {
     currency: "usd",
     interval: "month",
     mode: "subscription",
-    priceId: process.env.STRIPE_PRICE_STUDIO || process.env.STRIPE_PRICE_ID_STUDIO,
+    priceId:
+      process.env.STRIPE_PRICE_STUDIO ||
+      process.env.STRIPE_PRICE_ID_STUDIO ||
+      process.env.STRIPE_PRICE_ID_ENTERPRISE ||
+      process.env.STRIPE_PRICE_ENTERPRISE,
     description: "For venture builders validating multiple concepts simultaneously.",
   },
   sprint: {
@@ -47,3 +57,14 @@ export const PRICE_MAP: Record<string, PlanConfig> = {
     description: "Hands-on high-conviction 1-week validation sprint with expert review.",
   },
 };
+
+// Aliases for SaaS naming convention compatibility
+PRICE_MAP["starter"] = PRICE_MAP["self-serve"];
+PRICE_MAP["growth"] = PRICE_MAP["self-serve"];
+PRICE_MAP["enterprise"] = PRICE_MAP["studio"];
+
+export function resolvePlanConfig(rawPlan: string): PlanConfig | undefined {
+  const normalized = (rawPlan || "").toLowerCase().trim();
+  return PRICE_MAP[normalized];
+}
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
-import { getStripe, PRICE_MAP } from "@/lib/stripe";
+import { getStripe, resolvePlanConfig } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const key = String(body.plan || "self-serve").toLowerCase();
-  const planConfig = PRICE_MAP[key];
+  const key = String(body.plan || "self-serve").toLowerCase().trim();
+  const planConfig = resolvePlanConfig(key);
 
   if (!planConfig) {
     return NextResponse.json({ error: `Invalid plan: "${key}"` }, { status: 400 });
@@ -21,14 +21,18 @@ export async function POST(req: NextRequest) {
   if (!stripe) {
     // Development fallback when Stripe API keys are unconfigured
     return NextResponse.json({
-      url: `/dashboard/settings?mock_checkout=${key}`,
+      url: `/dashboard/billing?mock_checkout=${key}`,
       mock: true,
       message: "Stripe keys not configured. Simulating checkout for development.",
     });
   }
 
   try {
-    const origin = req.headers.get("origin") || req.nextUrl.origin || "https://pod-blue-nine.vercel.app";
+    const origin =
+      req.headers.get("origin") ||
+      req.nextUrl.origin ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
 
     // Re-use or retrieve Stripe customer
     let customerId = ctx.workspace.stripeCustomerId || undefined;
@@ -99,8 +103,8 @@ export async function POST(req: NextRequest) {
             }
           : undefined,
       line_items,
-      success_url: `${origin}/dashboard/settings?billing_success=1&plan=${key}`,
-      cancel_url: `${origin}/pricing?canceled=1`,
+      success_url: `${origin}/dashboard/billing?billing_success=1&plan=${key}`,
+      cancel_url: `${origin}/dashboard/billing?canceled=1`,
       allow_promotion_codes: true,
     });
 
@@ -113,3 +117,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

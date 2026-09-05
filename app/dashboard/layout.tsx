@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, ChevronDown, Menu, X,
-  LogOut, Settings, User,
+  LogOut, Settings, User, CreditCard,
   LayoutDashboard, FlaskConical, Layout, Activity, Brain,
   Users, Contact, FileText, Zap, History, Check,
 } from "lucide-react";
@@ -31,9 +31,11 @@ const PRIMARY_NAV = [
 const MORE_NAV = [
   { label: "Sprint Mode", href: "/dashboard?view=sprint", icon: Zap, desc: "7-day sprint countdown & lead quota" },
   { label: "Live Pages", href: "/dashboard/experiments?view=pages", icon: Layout, desc: "Published smoke pages & copy variants" },
+  { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard, desc: "Subscription tiers & resource quotas" },
   { label: "Team", href: "/dashboard/team", icon: Users, desc: "Manage collaborators & permissions" },
   { label: "Activity Log", href: "/dashboard/history/activity", icon: History, desc: "Audit trail & event timeline" },
 ];
+
 
 const ALL_MOBILE_NAV = [
   ...PRIMARY_NAV,
@@ -523,12 +525,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Settings className="w-4 h-4" /> Settings
                       </Link>
                       <Link
+                        href="/dashboard/billing"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-surface-elevated hover:text-[var(--dash-text-primary)] transition-colors"
+                      >
+                        <CreditCard className="w-4 h-4 text-blue" /> Billing & Plans
+                      </Link>
+                      <Link
                         href="/dashboard/team"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-surface-elevated hover:text-[var(--dash-text-primary)] transition-colors"
                       >
                         <User className="w-4 h-4" /> Team
                       </Link>
+
                       <div className="border-t border-border mt-1 pt-1">
                         <button
                           onClick={() => signOut({ redirectUrl: "/" })}

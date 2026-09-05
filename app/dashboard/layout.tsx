@@ -19,29 +19,21 @@ import { ShortcutHelp } from "@/components/ui/shortcut-help";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useUser, useClerk } from "@clerk/nextjs";
 
-// 4 Core Validation Pillars
+// 5 Primary Validation Pillars
 const PRIMARY_NAV = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },
   { label: "Demand", href: "/dashboard/leads", icon: Contact },
+  { label: "Portfolio", href: "/dashboard/portfolio", icon: Trophy },
   { label: "AI Verdict", href: "/dashboard/ai-analyst", icon: Brain },
 ];
 
-// Secondary / Specialized features & operations in 'More' dropdown
-const MORE_NAV = [
-  { label: "Studio Portfolio", href: "/dashboard/portfolio", icon: Trophy, desc: "Comparative leaderboard & Stage-Gate matrix" },
-  { label: "Traffic & Ad Kit", href: "/dashboard/traffic", icon: Megaphone, desc: "Multi-channel ad copy & 1-click UTM builder" },
-  { label: "Sprint Mode", href: "/dashboard?view=sprint", icon: Zap, desc: "7-day sprint countdown & lead quota" },
-  { label: "Live Pages", href: "/dashboard/experiments?view=pages", icon: Layout, desc: "Published smoke pages & copy variants" },
-  { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard, desc: "Subscription tiers & resource quotas" },
-  { label: "Team", href: "/dashboard/team", icon: Users, desc: "Manage collaborators & permissions" },
-  { label: "Activity Log", href: "/dashboard/history/activity", icon: History, desc: "Audit trail & event timeline" },
-];
-
-
 const ALL_MOBILE_NAV = [
   ...PRIMARY_NAV,
-  ...MORE_NAV.map((m) => ({ label: m.label, href: m.href, icon: m.icon })),
+  { label: "Traffic & Ads", href: "/dashboard/traffic", icon: Megaphone },
+  { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard },
+  { label: "Team & Roles", href: "/dashboard/team", icon: Users },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 interface DashboardNotification {
@@ -113,7 +105,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userInitial = (userName[0] || "F").toUpperCase();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
@@ -122,7 +113,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const unread = notifications.filter((n) => !n.read).length;
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const moreRef = useRef<HTMLDivElement>(null);
 
   useKeyboardShortcuts({ onHelp: () => setHelpOpen((v) => !v) });
 
@@ -141,7 +131,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     function onClickOutside(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -235,12 +224,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return pathname.startsWith(cleanHref);
   };
 
-  const isMoreActive = MORE_NAV.some((m) => {
-    const clean = m.href.split("?")[0];
-    if (clean === "/dashboard" || clean === "/dashboard/experiments") return false;
-    return pathname.startsWith(clean);
-  });
-
   return (
     <div className="dashboard-theme min-h-screen font-sans grain-overlay relative">
       <OrbField />
@@ -293,68 +276,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 );
               })}
-
-              {/* More Dropdown */}
-              <div className="relative" ref={moreRef}>
-                <button
-                  onClick={() => setMoreOpen(!moreOpen)}
-                  className={cn(
-                    "relative flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200",
-                    isMoreActive
-                      ? "text-[var(--dash-text-primary)] font-semibold"
-                      : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)] hover:bg-surface-elevated/50"
-                  )}
-                >
-                  <span className="relative z-10">More</span>
-                  <ChevronDown className={cn("w-3 h-3 transition-transform relative z-10", moreOpen && "rotate-180")} />
-                  {isMoreActive && (
-                    <motion.div
-                      layoutId="nav-pill"
-                      className="absolute inset-0 rounded-full bg-surface/85 dark:bg-white/10 backdrop-blur-md border border-border/80 dark:border-white/15 shadow-xs"
-                      transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
-                    />
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {moreOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-64 glass-strong rounded-2xl shadow-2xl p-1.5 z-50 border border-border"
-                    >
-                      <div className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                        Additional Tools
-                      </div>
-                      {MORE_NAV.map((m) => {
-                        const active = isActive(m.href);
-                        const Icon = m.icon;
-                        return (
-                          <Link
-                            key={m.href}
-                            href={m.href}
-                            onClick={() => setMoreOpen(false)}
-                            className={cn(
-                              "flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition-colors text-left",
-                              active
-                                ? "bg-blue/10 text-blue font-semibold"
-                                : "text-[var(--dash-text-secondary)] hover:bg-surface-elevated hover:text-[var(--dash-text-primary)]"
-                            )}
-                          >
-                            <Icon className="w-4 h-4 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-xs font-medium leading-tight">{m.label}</p>
-                              <p className="text-[10px] text-text-tertiary leading-tight mt-0.5">{m.desc}</p>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
             </nav>
 
             {/* Right: Quick Utilities */}

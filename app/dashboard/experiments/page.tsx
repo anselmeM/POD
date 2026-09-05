@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, FlaskConical, Search, BarChart3, Users, MousePointerClick,
-  AlertCircle, RefreshCw, Layout, Eye, Clock, ExternalLink, ArrowRight, Sparkles,
+  AlertCircle, RefreshCw, Layout, Eye, Clock, ExternalLink, ArrowRight, Sparkles, Megaphone,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +186,13 @@ export default function ExperimentsPage() {
               <Layout className="w-3.5 h-3.5" />
               <span>Live Pages ({safeLandingPages.length})</span>
             </button>
+            <Link
+              href="/dashboard/traffic"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--dash-text-secondary)] hover:text-[var(--dash-text-primary)] transition-all"
+            >
+              <Megaphone className="w-3.5 h-3.5 text-pink-400" />
+              <span>Traffic & Ads</span>
+            </Link>
           </div>
 
           <Button

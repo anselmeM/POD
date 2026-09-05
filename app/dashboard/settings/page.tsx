@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { User, Shield, AlertCircle, Plug, Users, History, HelpCircle, ArrowRight, CreditCard } from "lucide-react";
+import { User, Shield, AlertCircle, Plug, Users, History, HelpCircle, ArrowRight, CreditCard, Megaphone } from "lucide-react";
 
 function ConfirmDialog({
   open,
@@ -123,7 +123,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Operations & Secondary Tools Hub */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <Link
           href="/dashboard/billing"
           className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
@@ -149,6 +149,20 @@ export default function SettingsPage() {
           <div>
             <p className="text-xs font-semibold text-text-primary">Integrations</p>
             <p className="text-[10px] text-text-tertiary">Pixels & Webhooks</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/dashboard/traffic"
+          className="p-3 rounded-xl bg-surface-elevated border border-border hover:border-blue/40 transition-colors group flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between text-text-tertiary mb-2">
+            <Megaphone className="w-4 h-4 text-pink-400" />
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-primary">Traffic & Ads</p>
+            <p className="text-[10px] text-text-tertiary">Copy & UTM kit</p>
           </div>
         </Link>
 

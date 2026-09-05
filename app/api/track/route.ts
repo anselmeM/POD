@@ -212,6 +212,53 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Asynchronously dispatch outbound webhook to active integrations (Zapier, Slack, Make)
+      try {
+        const webhooks = await prisma.webhook.findMany({
+          where: { active: true },
+        });
+
+        if (webhooks.length > 0) {
+          const webhookPayload = {
+            event: "lead.captured",
+            timestamp: new Date().toISOString(),
+            data: {
+              id: leadId,
+              name: leadData.name || "Anonymous Lead",
+              email: leadData.email,
+              company: leadData.company || "",
+              role: leadData.role || "",
+              source: effectiveSource,
+              intentScore: 90,
+              landingPage: {
+                id: page.id,
+                slug: page.slug,
+                name: page.name,
+                headline: page.headline,
+              },
+              experimentId: expId,
+              metadata: enrichedMetadata,
+            },
+          };
+
+          Promise.allSettled(
+            webhooks.map((wh) =>
+              fetch(wh.url, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-PoD-Event": "lead.captured",
+                  ...(wh.secret ? { "X-PoD-Signature": wh.secret } : {}),
+                },
+                body: JSON.stringify(webhookPayload),
+              }).catch(() => {})
+            )
+          ).catch(() => {});
+        }
+      } catch (whErr) {
+        console.warn("Webhook dispatch error:", whErr);
+      }
+
       if (page.experimentId) {
         const exp = page.experiment;
         if (exp) {

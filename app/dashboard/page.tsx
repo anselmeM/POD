@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   ArrowUpRight, TrendingUp, Users, MousePointerClick, Target,
   Plus, Activity,
-  AlertCircle, RefreshCw,
+  AlertCircle, RefreshCw, Sparkles,
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useExperimentStore } from "@/lib/store";
@@ -119,15 +119,36 @@ export default function DashboardPage() {
   const { user } = useUser();
   const { experiments, error, fetchExperiments } = useExperimentStore();
   const [project, setProject] = useState<Project | null>(null);
+  const [loadingDemo, setLoadingDemo] = useState(false);
+
+  const fetchProjectData = async () => {
+    try {
+      const res = await fetch("/api/projects");
+      if (res.ok) {
+        const json = await res.json();
+        setProject(json.data?.[0] ?? null);
+      }
+    } catch {
+      setProject(null);
+    }
+  };
 
   useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
+  useEffect(() => { fetchProjectData(); }, []);
 
-  useEffect(() => {
-    fetch("/api/projects")
-      .then((res) => (res.ok ? res.json() : { data: [] }))
-      .then((json) => setProject(json.data?.[0] ?? null))
-      .catch(() => setProject(null));
-  }, []);
+  const handleLoadDemoData = async () => {
+    setLoadingDemo(true);
+    try {
+      const res = await fetch("/api/demo/seed", { method: "POST" });
+      if (res.ok) {
+        await Promise.all([fetchExperiments(), fetchProjectData()]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
 
   const safeExperiments = Array.isArray(experiments) ? experiments : [];
 
@@ -206,6 +227,41 @@ export default function DashboardPage() {
           initialExpanded={isSprintView}
         />
       </motion.div>
+
+      {/* Empty State Onboarding Card */}
+      {safeExperiments.length === 0 && (
+        <Card className="border border-blue/30 bg-gradient-to-r from-blue/5 via-surface-elevated to-purple/5 p-6 rounded-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue shrink-0" />
+                <h3 className="text-base font-bold text-text-primary">Welcome to Proof of Demand!</h3>
+              </div>
+              <p className="text-sm text-text-secondary max-w-xl">
+                Ready to validate your startup idea? Launch a 7-day smoke test to measure true buying intent, or load sample data to explore the 4 pillars.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLoadDemoData}
+                disabled={loadingDemo}
+                className="gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingDemo ? "animate-spin" : ""}`} />
+                <span>{loadingDemo ? "Seeding..." : "Load Demo Dataset"}</span>
+              </Button>
+              <Link href="/dashboard/experiments/new">
+                <Button size="sm" className="gap-1.5 bg-blue text-white hover:bg-blue-bright">
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Launch Experiment</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
 
 
       {/* Bento Grid — Metric Cards */}

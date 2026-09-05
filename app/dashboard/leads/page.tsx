@@ -10,7 +10,7 @@ import type { LeadStatus, FunnelStage } from "@/lib/types";
 import {
   Users, Target, TrendingUp, Search, Filter, AlertCircle, RefreshCw,
   Globe, Building2, Briefcase, Activity, Zap, ExternalLink, ArrowRight,
-  MousePointerClick, BarChart3,
+  MousePointerClick, BarChart3, Download,
 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import Link from "next/link";
@@ -167,6 +167,33 @@ export default function LeadsPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (safeLeads.length === 0) return;
+    const headers = ["ID", "Name", "Email", "Company", "Role", "Source", "Intent Score", "Pricing Interacted", "Status", "Created At"];
+    const rows = filteredLeads.map((l) => [
+      `"${l.id || ""}"`,
+      `"${(l.name || "").replace(/"/g, '""')}"`,
+      `"${(l.email || "").replace(/"/g, '""')}"`,
+      `"${(l.company || "").replace(/"/g, '""')}"`,
+      `"${(l.role || "").replace(/"/g, '""')}"`,
+      `"${(l.source || "").replace(/"/g, '""')}"`,
+      l.intentScore ?? 0,
+      l.pricingInteraction ? "Yes" : "No",
+      `"${l.status || "new"}"`,
+      `"${l.createdAt ? new Date(l.createdAt).toISOString() : ""}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `pod-leads-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Pillar 3 Tab Switcher */}
@@ -285,6 +312,17 @@ export default function LeadsPage() {
                 </button>
               ))}
             </div>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportCSV}
+              disabled={filteredLeads.length === 0}
+              className="h-9 gap-1.5 sm:ml-auto text-xs w-full sm:w-auto"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV ({filteredLeads.length})</span>
+            </Button>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">

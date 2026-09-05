@@ -98,6 +98,16 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
                 {expanded ? "Hide Details" : "View Quotas & Tests"}
                 {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </Button>
+              <Link href="/dashboard/ai-analyst">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 h-8 text-xs font-semibold border-amber-500/30 text-amber-500 hover:bg-amber-500/10 shadow-xs hidden sm:inline-flex"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Review AI Verdict</span>
+                </Button>
+              </Link>
               <Link href="/dashboard/experiments/new">
                 <Button size="sm" className="gap-1.5 h-8 text-xs font-semibold shadow-xs">
                   <Plus className="w-3.5 h-3.5" />
@@ -211,6 +221,21 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
                     </div>
                   </Link>
                 ))}
+              </div>
+
+              {/* Graduation Action */}
+              <div className="mt-3 pt-3 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                <p className="text-xs text-[var(--dash-text-secondary)]">
+                  {totalLeads >= targetLeads
+                    ? "🎯 Validation quota achieved! Synthesize empirical evidence into an investor brief."
+                    : "7-day sprint active. Telemetry and Bayesian significance are continuously evaluated."}
+                </p>
+                <Link href="/dashboard/ai-analyst?export=ready" className="shrink-0 w-full sm:w-auto">
+                  <Button size="sm" className="h-7 text-xs gap-1.5 w-full sm:w-auto">
+                    <span>Finalize Verdict & Executive Brief</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </motion.div>

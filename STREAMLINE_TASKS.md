@@ -41,20 +41,21 @@ graph TD
 ### Phase 1: Pillar 1 — Unified Command Center (`/dashboard`)
 *Merge Overview and Sprint Mode into a single executive cockpit.*
 
-- [ ] **Task 1.1: Sprint Status Header Component**
+- [x] **Task 1.1: Sprint Status Header Component** ✅
   - **File:** `components/dashboard/sprint-banner.tsx` (new)
   - **Description:** Build an inline collapsible banner at the top of `/dashboard` displaying the active validation sprint, remaining days countdown, and quota progress (e.g. `18/25 leads captured • 4 days left`).
   - **Acceptance Criteria:** Shows real-time sprint quota progress; includes "Edit Sprint" modal trigger; collapses cleanly if no sprint is active.
 
-- [ ] **Task 1.2: Integrate Sprint Goals into Overview Page**
+- [x] **Task 1.2: Integrate Sprint Goals into Overview Page** ✅
   - **File:** `app/dashboard/page.tsx`
   - **Description:** Embed `<SprintBanner />` above the 3 core metric cards (Demand Score, Visitors, Conversion Rate).
   - **Acceptance Criteria:** Eliminates the need to navigate to a separate sprint page to check goal status.
 
-- [ ] **Task 1.3: Graceful Redirect for Legacy Sprint Route**
+- [x] **Task 1.3: Graceful Redirect for Legacy Sprint Route** ✅
   - **File:** `app/dashboard/sprint/page.tsx`
   - **Description:** Redirect `/dashboard/sprint` to `/dashboard?view=sprint` or render the focused sprint configuration view seamlessly.
   - **Acceptance Criteria:** Existing links to `/dashboard/sprint` do not 404.
+
 
 ---
 

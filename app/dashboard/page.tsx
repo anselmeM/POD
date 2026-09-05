@@ -17,6 +17,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SprintBanner } from "@/components/dashboard/sprint-banner";
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -156,6 +157,17 @@ export default function DashboardPage() {
     { label: "Validation Confidence", value: project?.confidence ?? 0, suffix: "%", icon: TrendingUp, color: "#D29922" },
   ];
 
+  const [isSprintView, setIsSprintView] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "sprint") {
+        setIsSprintView(true);
+      }
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Greeting */}
@@ -186,9 +198,19 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {/* Pillar 1: Unified Sprint Status & Quota Progress */}
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <SprintBanner
+          experiments={safeExperiments}
+          confidence={project?.confidence}
+          initialExpanded={isSprintView}
+        />
+      </motion.div>
+
 
       {/* Bento Grid — Metric Cards */}
       <div className="bento-grid">
+
         {metrics.map((m, i) => {
           const Icon = m.icon;
           return (

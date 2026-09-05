@@ -1,10 +1,11 @@
 "use client";
+
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Zap, Plus, AlertCircle, RefreshCw } from "lucide-react";
+import { Zap, Plus, AlertCircle, RefreshCw, ArrowRight, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { useExperimentStore } from "@/lib/store";
 
@@ -16,7 +17,9 @@ export const dynamic = "force-dynamic";
 export default function SprintPage() {
   const { experiments, loading, error, fetchExperiments } = useExperimentStore();
 
-  useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
+  useEffect(() => {
+    fetchExperiments();
+  }, [fetchExperiments]);
 
   const safeExperiments = Array.isArray(experiments) ? experiments : [];
   const active = safeExperiments.filter((e) => e.status === "running");
@@ -24,17 +27,64 @@ export default function SprintPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div><h1 className="text-2xl font-bold">Current Sprint</h1><p className="text-sm text-text-secondary">Loading sprint data...</p></div>
-        <div className="grid md:grid-cols-2 gap-4">{Array.from({ length: 2 }).map((_, i) => <Card key={i}><CardContent className="p-6 animate-pulse"><div className="h-6 bg-surface-elevated rounded w-48 mb-4" /><div className="grid grid-cols-3 gap-4">{Array.from({ length: 3 }).map((_, j) => <div key={j}><div className="h-4 bg-surface-elevated rounded w-16 mx-auto mb-2" /><div className="h-8 bg-surface-elevated rounded w-12 mx-auto" /></div>)}</div></CardContent></Card>)}</div>
+        <div>
+          <h1 className="text-2xl font-bold">Current Sprint</h1>
+          <p className="text-sm text-text-secondary">Loading sprint data...</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6 animate-pulse">
+                <div className="h-6 bg-surface-elevated rounded w-48 mb-4" />
+                <div className="grid grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, j) => (
+                    <div key={j}>
+                      <div className="h-4 bg-surface-elevated rounded w-16 mx-auto mb-2" />
+                      <div className="h-8 bg-surface-elevated rounded w-12 mx-auto" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Streamline Notice Banner */}
+      <div className="p-4 rounded-xl bg-blue/10 border border-blue/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue/20 flex items-center justify-center text-blue shrink-0">
+            <LayoutDashboard className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-[var(--dash-text-primary)]">
+              Sprint Mode is now integrated directly into your Command Center Overview.
+            </p>
+            <p className="text-xs text-[var(--dash-text-secondary)]">
+              Track live countdowns, lead quotas, and experiment progress in one unified view.
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard?view=sprint" className="shrink-0">
+          <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+            <span>View in Command Center</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+      </div>
+
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">Current Sprint</h1><p className="text-sm text-text-secondary">Your active validation sprint status.</p></div>
-        <Link href="/dashboard/experiments/new"><Button><Plus className="w-4 h-4" />New Experiment</Button></Link>
+        <div>
+          <h1 className="text-2xl font-bold">Current Sprint</h1>
+          <p className="text-sm text-text-secondary">Your active validation sprint status.</p>
+        </div>
+        <Link href="/dashboard/experiments/new">
+          <Button className="gap-1.5"><Plus className="w-4 h-4" />New Experiment</Button>
+        </Link>
       </motion.div>
 
       {error && (
@@ -42,13 +92,22 @@ export default function SprintPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red" />
             <p className="text-sm text-red">{error}</p>
-            <Button size="sm" variant="secondary" onClick={() => fetchExperiments()} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
+            <Button size="sm" variant="secondary" onClick={() => fetchExperiments()} className="ml-auto">
+              <RefreshCw className="w-3 h-3" />
+            </Button>
           </CardContent>
         </Card>
       )}
 
       {active.length === 0 ? (
-        <Card><CardContent className="p-8 text-center"><p className="text-sm text-text-tertiary mb-4">No running experiments in this sprint.</p><Link href="/dashboard/experiments/new"><Button size="sm">Create an Experiment</Button></Link></CardContent></Card>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-sm text-text-tertiary mb-4">No running experiments in this sprint.</p>
+            <Link href="/dashboard/experiments/new">
+              <Button size="sm">Create an Experiment</Button>
+            </Link>
+          </CardContent>
+        </Card>
       ) : (
         <motion.div variants={container} initial="hidden" animate="show" className="grid md:grid-cols-2 gap-4">
           {active.map((exp) => (
@@ -62,9 +121,18 @@ export default function SprintPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-3 gap-4 text-center">
-                  <div><p className="text-xs text-text-tertiary">Traffic</p><p className="text-lg font-mono font-bold">{exp.traffic.toLocaleString()}</p></div>
-                  <div><p className="text-xs text-text-tertiary">Conversion</p><p className="text-lg font-mono font-bold">{exp.conversionRate}%</p></div>
-                  <div><p className="text-xs text-text-tertiary">High Intent</p><p className="text-lg font-mono font-bold">{exp.highIntentActions}</p></div>
+                  <div>
+                    <p className="text-xs text-text-tertiary">Traffic</p>
+                    <p className="text-lg font-mono font-bold">{exp.traffic.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-tertiary">Conversion</p>
+                    <p className="text-lg font-mono font-bold">{exp.conversionRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-tertiary">High Intent</p>
+                    <p className="text-lg font-mono font-bold">{exp.highIntentActions}</p>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>

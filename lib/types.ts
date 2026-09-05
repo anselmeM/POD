@@ -293,3 +293,42 @@ export interface ChannelAttribution {
   costPerLead?: number;
   isWinner?: boolean;
 }
+
+// ============================================================
+// Startup Studio Portfolio & Leaderboard
+// ============================================================
+
+export type StageGateVerdict = "BUILD" | "ITERATE" | "KILL" | "TESTING";
+
+export interface StudioConcept {
+  id: string;
+  projectId: string;
+  name: string;
+  slug?: string;
+  status: string;
+  stage: string;
+  podScore: number;
+  confidence: number;
+  visitors: number;
+  leads: number;
+  preorders: number;
+  cvr: number;
+  pir: number;
+  verdict: StageGateVerdict;
+  verdictReason: string;
+  topVariant?: string;
+  capitalSaved: number;
+  updatedAt: string;
+  partnerNotes?: string;
+}
+
+export interface PortfolioSummary {
+  totalConcepts: number;
+  greenlitCount: number;
+  iteratingCount: number;
+  killedCount: number;
+  testingCount: number;
+  avgPodScore: number;
+  avgPir: number;
+  totalCapitalSaved: number;
+}

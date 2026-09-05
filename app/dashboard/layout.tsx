@@ -8,7 +8,7 @@ import {
   Bell, ChevronDown, Menu, X,
   LogOut, Settings, User, CreditCard,
   LayoutDashboard, FlaskConical, Layout, Activity, Brain,
-  Users, Contact, FileText, Zap, History, Check, Megaphone,
+  Users, Contact, FileText, Zap, History, Check, Megaphone, Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrbField } from "@/components/ui/animated-orb";
@@ -29,6 +29,7 @@ const PRIMARY_NAV = [
 
 // Secondary / Specialized features & operations in 'More' dropdown
 const MORE_NAV = [
+  { label: "Studio Portfolio", href: "/dashboard/portfolio", icon: Trophy, desc: "Comparative leaderboard & Stage-Gate matrix" },
   { label: "Traffic & Ad Kit", href: "/dashboard/traffic", icon: Megaphone, desc: "Multi-channel ad copy & 1-click UTM builder" },
   { label: "Sprint Mode", href: "/dashboard?view=sprint", icon: Zap, desc: "7-day sprint countdown & lead quota" },
   { label: "Live Pages", href: "/dashboard/experiments?view=pages", icon: Layout, desc: "Published smoke pages & copy variants" },

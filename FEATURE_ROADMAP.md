@@ -168,8 +168,8 @@ Keep founders, product managers, and team members motivated and informed through
 | **Functional Notification System** | High | Low | **✅ Shipped** |
 | **High-Intent Micro-Surveys** | High | Low | **✅ Shipped** |
 | **Traffic & Ad Campaign Kit** | High | Medium | **✅ Shipped** |
-| **Studio Portfolio & Leaderboard** | Medium | Medium | **Sprint 3** |
-| **Slack / Email Sprint Digests** | Medium | Low | **Sprint 4** |
+| **Studio Portfolio & Leaderboard** | Medium | Medium | **✅ Shipped** |
+| **Slack / Email Sprint Digests** | Medium | Low | **Sprint 3** |
 
 ---
 

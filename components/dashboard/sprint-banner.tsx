@@ -21,8 +21,14 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
   const [expanded, setExpanded] = useState(initialExpanded);
 
   const safeExperiments = Array.isArray(experiments) ? experiments : [];
-  const runningExperiments = safeExperiments.filter((e) => e.status === "running");
+  if (safeExperiments.length === 0) return null;
+
+  const runningExperiments = safeExperiments.filter(
+    (e) => (e.status as string) === "running" || (e.status as string) === "active"
+  );
   const hasActiveSprint = runningExperiments.length > 0;
+
+
 
   // Aggregate stats across running sprint experiments
   const totalTraffic = runningExperiments.reduce((sum, e) => sum + (e.traffic || 0), 0);

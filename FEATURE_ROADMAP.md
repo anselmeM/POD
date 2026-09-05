@@ -167,7 +167,7 @@ Keep founders, product managers, and team members motivated and informed through
 | **Stripe Pre-Order & Card Reservation** | High | Medium | **✅ Shipped** |
 | **Functional Notification System** | High | Low | **✅ Shipped** |
 | **High-Intent Micro-Surveys** | High | Low | **✅ Shipped** |
-| **Traffic & Ad Campaign Kit** | High | Medium | **Sprint 2** |
+| **Traffic & Ad Campaign Kit** | High | Medium | **✅ Shipped** |
 | **Studio Portfolio & Leaderboard** | Medium | Medium | **Sprint 3** |
 | **Slack / Email Sprint Digests** | Medium | Low | **Sprint 4** |
 

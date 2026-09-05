@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertCircle, RefreshCw, ArrowLeft, ArrowRight, Beaker, Layout, BarChart3, ExternalLink, Copy, Check } from "lucide-react";
+import { AlertCircle, RefreshCw, ArrowLeft, ArrowRight, Beaker, Layout, BarChart3, ExternalLink, Copy, Check, Megaphone, Share2, Sparkles, Globe } from "lucide-react";
 
 
 import type { Experiment, AIInsight, FunnelStage } from "@/lib/types";
@@ -49,7 +49,7 @@ export default function ExperimentDetailPage() {
   const [funnel, setFunnel] = useState<FunnelStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"performance" | "variants">("performance");
+  const [activeTab, setActiveTab] = useState<"performance" | "variants" | "traffic">("performance");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const copyUrl = (variantId: string) => {
@@ -196,6 +196,18 @@ export default function ExperimentDetailPage() {
         >
           <Layout className="w-3.5 h-3.5" />
           <span>Smoke Pages & Copy Variants ({safeVariants.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("traffic")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            activeTab === "traffic"
+              ? "bg-surface-elevated text-blue shadow-xs border border-border"
+              : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)]"
+          }`}
+        >
+          <Megaphone className="w-3.5 h-3.5" />
+          <span>Traffic & Ad Kit</span>
         </button>
       </div>
 
@@ -430,6 +442,101 @@ export default function ExperimentDetailPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === "traffic" && (
+        <div className="space-y-6">
+          <Card className="border-blue/30 bg-gradient-to-r from-blue/10 via-surface to-surface">
+            <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Megaphone className="w-4 h-4 text-blue" />
+                  <h3 className="text-base font-bold text-text-primary">
+                    Traffic & Multi-Channel Campaign Kit
+                  </h3>
+                </div>
+                <p className="text-xs text-text-secondary max-w-xl leading-relaxed">
+                  Generate platform-tailored ad variations for Meta, LinkedIn, and Google, or use the 1-click UTM builder to track inbound traffic and measure conversion channels.
+                </p>
+              </div>
+              <Link href="/dashboard/traffic">
+                <Button className="bg-blue hover:bg-blue/90 text-white flex items-center gap-1.5 cursor-pointer">
+                  <span>Open Full Ad Studio</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-blue" />
+                <span>1-Click Tracked Links for {experiment.name}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                { platform: "LinkedIn Ads", source: "linkedin", medium: "sponsored_content", color: "blue" },
+                { platform: "Meta Ads (FB/IG)", source: "facebook", medium: "paid_social", color: "purple" },
+                { platform: "Google Search (CPC)", source: "google", medium: "cpc", color: "green" },
+                { platform: "X / Twitter Ads", source: "twitter", medium: "promoted_tweet", color: "default" },
+                { platform: "Email Newsletter", source: "newsletter", medium: "email", color: "amber" },
+              ].map((item) => {
+                const targetSlug = (experiment as any).landingPages?.[0]?.slug || id;
+                const linkUrl = typeof window !== "undefined"
+                  ? `${window.location.origin}/p/${targetSlug}?utm_source=${item.source}&utm_medium=${item.medium}&utm_campaign=${id}`
+                  : `https://pod.engine/p/${targetSlug}?utm_source=${item.source}&utm_medium=${item.medium}&utm_campaign=${id}`;
+
+                return (
+                  <div
+                    key={item.source}
+                    className="p-3 rounded-xl bg-surface-elevated/70 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-center gap-2 min-w-[160px]">
+                      <Badge variant={item.color as never} className="text-[10px]">
+                        {item.platform}
+                      </Badge>
+                    </div>
+
+                    <div className="font-mono text-text-tertiary truncate flex-1 pr-3">
+                      {linkUrl}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => copyUrl(item.source)}
+                        className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-text-primary text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedId === item.source ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-green" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy Link</span>
+                          </>
+                        )}
+                      </button>
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg border border-border text-text-tertiary hover:text-white"
+                        title="Open Test Link"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

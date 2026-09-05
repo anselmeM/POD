@@ -252,3 +252,44 @@ export interface HistoryItem {
   topExperiment: string;
   keyInsight: string;
 }
+
+// ============================================================
+// Traffic & Multi-Channel Ad Campaign Kit
+// ============================================================
+
+export type AdPlatform = "meta" | "linkedin" | "google" | "twitter";
+
+export interface AdCopyVariation {
+  id: string;
+  platform: AdPlatform;
+  angle: string;
+  headline: string;
+  description: string;
+  primaryText?: string;
+  displayPath?: string;
+  headlines?: string[];
+  descriptions?: string[];
+  callToAction: string;
+  recommendedAudience: string;
+  estimatedCpc: number;
+}
+
+export interface UtmCampaignPreset {
+  platform: string;
+  source: string;
+  medium: string;
+  campaign: string;
+  term?: string;
+  content?: string;
+}
+
+export interface ChannelAttribution {
+  channel: string;
+  source: string;
+  visitors: number;
+  leads: number;
+  preorders: number;
+  conversionRate: number;
+  costPerLead?: number;
+  isWinner?: boolean;
+}

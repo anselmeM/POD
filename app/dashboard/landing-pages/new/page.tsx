@@ -50,6 +50,9 @@ export default function NewLandingPagePage() {
   const [selectedCta, setSelectedCta] = useState("Start Free Trial");
   const [selectedPositioning, setSelectedPositioning] = useState("pos-timesaving");
   const [pageName, setPageName] = useState("");
+  const [preorderEnabled, setPreorderEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(100);
+  const [priceAnchor, setPriceAnchor] = useState(4900);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
 
@@ -80,6 +83,9 @@ export default function NewLandingPagePage() {
       positioning: positioningMap[selectedPositioning] || selectedPositioning,
       status: "live",
       slug,
+      preorderEnabled,
+      depositAmount,
+      priceAnchor,
       visitors: 0,
       conversions: 0,
       bounceRate: 0,
@@ -195,6 +201,54 @@ export default function NewLandingPagePage() {
                     ))}
                   </div>
                 </div>
+
+                <div className="pt-4 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">Stripe Pre-Order Reservation</p>
+                      <p className="text-xs text-text-tertiary">Require card reservation ($1.00 refundable deposit) to measure real willingness to pay</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPreorderEnabled(!preorderEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        preorderEnabled ? "bg-blue" : "bg-surface-elevated border border-border"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          preorderEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {preorderEnabled && (
+                    <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface-elevated/70 border border-border">
+                      <div>
+                        <label className="text-xs font-medium text-text-secondary mb-1 block">Deposit Amount ($)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={(depositAmount / 100).toFixed(0)}
+                          onChange={(e) => setDepositAmount(Math.max(1, Number(e.target.value)) * 100)}
+                          className="w-full h-8 px-2.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-text-secondary mb-1 block">Launch Price ($/mo)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={(priceAnchor / 100).toFixed(0)}
+                          onChange={(e) => setPriceAnchor(Math.max(1, Number(e.target.value)) * 100)}
+                          className="w-full h-8 px-2.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
             <Card className="overflow-hidden">
@@ -206,6 +260,7 @@ export default function NewLandingPagePage() {
                     id: "preview", projectId: "proj-001", name: pageName || headline.slice(0, 40) || "Preview", template: templateMap[selectedTemplate] || "hero",
                     headline: headline || "Your headline here", subheadline: subheadline || "Your subheadline will appear here.", cta: selectedCta,
                     positioning: positioningMap[selectedPositioning] || selectedPositioning, status: "draft", slug: "preview",
+                    preorderEnabled, depositAmount, priceAnchor,
                     visitors: 0, conversions: 0, bounceRate: 0, avgTimeOnPage: 0, conversionRate: 0,
                     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
                   };
@@ -245,11 +300,17 @@ export default function NewLandingPagePage() {
             <Card>
               <CardHeader><CardTitle>Review & Launch</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div className="bg-surface-elevated rounded-lg p-3"><p className="text-[10px] text-text-tertiary mb-1">Template</p><p className="text-sm font-medium">{selectedTpl?.name}</p></div>
                   <div className="bg-surface-elevated rounded-lg p-3"><p className="text-[10px] text-text-tertiary mb-1">Positioning</p><p className="text-sm font-medium">{positioningOptions.find((p) => p.id === selectedPositioning)?.label}</p></div>
                   <div className="bg-surface-elevated rounded-lg p-3"><p className="text-[10px] text-text-tertiary mb-1">CTA</p><p className="text-sm font-medium">{selectedCta}</p></div>
                   <div className="bg-surface-elevated rounded-lg p-3"><p className="text-[10px] text-text-tertiary mb-1">Page Name</p><p className="text-sm font-medium">{pageName || "Untitled Page"}</p></div>
+                  <div className="bg-surface-elevated rounded-lg p-3 col-span-2 sm:col-span-2">
+                    <p className="text-[10px] text-text-tertiary mb-1">Mode</p>
+                    <p className="text-sm font-medium text-emerald-400">
+                      {preorderEnabled ? `💳 Pre-Order ($${(depositAmount / 100).toFixed(2)} deposit / $${(priceAnchor / 100).toFixed(0)} anchor)` : "Free Email Waitlist"}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-border overflow-hidden">

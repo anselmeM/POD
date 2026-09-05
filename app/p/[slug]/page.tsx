@@ -12,7 +12,19 @@ export default function PublicLandingPage() {
   const slug = params?.slug as string | undefined;
   const [page, setPage] = useState<LandingPage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [preorderBanner, setPreorderBanner] = useState<"success" | "cancelled" | null>(null);
   const trackedScrolls = useRef<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get("preorder_success") === "1") {
+        setPreorderBanner("success");
+      } else if (searchParams.get("preorder_cancelled") === "1") {
+        setPreorderBanner("cancelled");
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
@@ -189,6 +201,22 @@ export default function PublicLandingPage() {
             })(window.lintrk);
           `}
         </Script>
+      )}
+
+      {preorderBanner === "success" && (
+        <div className="sticky top-0 z-50 px-4 py-3 bg-emerald-500/20 border-b border-emerald-500/40 text-center backdrop-blur-md">
+          <p className="text-sm text-emerald-300 font-medium">
+            🎉 <strong>Pre-Order Confirmed!</strong> Your founding reservation has been secured. Check your email for onboarding details.
+          </p>
+        </div>
+      )}
+
+      {preorderBanner === "cancelled" && (
+        <div className="sticky top-0 z-50 px-4 py-2.5 bg-slate-800/90 border-b border-slate-700 text-center backdrop-blur-md">
+          <p className="text-xs text-slate-300 font-medium">
+            Your pre-order reservation was not completed. No charges were made.
+          </p>
+        </div>
       )}
 
       {page.status !== "live" && (

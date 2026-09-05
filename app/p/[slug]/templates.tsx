@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle2, Star, Users, Shield, Clock, TrendingUp, X, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Star, Users, Shield, Clock, TrendingUp, X, Sparkles, CreditCard, ShieldCheck, Lock } from "lucide-react";
 import type { LandingPage } from "@/lib/types";
 
 const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
@@ -24,6 +24,12 @@ function IntentModal({
   const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [reservationId, setReservationId] = useState<string | null>(null);
+
+  const isPreorder = Boolean(page.preorderEnabled);
+  const depositAmount = page.depositAmount || 100;
+  const depositFormatted = (depositAmount / 100).toFixed(2);
+  const anchorFormatted = ((page.priceAnchor || 4900) / 100).toFixed(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,28 +54,83 @@ function IntentModal({
     const leadSource = trackingParams.utm_source ? String(trackingParams.utm_source).toLowerCase() : "/p/" + page.slug;
 
     try {
-      await fetch("/api/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug: page.slug,
-          eventType: "lead_captured",
-          visitorId,
-          leadData: {
-            name: name || "Anonymous Lead",
+      if (isPreorder) {
+        // Pre-order checkout flow
+        const preorderRes = await fetch("/api/stripe/preorder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug: page.slug,
             email,
-            company,
-            role,
-            source: leadSource,
-            pricingInteraction: true,
-          },
-          metadata: {
-            cta: page.cta,
-            positioning: page.positioning,
-            ...trackingParams,
-          },
-        }),
-      });
+            name: name || "Founding Backer",
+          }),
+        });
+        const preorderData = await preorderRes.json();
+        const sessionId = preorderData?.sessionId || `preorder_${Date.now()}`;
+        setReservationId(sessionId);
+
+        // Record high-conviction telemetry
+        await fetch("/api/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug: page.slug,
+            eventType: "preorder_placed",
+            visitorId,
+            leadData: {
+              name: name || "Founding Backer",
+              email,
+              company,
+              role,
+              source: leadSource,
+              isPreorder: true,
+              depositAmount,
+              stripeSessionId: sessionId,
+              pricingInteraction: true,
+            },
+            metadata: {
+              cta: page.cta,
+              positioning: page.positioning,
+              depositAmount,
+              isPreorder: true,
+              ...trackingParams,
+            },
+          }),
+        });
+
+        if (preorderData?.url && !preorderData.mock && typeof window !== "undefined") {
+          window.location.href = preorderData.url;
+          return;
+        }
+
+        setSubmitted(true);
+      } else {
+        // Standard email capture flow
+        await fetch("/api/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug: page.slug,
+            eventType: "lead_captured",
+            visitorId,
+            leadData: {
+              name: name || "Anonymous Lead",
+              email,
+              company,
+              role,
+              source: leadSource,
+              pricingInteraction: true,
+            },
+            metadata: {
+              cta: page.cta,
+              positioning: page.positioning,
+              ...trackingParams,
+            },
+          }),
+        });
+
+        setSubmitted(true);
+      }
 
       // Fire client-side pixel conversion events
       if (typeof window !== "undefined") {
@@ -80,18 +141,16 @@ function IntentModal({
         };
         try {
           if (typeof w.fbq === "function") {
-            w.fbq("track", "Lead", { content_name: page.name });
+            w.fbq("track", isPreorder ? "InitiateCheckout" : "Lead", { content_name: page.name });
           }
           if (typeof w.gtag === "function") {
-            w.gtag("event", "generate_lead", { event_label: page.slug });
+            w.gtag("event", isPreorder ? "begin_checkout" : "generate_lead", { event_label: page.slug });
           }
           if (typeof w.lintrk === "function") {
             w.lintrk("track");
           }
         } catch {}
       }
-
-      setSubmitted(true);
     } catch (err) {
       console.error("Failed to submit intent:", err);
     } finally {
@@ -131,15 +190,35 @@ function IntentModal({
           {!submitted ? (
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-xs font-semibold text-blue mb-4">
-                <Sparkles className="w-3.5 h-3.5" /> Early Access Priority
+                {isPreorder ? (
+                  <>
+                    <CreditCard className="w-3.5 h-3.5 text-blue" />
+                    <span>Founding Pre-Order Reservation (${depositFormatted})</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" /> Early Access Priority
+                  </>
+                )}
               </div>
 
               <h2 className="text-2xl font-bold text-white mb-2">
-                Join the Private Beta
+                {isPreorder ? "Reserve Your Founding Slot" : "Join the Private Beta"}
               </h2>
               <p className="text-sm text-slate-300 mb-6 leading-relaxed">
-                We are onboarding our founding cohort this week. Reserve your spot to lock in 50% lifetime discount pricing.
+                {isPreorder
+                  ? `Hold a founding spot for $${depositFormatted} today to lock in founding pricing ($${anchorFormatted}/mo). Fully refundable upon request.`
+                  : "We are onboarding our founding cohort this week. Reserve your spot to lock in 50% lifetime discount pricing."}
               </p>
+
+              {isPreorder && (
+                <div className="mb-5 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80 flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-300 leading-relaxed">
+                    <strong className="text-white font-medium">100% Refundable Guarantee:</strong> If this product does not launch or doesn&apos;t meet your standards, your ${depositFormatted} deposit is refunded immediately.
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -202,26 +281,55 @@ function IntentModal({
                   disabled={loading}
                   className="w-full mt-4 py-3.5 px-6 rounded-xl bg-blue hover:bg-blue/90 text-white font-semibold text-sm transition-all shadow-lg shadow-blue/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {loading ? "Confirming..." : `${page.cta} — Get Priority Access`}
-                  <ArrowRight className="w-4 h-4" />
+                  {loading ? (
+                    "Confirming..."
+                  ) : isPreorder ? (
+                    <>
+                      <span>Lock In Founding Pre-Order (${depositFormatted})</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      <span>{page.cta} — Get Priority Access</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
+
+                {isPreorder && (
+                  <p className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    Encrypted card hold via Stripe. Never billed without consent.
+                  </p>
+                )}
               </form>
             </div>
           ) : (
             <div className="text-center py-6">
-              <div className="w-14 h-14 rounded-2xl bg-green/10 border border-green/20 text-green flex items-center justify-center mx-auto mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">You&apos;re on the priority list!</h3>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {isPreorder ? "Founding Pre-Order Confirmed!" : "You're on the priority list!"}
+              </h3>
               <p className="text-sm text-slate-300 mb-6 leading-relaxed max-w-sm mx-auto">
-                We&apos;ve recorded your intent reservation. Check your inbox ({email}) for early-bird onboarding details and founding member perks.
+                {isPreorder
+                  ? `Your founding member pre-order ($${depositFormatted}) has been secured! Confirmation receipt sent to ${email}.`
+                  : `We've recorded your intent reservation. Check your inbox (${email}) for early-bird onboarding details.`}
               </p>
-              <button
-                onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
-              >
-                Close Window
-              </button>
+              {reservationId && (
+                <div className="mb-6 inline-block px-3 py-1 rounded-lg bg-slate-800 text-xs font-mono text-slate-400">
+                  Ref: {reservationId.slice(0, 18)}...
+                </div>
+              )}
+              <div>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+                >
+                  Close Window
+                </button>
+              </div>
             </div>
           )}
         </motion.div>

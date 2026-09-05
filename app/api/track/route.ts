@@ -181,24 +181,36 @@ export async function POST(request: NextRequest) {
       const rawSource = leadData.source || utmSource;
       const effectiveSource = rawSource ? String(rawSource).trim() : "/p/" + slug;
 
+      const isPreorder = Boolean(leadData.isPreorder || eventType === "preorder_placed");
+      const depositAmount = isPreorder ? Number(leadData.depositAmount || page.depositAmount || 100) : 0;
+      const stripeSessionId = leadData.stripeSessionId ? String(leadData.stripeSessionId) : null;
+      const intentScore = isPreorder ? 98 : 90;
+
       const leadId = "lead-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
       createdLead = await prisma.lead.create({
         data: {
           id: leadId,
           experimentId: expId,
           variantId: page.id,
-          name: leadData.name || "Anonymous Lead",
+          name: leadData.name || (isPreorder ? "Founding Backer" : "Anonymous Lead"),
           email: leadData.email,
           company: leadData.company || "",
           role: leadData.role || "",
           source: effectiveSource,
-          intentScore: 90,
+          intentScore,
           pricingInteraction: Boolean(leadData.pricingInteraction ?? true),
+          isPreorder,
+          depositAmount,
+          stripeSessionId,
           status: "new",
           events: JSON.stringify([
             { type: "page_view", timestamp: new Date().toISOString() },
             { type: "cta_click", timestamp: new Date().toISOString() },
-            { type: "lead_captured", timestamp: new Date().toISOString(), metadata: enrichedMetadata },
+            {
+              type: isPreorder ? "preorder_placed" : "lead_captured",
+              timestamp: new Date().toISOString(),
+              metadata: { ...enrichedMetadata, depositAmount, stripeSessionId },
+            },
           ]),
         },
       });
@@ -206,9 +218,13 @@ export async function POST(request: NextRequest) {
       // Send live notification to dashboard
       await prisma.notification.create({
         data: {
-          title: "🔥 New Validated Lead Captured",
-          message: `${leadData.name || leadData.email} validated demand on "${page.name}" (${page.headline})`,
-          type: "lead",
+          title: isPreorder
+            ? "💳 Confirmed Pre-Order Reservation Captured!"
+            : "🔥 New Validated Lead Captured",
+          message: isPreorder
+            ? `${leadData.name || leadData.email} reserved a founding slot ($${(depositAmount / 100).toFixed(2)}) on "${page.name}" (${page.headline})`
+            : `${leadData.name || leadData.email} validated demand on "${page.name}" (${page.headline})`,
+          type: isPreorder ? "preorder" : "lead",
         },
       });
 
@@ -220,16 +236,19 @@ export async function POST(request: NextRequest) {
 
         if (webhooks.length > 0) {
           const webhookPayload = {
-            event: "lead.captured",
+            event: isPreorder ? "preorder.reserved" : "lead.captured",
             timestamp: new Date().toISOString(),
             data: {
               id: leadId,
-              name: leadData.name || "Anonymous Lead",
+              name: leadData.name || (isPreorder ? "Founding Backer" : "Anonymous Lead"),
               email: leadData.email,
               company: leadData.company || "",
               role: leadData.role || "",
               source: effectiveSource,
-              intentScore: 90,
+              intentScore,
+              isPreorder,
+              depositAmount,
+              stripeSessionId,
               landingPage: {
                 id: page.id,
                 slug: page.slug,
@@ -247,7 +266,7 @@ export async function POST(request: NextRequest) {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "X-PoD-Event": "lead.captured",
+                  "X-PoD-Event": isPreorder ? "preorder.reserved" : "lead.captured",
                   ...(wh.secret ? { "X-PoD-Signature": wh.secret } : {}),
                 },
                 body: JSON.stringify(webhookPayload),
@@ -266,7 +285,7 @@ export async function POST(request: NextRequest) {
             where: { id: exp.id },
             data: {
               conversions: exp.conversions + 1,
-              highIntentActions: exp.highIntentActions + 2,
+              highIntentActions: exp.highIntentActions + (isPreorder ? 3 : 2),
             },
           });
         }
@@ -276,9 +295,15 @@ export async function POST(request: NextRequest) {
             id: "evt-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
             experimentId: expId,
             visitorId,
-            eventType: "checkout_initiate",
+            eventType: isPreorder ? "preorder_placed" : "checkout_initiate",
             variantId: page.id,
-            metadata: JSON.stringify({ email: leadData.email, name: leadData.name, slug }),
+            metadata: JSON.stringify({
+              email: leadData.email,
+              name: leadData.name,
+              slug,
+              isPreorder,
+              depositAmount,
+            }),
           },
         });
       }

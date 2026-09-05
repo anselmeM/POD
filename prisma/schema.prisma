@@ -242,6 +242,9 @@ model Lead {
   source            String   @default("")
   intentScore       Int      @default(0)
   pricingInteraction Boolean @default(false)
+  isPreorder        Boolean  @default(false)
+  depositAmount     Int      @default(0)
+  stripeSessionId   String?
   status            String   @default("new")
   events            String   @default("[]") // JSON array stored as string for SQLite
   createdAt         DateTime @default(now())
@@ -301,6 +304,9 @@ model LandingPage {
   status         String   @default("draft")
   experimentId   String?
   slug           String   @unique
+  preorderEnabled Boolean @default(false)
+  depositAmount   Int      @default(100)
+  priceAnchor     Int      @default(4900)
   visitors       Int      @default(0)
   conversions    Int      @default(0)
   conversionRate Float    @default(0)

@@ -96,7 +96,8 @@ export type EventType =
   | "demo_request"
   | "checkout_initiate"
   | "payment_start"
-  | "form_submit";
+  | "form_submit"
+  | "preorder_placed";
 
 export interface ExperimentEvent {
   id: string;
@@ -121,6 +122,9 @@ export interface Lead {
   source: string;
   intentScore: number;
   pricingInteraction: boolean;
+  isPreorder?: boolean;
+  depositAmount?: number;
+  stripeSessionId?: string | null;
   status: LeadStatus;
   events: string[];
   createdAt: string;
@@ -204,6 +208,9 @@ export interface LandingPage {
   status: LandingPageStatus;
   experimentId?: string;
   slug: string;
+  preorderEnabled?: boolean;
+  depositAmount?: number;
+  priceAnchor?: number;
   visitors: number;
   conversions: number;
   bounceRate: number;

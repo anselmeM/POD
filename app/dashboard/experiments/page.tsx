@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, FlaskConical, Search, BarChart3, Users, MousePointerClick,
-  AlertCircle, RefreshCw, Layout, Eye, Clock, ExternalLink, ArrowRight,
+  AlertCircle, RefreshCw, Layout, Eye, Clock, ExternalLink, ArrowRight, Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useExperimentStore, useLandingPageStore } from "@/lib/store";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useRouter } from "next/navigation";
 import type { LandingPageStatus } from "@/lib/types";
+import { AIGeneratorModal } from "@/components/dashboard/ai-generator-modal";
 
 const statusTabs = ["All", "Running", "Completed", "Paused", "Draft"] as const;
 
@@ -78,6 +79,7 @@ export default function ExperimentsPage() {
   const [search, setSearch] = useState("");
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   useEffect(() => {
     fetchExperiments();
@@ -185,6 +187,16 @@ export default function ExperimentsPage() {
               <span>Live Pages ({safeLandingPages.length})</span>
             </button>
           </div>
+
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setAiModalOpen(true)}
+            className="gap-1.5 h-9 bg-blue/10 hover:bg-blue/20 text-blue border border-blue/30 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-blue" />
+            <span>⚡ AI Generator</span>
+          </Button>
 
           <Link href="/dashboard/experiments/new">
             <Button size="sm" className="gap-1.5 h-9">
@@ -456,6 +468,15 @@ export default function ExperimentsPage() {
           </div>
         </>
       )}
+
+      <AIGeneratorModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onGenerated={() => {
+          fetchExperiments();
+          fetchLandingPages();
+        }}
+      />
     </div>
   );
 }

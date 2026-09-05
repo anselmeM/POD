@@ -106,6 +106,9 @@ export async function POST(request: NextRequest) {
         status: body.status || "live",
         experimentId: body.experimentId || null,
         slug: body.slug,
+        preorderEnabled: Boolean(body.preorderEnabled),
+        depositAmount: typeof body.depositAmount === "number" ? body.depositAmount : 100,
+        priceAnchor: typeof body.priceAnchor === "number" ? body.priceAnchor : 4900,
       },
     });
 

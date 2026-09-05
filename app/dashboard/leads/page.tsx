@@ -10,7 +10,7 @@ import type { LeadStatus, FunnelStage } from "@/lib/types";
 import {
   Users, Target, TrendingUp, Search, Filter, AlertCircle, RefreshCw,
   Globe, Building2, Briefcase, Activity, Zap, ExternalLink, ArrowRight,
-  MousePointerClick, BarChart3, Download,
+  MousePointerClick, BarChart3, Download, CreditCard,
 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import Link from "next/link";
@@ -140,7 +140,12 @@ export default function LeadsPage() {
     const matchesSearch =
       (l.name || "").toLowerCase().includes(search.toLowerCase()) ||
       (l.company || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || l.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "preorders"
+        ? Boolean(l.isPreorder)
+        : l.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -267,9 +272,9 @@ export default function LeadsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: "Total Leads", value: safeLeads.length, icon: Users },
+              { label: "Pre-Orders ($)", value: safeLeads.filter((l) => l.isPreorder).length, icon: CreditCard },
               { label: "Qualified", value: qualified, icon: Target },
               { label: "Avg Intent", value: `${avgIntent}`, icon: TrendingUp },
-              { label: "Pricing Interactions", value: safeLeads.filter((l) => l.pricingInteraction).length, icon: Filter },
             ].map((m) => {
               const Icon = m.icon;
               return (
@@ -299,16 +304,23 @@ export default function LeadsPage() {
                 className="w-full h-9 pl-9 pr-3 rounded-md border border-border bg-surface-elevated text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue"
               />
             </div>
-            <div className="flex gap-1 bg-surface-elevated rounded-lg p-1">
-              {["all", "new", "contacted", "qualified", "converted"].map((tab) => (
+            <div className="flex gap-1 bg-surface-elevated rounded-lg p-1 overflow-x-auto">
+              {[
+                { id: "all", label: "All" },
+                { id: "preorders", label: `Pre-Orders (${safeLeads.filter((l) => l.isPreorder).length})` },
+                { id: "new", label: "New" },
+                { id: "contacted", label: "Contacted" },
+                { id: "qualified", label: "Qualified" },
+                { id: "converted", label: "Converted" },
+              ].map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setStatusFilter(tab)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                    statusFilter === tab ? "bg-blue text-white" : "text-text-tertiary hover:text-text-secondary"
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                    statusFilter === tab.id ? "bg-blue text-white" : "text-text-tertiary hover:text-text-secondary"
                   }`}
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -352,7 +364,17 @@ export default function LeadsPage() {
                             }`}
                             onClick={() => setSelected(l.id)}
                           >
-                            <td className="py-3 pr-3 text-sm font-medium">{l.name}</td>
+                            <td className="py-3 pr-3 text-sm font-medium">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{l.name}</span>
+                                {l.isPreorder && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    <CreditCard className="w-2.5 h-2.5" />
+                                    ${((l.depositAmount || 100) / 100).toFixed(0)} Pre-Order
+                                  </span>
+                                )}
+                              </div>
+                            </td>
                             <td className="py-3 pr-3 text-sm text-text-secondary">{l.company}</td>
                             <td className="py-3 pr-3 text-sm text-text-secondary">{l.role}</td>
                             <td className="py-3 pr-3"><LeadSourceBadge source={l.source} /></td>
@@ -387,6 +409,22 @@ export default function LeadsPage() {
                       <p className="text-sm text-text-secondary">{lead.role} at {lead.company}</p>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {lead.isPreorder && (
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 mb-1">
+                            <CreditCard className="w-3.5 h-3.5" />
+                            <span>Founding Pre-Order Reservation</span>
+                          </div>
+                          <p className="text-xs text-slate-300">
+                            Deposit: <strong className="text-white">${((lead.depositAmount || 100) / 100).toFixed(2)}</strong>
+                          </p>
+                          {lead.stripeSessionId && (
+                            <p className="text-[11px] font-mono text-slate-400 mt-1 truncate">
+                              Ref: {lead.stripeSessionId}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <p className="text-xs text-text-tertiary">Email</p>
                         <p className="text-sm font-mono">{lead.email}</p>

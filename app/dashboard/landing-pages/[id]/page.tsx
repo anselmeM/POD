@@ -35,6 +35,9 @@ export default function LandingPageDetailPage() {
   const [cta, setCta] = useState("");
   const [template, setTemplate] = useState<LandingPageTemplate>("hero");
   const [positioning, setPositioning] = useState("");
+  const [preorderEnabled, setPreorderEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(100);
+  const [priceAnchor, setPriceAnchor] = useState(4900);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -44,6 +47,9 @@ export default function LandingPageDetailPage() {
       setCta(page.cta);
       setTemplate(page.template);
       setPositioning(page.positioning);
+      setPreorderEnabled(Boolean(page.preorderEnabled));
+      setDepositAmount(page.depositAmount ?? 100);
+      setPriceAnchor(page.priceAnchor ?? 4900);
     }
   }, [page]);
 
@@ -60,7 +66,16 @@ export default function LandingPageDetailPage() {
   const s = statusMap[page.status] || statusMap.draft;
 
   const handleSave = () => {
-    updateLandingPage(page.id, { headline, subheadline, cta, template, positioning });
+    updateLandingPage(page.id, {
+      headline,
+      subheadline,
+      cta,
+      template,
+      positioning,
+      preorderEnabled,
+      depositAmount,
+      priceAnchor,
+    });
     setEditing(false);
   };
 
@@ -151,13 +166,61 @@ export default function LandingPageDetailPage() {
                   </select>
                 </div>
                 <Input label="Positioning" value={positioning} onChange={(e) => setPositioning(e.target.value)} />
+
+                <div className="pt-2 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">Pre-Order Reservation Mode</p>
+                      <p className="text-xs text-text-tertiary">Collect refundable card reservations via Stripe instead of email waitlist</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPreorderEnabled(!preorderEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        preorderEnabled ? "bg-blue" : "bg-surface-elevated border border-border"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          preorderEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {preorderEnabled && (
+                    <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface-elevated/70 border border-border">
+                      <div>
+                        <label className="text-xs font-medium text-text-secondary mb-1 block">Deposit ($)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={(depositAmount / 100).toFixed(0)}
+                          onChange={(e) => setDepositAmount(Math.max(1, Number(e.target.value)) * 100)}
+                          className="w-full h-8 px-2.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-text-secondary mb-1 block">Launch Price ($/mo)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={(priceAnchor / 100).toFixed(0)}
+                          onChange={(e) => setPriceAnchor(Math.max(1, Number(e.target.value)) * 100)}
+                          className="w-full h-8 px-2.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="rounded-lg border border-border overflow-hidden">
                 <div className="px-3 py-2 bg-surface-elevated border-b border-border text-xs font-medium text-text-tertiary">Live Preview — {template}</div>
                 <div className="max-h-[420px] overflow-auto bg-surface">
                   {(() => {
                     const Preview = templateRenderers[template] || templateRenderers.hero;
-                    const previewPage = { ...page, headline: headline || page.headline, subheadline: subheadline || page.subheadline, cta: cta || page.cta, template, positioning };
+                    const previewPage = { ...page, headline: headline || page.headline, subheadline: subheadline || page.subheadline, cta: cta || page.cta, template, positioning, preorderEnabled, depositAmount, priceAnchor };
                     return <div className="scale-[0.55] origin-top-left w-[182%] h-[380px] overflow-hidden"><Preview page={previewPage as never} /></div>;
                   })()}
                 </div>
@@ -184,6 +247,12 @@ export default function LandingPageDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex justify-between text-sm"><span className="text-text-tertiary">Template</span><span className="font-medium capitalize">{page.template.replace("-", " ")}</span></div>
             <div className="flex justify-between text-sm"><span className="text-text-tertiary">Positioning</span><span className="font-medium">{page.positioning}</span></div>
+            <div className="flex justify-between text-sm">
+              <span className="text-text-tertiary">Mode</span>
+              <span className="font-medium">
+                {page.preorderEnabled ? `Pre-Order ($${((page.depositAmount || 100) / 100).toFixed(2)} Deposit)` : "Email Waitlist"}
+              </span>
+            </div>
             <div className="flex justify-between text-sm"><span className="text-text-tertiary">Slug</span><span className="font-mono text-xs">{page.slug}</span></div>
             <div className="flex justify-between text-sm"><span className="text-text-tertiary">Experiment</span><span className="font-mono text-xs">{page.experimentId || "None"}</span></div>
           </CardContent>

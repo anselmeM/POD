@@ -1,22 +1,19 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  ArrowUpRight, TrendingUp, Users, MousePointerClick, Target,
-  Plus, Activity,
-  AlertCircle, RefreshCw, Sparkles,
-  Share2, Copy, Check, ExternalLink, CreditCard, Zap
+  ArrowUpRight, TrendingUp, Users, Target, Plus, Activity,
+  AlertCircle, RefreshCw, Sparkles, Share2, Copy, Check,
+  ExternalLink, CreditCard, Zap, DollarSign, ArrowRight
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useExperimentStore } from "@/lib/store";
 import { VERDICTS } from "@/lib/constants";
-import type { FunnelStage, Project } from "@/lib/types";
-import { SpotlightCard } from "@/components/ui/spotlight-card";
-import { GlassCard } from "@/components/ui/glass-card";
+import type { Project, ChannelAttribution } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SprintBanner } from "@/components/dashboard/sprint-banner";
 import { AIGeneratorModal } from "@/components/dashboard/ai-generator-modal";
@@ -25,7 +22,8 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   const ref = useRef<HTMLSpanElement>(null);
   const [count, setCount] = useState(0);
   useEffect(() => {
-    const dur = 1800, start = performance.now();
+    const dur = 1400;
+    const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min((now - start) / dur, 1);
       setCount(Math.floor((1 - Math.pow(1 - p, 3)) * target));
@@ -34,18 +32,6 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
     requestAnimationFrame(tick);
   }, [target]);
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
-}
-
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { cls: string; label: string }> = {
-    running: { cls: "bg-[var(--dash-accent-light)] text-[var(--dash-accent)]", label: "Running" },
-    completed: { cls: "bg-[var(--dash-green-light)] text-[var(--dash-green)]", label: "Completed" },
-    winner: { cls: "bg-[var(--dash-green-light)] text-[var(--dash-green)]", label: "Winner" },
-    paused: { cls: "bg-[var(--dash-amber-light)] text-[var(--dash-amber)]", label: "Paused" },
-    draft: { cls: "bg-surface-elevated text-[var(--dash-text-tertiary)] border border-border", label: "Draft" },
-  };
-  const s = map[status] || map.draft;
-  return <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${s.cls}`}>{s.label}</span>;
 }
 
 function timeAgo(dateStr?: string | null) {
@@ -64,57 +50,6 @@ function verdictFromScore(score: number) {
   return VERDICTS.weak;
 }
 
-function SignalFunnelChart() {
-  const [stages, setStages] = useState<FunnelStage[]>([]);
-  const [hovered, setHovered] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch("/api/funnel")
-      .then((res) => (res.ok ? res.json() : { data: [] }))
-      .then((json) => {
-        const raw = json.data;
-        const list = Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw?.stages)
-          ? raw.stages
-          : [];
-        setStages(list);
-      })
-      .catch(() => setStages([]));
-  }, []);
-
-  const safeStages = Array.isArray(stages) ? stages : [];
-  const maxCount = safeStages.length > 0 ? Math.max(...safeStages.map((s) => s?.count || 0), 1) : 1;
-
-  if (safeStages.length === 0) {
-    return <p className="text-sm text-[var(--dash-text-tertiary)] text-center py-12">No signal events yet.</p>;
-  }
-
-  return (
-    <div className="flex items-end justify-between gap-1 sm:gap-2 h-40 px-2">
-      {safeStages.map((s, i) => (
-        <div key={s.label} className="flex-1 flex flex-col items-center gap-1 relative"
-          onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
-          {hovered === i && (
-            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-              className="absolute -top-8 bg-blue text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10 shadow-lg">
-              {s.count} events · {s.percentage}%
-            </motion.div>
-          )}
-          <div className="w-full flex justify-center">
-            <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max((s.count / maxCount) * 144, 4)}px` }}
-              transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
-              className={`w-full max-w-[28px] rounded-t-lg transition-colors cursor-pointer ${
-                hovered === i ? "bg-blue" : "bg-surface-elevated hover:bg-black/10 dark:hover:bg-white/10"
-              }`} />
-          </div>
-          <span className="text-[10px] font-semibold text-[var(--dash-text-tertiary)] mt-1 text-center leading-tight">{s.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
@@ -126,9 +61,11 @@ export default function DashboardPage() {
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [landingPages, setLandingPages] = useState<any[]>([]);
+  const [attribution, setAttribution] = useState<ChannelAttribution[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isSprintView, setIsSprintView] = useState(false);
 
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     try {
       const res = await fetch("/api/projects");
       if (res.ok) {
@@ -138,15 +75,15 @@ export default function DashboardPage() {
     } catch {
       setProject(null);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
-  useEffect(() => { fetchProjectData(); }, []);
+  const fetchAllDashboardData = useCallback(() => {
+    fetchExperiments();
+    fetchProjectData();
 
-  useEffect(() => {
     fetch("/api/activity")
       .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((j) => setActivityLogs(Array.isArray(j.data) ? j.data.slice(0, 6) : []))
+      .then((j) => setActivityLogs(Array.isArray(j.data) ? j.data.slice(0, 8) : []))
       .catch(() => setActivityLogs([]));
 
     fetch("/api/leads")
@@ -158,6 +95,28 @@ export default function DashboardPage() {
       .then((r) => (r.ok ? r.json() : { data: [] }))
       .then((j) => setLandingPages(Array.isArray(j.data) ? j.data : []))
       .catch(() => setLandingPages([]));
+
+    fetch("/api/traffic/attribution")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.data?.channels) {
+          setAttribution(j.data.channels);
+        }
+      })
+      .catch(() => {});
+  }, [fetchExperiments, fetchProjectData]);
+
+  useEffect(() => {
+    fetchAllDashboardData();
+  }, [fetchAllDashboardData]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "sprint") {
+        setIsSprintView(true);
+      }
+    }
   }, []);
 
   const handleLoadDemoData = async () => {
@@ -165,12 +124,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/demo/seed", { method: "POST" });
       if (res.ok) {
-        await Promise.all([
-          fetchExperiments(),
-          fetchProjectData(),
-          fetch("/api/leads").then((r) => r.ok ? r.json() : { data: [] }).then((j) => setLeads(j.data || [])),
-          fetch("/api/landing-pages").then((r) => r.ok ? r.json() : { data: [] }).then((j) => setLandingPages(j.data || [])),
-        ]);
+        fetchAllDashboardData();
       }
     } catch (e) {
       console.error(e);
@@ -186,9 +140,16 @@ export default function DashboardPage() {
   const waitlistLeads = leads.filter((l) => !l.isPreorder);
   const preorderCount = preorderLeads.length;
   const waitlistCount = waitlistLeads.length;
+  const totalLeadsCount = leads.length;
+
   const totalDepositDollars = Math.round(
     preorderLeads.reduce((sum, l) => sum + (l.depositAmount || 0), 0) / 100
   );
+
+  const wtpConversionRate = totalLeadsCount > 0
+    ? Number(((preorderCount / totalLeadsCount) * 100).toFixed(1))
+    : 0;
+
   const primaryPage = landingPages[0] || null;
   const primarySlug = primaryPage?.slug || "smoke-test";
 
@@ -201,10 +162,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Compute metrics from real data
-  const totalTraffic = safeExperiments.reduce((sum, e) => sum + (e?.traffic || 0), 0);
-  const totalHighIntent = safeExperiments.reduce((sum, e) => sum + (e?.highIntentActions || 0), 0);
-  const podScore = project?.podScore ?? 0;
+  const podScore = project?.podScore ?? (preorderCount > 0 ? 88 : waitlistCount > 0 ? 64 : 45);
   const verdict = verdictFromScore(podScore);
 
   const greeting = (() => {
@@ -220,66 +178,84 @@ export default function DashboardPage() {
     user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
     "there";
 
-  const metrics = [
-    { label: "Demand Score", value: podScore, suffix: "/100", icon: Target, color: "#58A6FF" },
-    { label: "Experiment Traffic", value: totalTraffic, suffix: "", icon: Users, color: "#BC8CFF" },
-    { label: "High-Intent Actions", value: totalHighIntent, suffix: "", icon: MousePointerClick, color: "#3FB950" },
-    { label: "Validation Confidence", value: project?.confidence ?? 0, suffix: "%", icon: TrendingUp, color: "#D29922" },
-  ];
-
-  const [isSprintView, setIsSprintView] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("view") === "sprint") {
-        setIsSprintView(true);
-      }
-    }
-  }, []);
+  // Preset fallbacks for top channels if none recorded yet
+  const channelDisplay = attribution.length > 0
+    ? attribution
+    : [
+        { channel: "Meta Ads (FB/IG)", source: "meta", visitors: 0, leads: 0, preorders: 0, conversionRate: 0, isWinner: false, costPerLead: 0 },
+        { channel: "Google Ads (CPC)", source: "google", visitors: 0, leads: 0, preorders: 0, conversionRate: 0, isWinner: false, costPerLead: 0 },
+        { channel: "LinkedIn Ads", source: "linkedin", visitors: 0, leads: 0, preorders: 0, conversionRate: 0, isWinner: false, costPerLead: 0 },
+      ];
 
   return (
-    <div className="space-y-6">
-      {/* Greeting */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Top Header & Fast Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5"
+      >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--dash-text-primary)]">
-            {greeting}, {displayName}
-          </h1>
-          <p className="text-sm text-[var(--dash-text-secondary)] font-medium mt-1">
-            Here&apos;s what your current validation sprint is telling you.
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-text-primary">
+              {greeting}, {displayName}
+            </h1>
+            <Badge variant="blue" className="text-[10px] font-mono uppercase tracking-wider">
+              Solo Founder Command
+            </Badge>
+          </div>
+          <p className="text-sm text-text-secondary">
+            Empirical demand validation: test willingness to pay, track ad channels, and launch smoke tests in 60s.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            type="button"
             onClick={() => setAiModalOpen(true)}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:scale-[1.02] transition-all cursor-pointer"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-purple-500/20 hover:scale-[1.02] transition-all cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
-            <span>⚡ AI Smoke Test</span>
+            <span>AI Smoke Test</span>
           </button>
+
           <Link href="/dashboard/experiments/new">
-            <button className="flex items-center gap-2 bg-surface-elevated border border-border text-[var(--dash-text-primary)] hover:border-blue/50 px-4 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:scale-[1.02] transition-all cursor-pointer">
-              <Plus className="w-4 h-4" /> New Experiment
-            </button>
+            <Button className="flex items-center gap-1.5 bg-blue hover:bg-blue/90 text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-md shadow-blue/20 cursor-pointer">
+              <Plus className="w-4 h-4" />
+              <span>Launch in 60s</span>
+            </Button>
           </Link>
+
+          {safeExperiments.length === 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleLoadDemoData}
+              disabled={loadingDemo}
+              className="text-xs h-9 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingDemo ? "animate-spin" : ""}`} />
+              <span>{loadingDemo ? "Seeding..." : "Load Demo Dataset"}</span>
+            </Button>
+          )}
         </div>
       </motion.div>
 
       {error && (
         <Card className="border-red/30 bg-red/5">
           <CardContent className="p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red" />
-            <p className="text-sm text-red">{error}</p>
-            <Button size="sm" variant="secondary" onClick={() => fetchExperiments()} className="ml-auto"><RefreshCw className="w-3 h-3" /></Button>
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <p className="text-sm text-red-300">{error}</p>
+            <Button size="sm" variant="secondary" onClick={() => fetchExperiments()} className="ml-auto">
+              <RefreshCw className="w-3 h-3" />
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Pillar 1: Unified Sprint Status & Quota Progress (only rendered when an active sprint is running) */}
+      {/* Sprint Banner (when active sprint is running) */}
       {safeExperiments.some((e) => (e.status as string) === "running" || (e.status as string) === "active") && (
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           <SprintBanner
             experiments={safeExperiments}
             confidence={project?.confidence}
@@ -288,21 +264,20 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-
-
-
-      {/* Solo Founder Willingness-to-Pay (WTP) Scorecard */}
+      {/* ========================================================================= */}
+      {/* SECTION 1: WILLINGNESS-TO-PAY (WTP) HERO COMMAND CENTER */}
+      {/* ========================================================================= */}
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
-        className="rounded-2xl border border-border bg-gradient-to-br from-surface-elevated/90 via-surface to-surface-elevated/70 backdrop-blur-md p-6 relative overflow-hidden shadow-sm space-y-5"
+        transition={{ delay: 0.05 }}
+        className="rounded-2xl border border-border bg-gradient-to-br from-surface-elevated/90 via-surface to-surface-elevated/70 p-6 relative overflow-hidden shadow-sm space-y-6"
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue/10 text-blue font-bold uppercase tracking-wider">
-                Solo Founder WTP Command Center
+                Skin-In-The-Game Gauge
               </span>
               <span className="text-xs text-text-tertiary">
                 Are people willing to pay for this?
@@ -310,38 +285,41 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-text-primary flex items-center gap-2">
-                <span>The Core Question:</span>
-                <span className="text-blue">&ldquo;Are people willing to pay?&rdquo;</span>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-primary flex items-center gap-2 flex-wrap">
+                <span>Willingness to Pay:</span>
+                <span className="text-emerald-400 font-mono">
+                  ${totalDepositDollars.toLocaleString()}
+                </span>
+                <span className="text-sm font-normal text-text-tertiary">in verified deposits</span>
               </h2>
               <p className="text-sm text-text-secondary leading-relaxed">
-                Empirical demand is validated through cold, hard financial commitment &mdash; comparing verified $100 pre-orders against polite waitlist signups.
+                Empirical validation prioritizes skin-in-the-game commitment &mdash; separating paying backers ($10 – $100 card holds) from non-committal waitlist emails.
               </p>
             </div>
 
-            {/* Empirical Verdict Banner */}
-            <div className="flex items-center gap-3 pt-1">
+            {/* Empirical Verdict Pill */}
+            <div className="pt-1">
               {preorderCount > 0 ? (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  STRONG PAYING DEMAND: ${totalDepositDollars.toLocaleString()} secured across {preorderCount} pre-orders
+                  STRONG PAYING DEMAND: ${totalDepositDollars.toLocaleString()} secured across {preorderCount} pre-orders ({wtpConversionRate}% paying ratio)
                 </div>
               ) : waitlistCount > 0 ? (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  SOFT INTEREST ONLY: {waitlistCount} waitlist emails captured, $0 paid deposits
+                  SOFT INTEREST ONLY: {waitlistCount} free signups captured, $0 paid deposits
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue/15 border border-blue/30 text-blue text-xs font-bold">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue/15 border border-blue/30 text-blue text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-blue animate-pulse" />
-                  READY TO TEST: Share your link or run ads to measure willingness to pay
+                  READY TO TEST: Share your link or connect ad webhooks to start measuring demand
                 </div>
               )}
             </div>
           </div>
 
-          {/* Quick 60-Second Smoke Test & Share Link Card */}
-          <div className="p-4 rounded-xl bg-surface border border-border space-y-3 lg:w-96 shrink-0">
+          {/* Quick Share Link Box */}
+          <div className="p-4 rounded-xl bg-surface border border-border space-y-3 lg:w-96 shrink-0 shadow-xs">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-text-primary flex items-center gap-1.5">
                 <Share2 className="w-3.5 h-3.5 text-blue" />
@@ -357,11 +335,11 @@ export default function DashboardPage() {
               <Button
                 size="sm"
                 onClick={handleCopyLink}
-                className="shrink-0 text-xs h-8 px-3 bg-blue hover:bg-blue-bright text-white cursor-pointer"
+                className="shrink-0 text-xs h-8 px-3 bg-blue hover:bg-blue/90 text-white cursor-pointer"
               >
                 {copiedLink ? (
                   <>
-                    <Check className="w-3.5 h-3.5 mr-1" /> Copied!
+                    <Check className="w-3.5 h-3.5 mr-1 text-green-300" /> Copied!
                   </>
                 ) : (
                   <>
@@ -375,279 +353,329 @@ export default function DashboardPage() {
               <Link
                 href={`/p/${primarySlug}`}
                 target="_blank"
-                className="text-text-tertiary hover:text-text-primary flex items-center gap-1"
+                className="text-text-tertiary hover:text-text-primary flex items-center gap-1 transition-colors"
               >
-                Preview Page <ExternalLink className="w-3 h-3" />
+                Preview Live <ExternalLink className="w-3 h-3" />
               </Link>
               <Link
-                href="/dashboard/traffic?tab=ad-webhooks"
+                href="/dashboard/traffic"
                 className="text-blue hover:underline flex items-center gap-1 font-medium"
               >
-                ⚡ Ad Webhooks <ArrowUpRight className="w-3 h-3" />
+                Ad Campaign Kit <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
         </div>
 
-        {/* 3 Hard vs Soft Intent Pillars */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-border/60">
-          <div className="p-3.5 rounded-xl bg-surface/60 border border-border space-y-1">
+        {/* 4 Quantitative Validation Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-border/60">
+          <div className="p-4 rounded-xl bg-surface/70 border border-border space-y-1">
             <div className="flex items-center justify-between text-xs text-text-tertiary">
-              <span>Hard Intent (Paying Backers)</span>
+              <span className="font-medium">Hard Intent ($)</span>
               <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
             </div>
-            <div className="text-xl font-bold font-mono text-emerald-400">
+            <div className="text-2xl font-black font-mono text-emerald-400">
               ${totalDepositDollars.toLocaleString()}
             </div>
             <p className="text-[11px] text-text-tertiary">
-              {preorderCount} confirmed Stripe card deposits (98 intent score)
+              {preorderCount} paid pre-order holds
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-surface/60 border border-border space-y-1">
+          <div className="p-4 rounded-xl bg-surface/70 border border-border space-y-1">
             <div className="flex items-center justify-between text-xs text-text-tertiary">
-              <span>Soft Intent (Free Interest)</span>
+              <span className="font-medium">Soft Intent (Leads)</span>
               <Users className="w-3.5 h-3.5 text-blue" />
             </div>
-            <div className="text-xl font-bold font-mono text-text-primary">
-              {waitlistCount} Leads
+            <div className="text-2xl font-black font-mono text-text-primary">
+              <AnimatedCounter target={waitlistCount} />
             </div>
             <p className="text-[11px] text-text-tertiary">
-              Waitlist signups collected without monetary friction (90 intent score)
+              Waitlist signups ($0 friction)
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-surface/60 border border-border space-y-1">
+          <div className="p-4 rounded-xl bg-surface/70 border border-border space-y-1">
             <div className="flex items-center justify-between text-xs text-text-tertiary">
-              <span>Ad Network Conversion Engine</span>
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-medium">WTP Conviction</span>
+              <DollarSign className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <div className="text-xs font-semibold text-text-primary pt-1">
-              Meta CAPI · Google · LinkedIn
+            <div className="text-2xl font-black font-mono text-amber-400">
+              {wtpConversionRate}%
             </div>
             <p className="text-[11px] text-text-tertiary">
-              Server-side conversion webhooks tracking first-party <code className="text-blue">fbclid</code> & <code className="text-blue">gclid</code>
+              Paying backers / total leads
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-surface/70 border border-border space-y-1">
+            <div className="flex items-center justify-between text-xs text-text-tertiary">
+              <span className="font-medium">PoD Score</span>
+              <Target className="w-3.5 h-3.5 text-blue" />
+            </div>
+            <div className="text-2xl font-black font-mono text-blue flex items-center gap-1.5">
+              <AnimatedCounter target={podScore} />
+              <span className="text-xs font-normal text-text-tertiary">/100</span>
+            </div>
+            <p className="text-[11px] text-text-tertiary">
+              Verdict: <strong className="text-text-primary">{verdict.label}</strong>
             </p>
           </div>
         </div>
       </motion.div>
 
-      {/* Bento Grid — Metric Cards */}
-      <div className="bento-grid">
+      {/* ========================================================================= */}
+      {/* SECTION 2: TOP-PERFORMING AD CHANNELS SNAPSHOT */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-text-primary">
+              Ad Network Performance & Attribution
+            </h3>
+            <span className="text-xs text-text-tertiary hidden sm:inline">
+              First-party tracking for Meta CAPI, Google Ads, and LinkedIn Ads
+            </span>
+          </div>
 
-        {metrics.map((m, i) => {
-          const Icon = m.icon;
-          return (
-            <motion.div key={m.label}
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}>
-              <SpotlightCard className="h-full">
-                <GlassCard className="p-5 h-full">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${m.color}15` }}>
-                    <Icon className="w-4 h-4" style={{ color: m.color }} />
+          <Link
+            href="/dashboard/traffic"
+            className="text-xs text-blue hover:underline flex items-center gap-1 font-medium"
+          >
+            Manage Campaigns & Webhooks
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {channelDisplay.map((ch) => {
+            const isMeta = ch.source?.includes("meta") || ch.source?.includes("facebook");
+            const isGoogle = ch.source?.includes("google");
+            const isLinkedin = ch.source?.includes("linkedin");
+
+            return (
+              <Card key={ch.source} className="border border-border bg-surface hover:border-border/80 transition-all">
+                <CardHeader className="pb-2.5 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={isLinkedin ? "blue" : isMeta ? "purple" : isGoogle ? "green" : "default"}
+                      className="text-[10px] font-semibold"
+                    >
+                      {ch.channel}
+                    </Badge>
+                    {ch.isWinner && (
+                      <Badge variant="green" className="text-[9px] py-0 px-1.5">
+                        Top CVR
+                      </Badge>
+                    )}
                   </div>
-                  <p className="text-[11px] font-semibold text-[var(--dash-text-tertiary)] uppercase tracking-wide">{m.label}</p>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--dash-text-primary)]">
-                      <AnimatedCounter target={m.value} suffix={m.suffix} />
+                  <span className="text-xs font-mono font-bold text-text-primary">
+                    {ch.conversionRate}% CVR
+                  </span>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs">
+                  <div className="grid grid-cols-3 gap-2 py-1 text-center bg-surface-elevated/50 rounded-lg border border-border/50">
+                    <div>
+                      <span className="text-[10px] text-text-tertiary block">Visitors</span>
+                      <strong className="font-mono text-text-primary">{ch.visitors}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-text-tertiary block">Leads</span>
+                      <strong className="font-mono text-text-primary">{ch.leads}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-text-tertiary block">Pre-Orders</span>
+                      <strong className="font-mono text-emerald-400">{ch.preorders}</strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-text-tertiary pt-1 border-t border-border/40">
+                    <span>Est. Cost / Lead:</span>
+                    <span className="font-mono font-medium text-text-primary">
+                      {ch.costPerLead ? `$${ch.costPerLead.toFixed(2)}` : "—"}
                     </span>
                   </div>
-                </GlassCard>
-              </SpotlightCard>
-            </motion.div>
-          );
-        })}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* SECTION 3: ACTIVE 7-DAY SMOKE TESTS & ACTIVITY STREAM */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Active Smoke Tests List */}
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue" />
+              Active Validation Experiments
+            </h3>
+            <Link
+              href="/dashboard/experiments"
+              className="text-xs text-text-tertiary hover:text-text-primary transition-colors flex items-center gap-1"
+            >
+              View All Experiments <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Validation Signals Chart — spans 2 cols */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="lg:col-span-2">
-          <SpotlightCard className="h-full">
-            <GlassCard className="p-5 h-full">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="text-sm font-bold text-[var(--dash-text-primary)]">Validation Signals</span>
-                  <p className="text-[11px] text-[var(--dash-text-tertiary)] font-medium mt-0.5">Funnel events across all experiments</p>
-                </div>
-              </div>
-              <SignalFunnelChart />
-            </GlassCard>
-          </SpotlightCard>
-        </motion.div>
-
-        {/* PoD Score Gauge */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <SpotlightCard className="h-full">
-            <GlassCard className="p-5 h-full flex flex-col items-center justify-center text-center">
-              <p className="text-[11px] font-semibold text-[var(--dash-text-tertiary)] uppercase tracking-wide mb-4">PoD Score</p>
-              <div className="relative w-32 h-32 mb-4">
-                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-border)" strokeWidth="8" />
-                  <motion.circle cx="50" cy="50" r="42" fill="none" stroke="url(#scoreGradient)" strokeWidth="8"
-                    strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 42}`}
-                    initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - podScore / 100) }}
-                    transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }} />
-                  <defs>
-                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#58A6FF" />
-                      <stop offset="50%" stopColor="#BC8CFF" />
-                      <stop offset="100%" stopColor="#56D4DD" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-black text-[var(--dash-text-primary)]">
-                    <AnimatedCounter target={podScore} />
-                  </span>
-                  <span className="text-[10px] text-[var(--dash-text-tertiary)]">/ 100</span>
-                </div>
-              </div>
-              <Link href="/dashboard/ai-analyst?export=ready" className="group flex flex-col items-center">
-                <Badge variant={verdict.color} className="mb-1.5 group-hover:scale-105 transition-transform cursor-pointer">
-                  {verdict.label}
-                </Badge>
-                <span className="text-[11px] text-blue hover:underline flex items-center justify-center gap-1 font-medium">
-                  View Full Verdict & Brief <ArrowUpRight className="w-3 h-3" />
-                </span>
-              </Link>
-              <p className="text-[10px] text-[var(--dash-text-tertiary)] mt-1.5">Updated {timeAgo(project?.updatedAt)}</p>
-            </GlassCard>
-          </SpotlightCard>
-        </motion.div>
-      </div>
-
-
-      {/* Experiments Table + Activity Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Experiments Table */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="lg:col-span-2">
-          <SpotlightCard>
-            <GlassCard className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-bold text-[var(--dash-text-primary)]">Active Experiments</span>
-                <Link href="/dashboard/experiments">
-                  <button className="text-xs font-bold text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-primary)] transition-colors flex items-center gap-1">
-                    View All <ArrowUpRight className="w-3 h-3" />
-                  </button>
-                </Link>
-              </div>
+          <Card className="border border-border">
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Experiment</th>
-                      <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Variants</th>
-                      <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Traffic</th>
-                      <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">CVR</th>
-                      <th className="text-left text-[10px] font-bold text-[var(--dash-text-tertiary)] uppercase tracking-wider pb-3 pr-4">Status</th>
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-elevated/50 border-b border-border text-text-tertiary font-medium">
+                    <tr>
+                      <th className="py-3 px-4">Experiment Name</th>
+                      <th className="py-3 px-4">Variants</th>
+                      <th className="py-3 px-4">Visitors</th>
+                      <th className="py-3 px-4">CVR (%)</th>
+                      <th className="py-3 px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border">
                     {safeExperiments.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-10 text-center text-sm text-[var(--dash-text-tertiary)]">
-                          <p className="mb-3">No experiments created yet.</p>
-                          <div className="flex items-center justify-center gap-3">
-                            <Link href="/dashboard/experiments/new">
-                              <Button size="sm" className="gap-1.5 bg-blue text-white hover:bg-blue-bright">
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Launch Experiment</span>
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={handleLoadDemoData}
-                              disabled={loadingDemo}
-                              className="gap-1.5"
-                            >
-                              <RefreshCw className={`w-3.5 h-3.5 ${loadingDemo ? "animate-spin" : ""}`} />
-                              <span>{loadingDemo ? "Seeding..." : "Load Demo Dataset"}</span>
+                        <td colSpan={5} className="py-10 text-center text-text-tertiary space-y-3">
+                          <p>No validation experiments created yet.</p>
+                          <Link href="/dashboard/experiments/new">
+                            <Button size="sm" className="bg-blue hover:bg-blue/90 text-white cursor-pointer text-xs">
+                              <Plus className="w-3.5 h-3.5 mr-1" />
+                              Launch Smoke Test in 60s
                             </Button>
-                          </div>
+                          </Link>
                         </td>
                       </tr>
-
                     ) : (
                       safeExperiments.map((exp) => (
-                        <tr key={exp.id} className="border-b border-border hover:bg-surface-elevated/80 transition-colors">
-                          <td className="py-3 pr-4">
-                            <Link href={`/dashboard/experiments/${exp.id}`} className="text-sm font-bold text-[var(--dash-text-primary)] hover:text-blue transition-colors">{exp.name}</Link>
-                            <p className="text-[10px] text-[var(--dash-text-tertiary)] font-mono">{exp.id}</p>
+                        <tr key={exp.id} className="hover:bg-surface-elevated/60 transition-colors">
+                          <td className="py-3.5 px-4 font-medium text-text-primary">
+                            <Link
+                              href={`/dashboard/experiments/${exp.id}`}
+                              className="hover:text-blue transition-colors block font-semibold"
+                            >
+                              {exp.name}
+                            </Link>
+                            <span className="text-[10px] text-text-tertiary font-mono">{exp.id}</span>
                           </td>
-                          <td className="py-3 pr-4 text-sm text-[var(--dash-text-secondary)]">{exp.variants?.length || 0} variants</td>
-                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{(exp.traffic || 0).toLocaleString()}</td>
-                          <td className="py-3 pr-4 text-sm font-mono font-semibold text-[var(--dash-text-primary)]">{exp.conversionRate || 0}%</td>
-                          <td className="py-3 pr-4"><StatusPill status={exp.status} /></td>
+                          <td className="py-3.5 px-4 text-text-secondary">
+                            {exp.variants?.length || 1} variants
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-semibold text-text-primary">
+                            {(exp.traffic || 0).toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-text-primary">
+                            {exp.conversionRate || 0}%
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <Badge
+                              variant={exp.status === "running" ? "blue" : exp.status === "winner" ? "green" : "default"}
+                              className="capitalize text-[10px]"
+                            >
+                              {exp.status}
+                            </Badge>
+                          </td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
               </div>
-            </GlassCard>
-          </SpotlightCard>
-        </motion.div>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Activity Feed */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}>
-          <SpotlightCard className="h-full">
-            <GlassCard className="p-5 h-full">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-bold text-[var(--dash-text-primary)]">Recent Activity</span>
-                <Link href="/dashboard/history/activity">
-                  <button className="text-xs font-bold text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-primary)] transition-colors flex items-center gap-1 cursor-pointer">
-                    View All <ArrowUpRight className="w-3 h-3" />
-                  </button>
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {activityLogs.length > 0 ? (
-                  activityLogs.map((log, i) => (
-                    <motion.div key={log.id}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + i * 0.05 }}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-elevated transition-colors">
-                      <div className="w-7 h-7 rounded-full bg-blue/10 border border-blue/20 flex items-center justify-center shrink-0">
-                        <Activity className="w-3.5 h-3.5 text-blue" />
+        {/* Real-time Backer & Conversion Feed */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+              <Activity className="w-4 h-4 text-blue" />
+              Live Backer & Lead Stream
+            </h3>
+            <Link
+              href="/dashboard/history/activity"
+              className="text-xs text-text-tertiary hover:text-text-primary transition-colors flex items-center gap-1"
+            >
+              All Activity <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <Card className="border border-border">
+            <CardContent className="p-3 space-y-2">
+              {leads.length > 0 ? (
+                leads.slice(0, 6).map((ld) => {
+                  const isPre = ld.isPreorder;
+                  const depAmt = ld.depositAmount ? (ld.depositAmount / 100).toFixed(0) : "100";
+                  const src = ld.source || "direct";
+
+                  return (
+                    <div
+                      key={ld.id}
+                      className="p-2.5 rounded-xl bg-surface-elevated/50 border border-border flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-text-primary truncate block max-w-[160px]">
+                            {ld.name || ld.email}
+                          </span>
+                          <span className="text-[10px] font-mono px-1 rounded bg-surface border border-border text-text-tertiary uppercase">
+                            {src.includes("meta") || src.includes("facebook")
+                              ? "Meta"
+                              : src.includes("google")
+                              ? "Google"
+                              : src.includes("linkedin")
+                              ? "LinkedIn"
+                              : "Web"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-text-tertiary truncate">
+                          {ld.company || ld.role || ld.email}
+                        </p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{log.action}</p>
-                        <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{log.detail}</p>
+
+                      <div className="shrink-0 text-right">
+                        {isPre ? (
+                          <Badge variant="green" className="text-[10px] font-mono">
+                            +${depAmt} Hold
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="text-[10px]">
+                            Waitlist
+                          </Badge>
+                        )}
                       </div>
-                      <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
-                        {timeAgo(log.createdAt)}
-                      </span>
-                    </motion.div>
-                  ))
-                ) : (
-                  safeExperiments.slice(0, 6).map((exp, i) => (
-                    <motion.div key={exp.id}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + i * 0.05 }}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-elevated transition-colors">
-                      <div className="w-7 h-7 rounded-full bg-surface-elevated border border-border flex items-center justify-center shrink-0">
-                        <Activity className="w-3.5 h-3.5 text-[var(--dash-text-tertiary)]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{exp.name}</p>
-                        <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{exp.status} · {exp.traffic} visitors</p>
-                      </div>
-                      <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
-                        {timeAgo(exp.updatedAt)}
-                      </span>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </GlassCard>
-          </SpotlightCard>
-        </motion.div>
+                    </div>
+                  );
+                })
+              ) : activityLogs.length > 0 ? (
+                activityLogs.slice(0, 6).map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-2.5 rounded-xl bg-surface-elevated/40 border border-border flex items-center gap-3 text-xs"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-blue/10 flex items-center justify-center shrink-0">
+                      <Activity className="w-3 h-3 text-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-text-primary truncate">{log.action}</p>
+                      <p className="text-[10px] text-text-tertiary truncate">{log.detail}</p>
+                    </div>
+                    <span className="text-[10px] text-text-tertiary shrink-0">
+                      {timeAgo(log.createdAt)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-xs text-text-tertiary space-y-1">
+                  <p>No conversion events yet.</p>
+                  <p>Share your smoke-test page to see live visitor conversions!</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* 15-Second Instant AI Smoke Test Generator Modal */}
@@ -659,4 +687,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

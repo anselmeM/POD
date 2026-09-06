@@ -38,49 +38,54 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/experiments — create a new experiment (requires auth & workspace ownership) */
 export async function POST(request: NextRequest) {
-  const ctx = await getAuthenticatedWorkspace(request);
-  if (!ctx) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const body = await request.json();
-
-  if (!body.name) {
-    return NextResponse.json({ error: "Experiment name is required" }, { status: 400 });
-  }
-  if (!body.projectId) {
-    return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
-  }
-
-  // Verify that the target project belongs strictly to the caller's workspace
-  const project = await prisma.project.findFirst({
-    where: {
-      id: body.projectId,
-      workspaceId: ctx.workspace.id,
-    },
-  });
-
-  if (!project) {
-    return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
-  }
-
-  // Enforce plan limit for active experiments
-  const isTargetActive = body.status === "active" || body.status === "testing";
-  if (isTargetActive) {
-    const quota = await checkWorkspaceLimit(ctx.workspace.id, "activeExperiments");
-    if (!quota.allowed) {
-      return NextResponse.json(
-        {
-          error: quota.message,
-          upgradeRequired: true,
-          current: quota.current,
-          limit: quota.limit,
-        },
-        { status: 402 }
-      );
-    }
-  }
-
   try {
+    const ctx = await getAuthenticatedWorkspace(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid or empty JSON body" }, { status: 400 });
+    }
+
+    if (!body?.name) {
+      return NextResponse.json({ error: "Experiment name is required" }, { status: 400 });
+    }
+    if (!body?.projectId) {
+      return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
+    }
+
+    // Verify that the target project belongs strictly to the caller's workspace
+    const project = await prisma.project.findFirst({
+      where: {
+        id: body.projectId,
+        workspaceId: ctx.workspace.id,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
+    }
+
+    // Enforce plan limit for active experiments
+    const isTargetActive = body.status === "active" || body.status === "testing";
+    if (isTargetActive) {
+      const quota = await checkWorkspaceLimit(ctx.workspace.id, "activeExperiments");
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error: quota.message,
+            upgradeRequired: true,
+            current: quota.current,
+            limit: quota.limit,
+          },
+          { status: 402 }
+        );
+      }
+    }
+
     const variantsInput = (Array.isArray(body.variants) ? body.variants : []) as Record<string, unknown>[];
     const expId: string = body.id ? String(body.id) : `exp-${Date.now()}`;
     const data: Record<string, unknown> = {

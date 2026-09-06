@@ -87,16 +87,16 @@ export default function NewExperimentPage() {
     return slugify(productName) || "my-product-test";
   }, [productName, customSlug, slugModified]);
 
-  // Load existing projects
+  // Load existing projects safely
   useEffect(() => {
     fetch("/api/projects")
-      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then(async (r) => {
+        const text = await r.text();
+        return text ? JSON.parse(text) : { data: [] };
+      })
       .then((j) => {
         const list: Project[] = j.data || [];
         setProjects(list);
-        if (list[0]) {
-          setProjectId(list[0].id);
-        }
       })
       .catch(() => {});
   }, []);
@@ -133,6 +133,55 @@ export default function NewExperimentPage() {
     setSlugModified(false);
   };
 
+  // Safe response parser that prevents SyntaxError on empty, HTML, or proxy responses
+  async function parseApiResponse<T = any>(
+    res: Response,
+    actionName: string
+  ): Promise<{ ok: boolean; status: number; data?: T; error?: string; upgradeRequired?: boolean; current?: number; limit?: number }> {
+    let text = "";
+    try {
+      text = await res.text();
+    } catch {
+      return {
+        ok: false,
+        status: res.status || 0,
+        error: `Network error while reading response for ${actionName}.`,
+      };
+    }
+
+    let json: any = null;
+    if (text && text.trim().length > 0) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        const cleanSnippet = text.replace(/<[^>]*>?/gm, " ").trim().replace(/\s+/g, " ").slice(0, 160);
+        return {
+          ok: false,
+          status: res.status,
+          error: `Server responded with non-JSON (${res.status}) during ${actionName}: ${cleanSnippet || res.statusText || "Unexpected response"}`,
+        };
+      }
+    }
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        data: json,
+        error: json?.error || json?.message || `Failed to ${actionName} (HTTP ${res.status})`,
+        upgradeRequired: Boolean(json?.upgradeRequired || res.status === 402),
+        current: json?.current,
+        limit: json?.limit,
+      };
+    }
+
+    return {
+      ok: true,
+      status: res.status,
+      data: json,
+    };
+  }
+
   // Launch the 60-second test
   const handleLaunch = async () => {
     setError("");
@@ -151,7 +200,12 @@ export default function NewExperimentPage() {
 
     try {
       // Step A: Ensure target project exists
-      let targetProjectId = projectId;
+      // If an existing project matches this product name exactly, reuse it; otherwise create a fresh project
+      const matched = projects.find(
+        (p) => p.name.trim().toLowerCase() === productName.trim().toLowerCase()
+      );
+      let targetProjectId = matched?.id;
+
       if (!targetProjectId) {
         const projRes = await fetch("/api/projects", {
           method: "POST",
@@ -161,11 +215,11 @@ export default function NewExperimentPage() {
             description: oneLiner.trim(),
           }),
         });
-        const projJson = await projRes.json();
-        if (!projRes.ok) {
-          throw new Error(projJson.error || "Failed to create project");
+        const projResult = await parseApiResponse<{ project: { id: string } }>(projRes, "create project");
+        if (!projResult.ok || !projResult.data?.project?.id) {
+          throw new Error(projResult.error || "Failed to create project");
         }
-        targetProjectId = projJson.project.id;
+        targetProjectId = projResult.data.project.id;
       }
 
       // Step B: Create the 7-Day Sprint Experiment
@@ -202,18 +256,18 @@ export default function NewExperimentPage() {
         }),
       });
 
-      const expJson = await expRes.json();
-      if (!expRes.ok) {
-        if (expRes.status === 402 || expJson.upgradeRequired) {
-          setQuotaDetail({ current: expJson.current, limit: expJson.limit, message: expJson.error });
+      const expResult = await parseApiResponse<{ data: { id: string } }>(expRes, "create experiment");
+      if (!expResult.ok || !expResult.data?.data?.id) {
+        if (expResult.status === 402 || expResult.upgradeRequired) {
+          setQuotaDetail({ current: expResult.current, limit: expResult.limit, message: expResult.error });
           setQuotaModalOpen(true);
           setLoading(false);
           return;
         }
-        throw new Error(expJson.error || "Failed to create experiment");
+        throw new Error(expResult.error || "Failed to create experiment");
       }
 
-      const experimentId = expJson.data.id;
+      const experimentId = expResult.data.data.id;
 
       // Step C: Create the Public Landing Page
       const lpRes = await fetch("/api/landing-pages", {
@@ -241,18 +295,18 @@ export default function NewExperimentPage() {
         }),
       });
 
-      const lpJson = await lpRes.json();
-      if (!lpRes.ok) {
-        if (lpRes.status === 402 || lpJson.upgradeRequired) {
-          setQuotaDetail({ current: lpJson.current, limit: lpJson.limit, message: lpJson.error });
+      const lpResult = await parseApiResponse<{ data: { slug: string } }>(lpRes, "create landing page");
+      if (!lpResult.ok || !lpResult.data?.data) {
+        if (lpResult.status === 402 || lpResult.upgradeRequired) {
+          setQuotaDetail({ current: lpResult.current, limit: lpResult.limit, message: lpResult.error });
           setQuotaModalOpen(true);
           setLoading(false);
           return;
         }
-        throw new Error(lpJson.error || "Failed to create landing page");
+        throw new Error(lpResult.error || "Failed to create landing page");
       }
 
-      const finalSlug = lpJson.data?.slug || activeSlug;
+      const finalSlug = lpResult.data.data.slug || activeSlug;
 
       // Attempt to immediately launch the live page in a new browser tab
       try {

@@ -4,18 +4,23 @@ import { getAuthenticatedWorkspace } from "@/lib/workspace";
 
 /** POST /api/projects — create a Project + initial Experiment from onboarding wizard (requires auth) */
 export async function POST(request: NextRequest) {
-  const ctx = await getAuthenticatedWorkspace(request);
-  if (!ctx) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const body = await request.json();
-
-  // Validate required fields
-  if (!body.productName) {
-    return NextResponse.json({ error: "Product name is required" }, { status: 400 });
-  }
-
   try {
+    const ctx = await getAuthenticatedWorkspace(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid or empty JSON body" }, { status: 400 });
+    }
+
+    // Validate required fields
+    if (!body?.productName) {
+      return NextResponse.json({ error: "Product name is required" }, { status: 400 });
+    }
+
     // Create the project strictly scoped to the caller's active workspace
     const project = await prisma.project.create({
       data: {
@@ -46,7 +51,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     console.error("Failed to create project:", e);
     return NextResponse.json(
-      { error: "Failed to create project" },
+      { error: (e as Error).message || "Failed to create project" },
       { status: 500 }
     );
   }

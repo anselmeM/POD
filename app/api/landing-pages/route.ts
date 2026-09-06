@@ -33,61 +33,66 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/landing-pages — create a new landing page in caller's workspace */
 export async function POST(request: NextRequest) {
-  const ctx = await getAuthenticatedWorkspace(request);
-  if (!ctx) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const body = await request.json();
-
-  const required = ["name", "template", "headline", "subheadline", "cta", "slug"];
-  for (const field of required) {
-    if (!body[field]) {
-      return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
-    }
-  }
-
-  // Enforce landing pages plan limit
-  const quota = await checkWorkspaceLimit(ctx.workspace.id, "landingPages");
-  if (!quota.allowed) {
-    return NextResponse.json(
-      {
-        error: quota.message,
-        upgradeRequired: true,
-        current: quota.current,
-        limit: quota.limit,
-      },
-      { status: 402 }
-    );
-  }
-
-  // Find or verify project in caller's workspace
-  let projectId = body.projectId;
-  if (projectId) {
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, workspaceId: ctx.workspace.id },
-    });
-    if (!project) {
-      return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
-    }
-  } else {
-    // Default to the first project in workspace, or create one if none exist
-    let project = await prisma.project.findFirst({
-      where: { workspaceId: ctx.workspace.id },
-    });
-    if (!project) {
-      project = await prisma.project.create({
-        data: {
-          workspaceId: ctx.workspace.id,
-          name: body.name || "Default Project",
-          status: "active",
-        },
-      });
-    }
-    projectId = project.id;
-  }
-
-  // Ensure safe and unique slug
   try {
+    const ctx = await getAuthenticatedWorkspace(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid or empty JSON body" }, { status: 400 });
+    }
+
+    const required = ["name", "template", "headline", "subheadline", "cta", "slug"];
+    for (const field of required) {
+      if (!body?.[field]) {
+        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
+      }
+    }
+
+    // Enforce landing pages plan limit
+    const quota = await checkWorkspaceLimit(ctx.workspace.id, "landingPages");
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: quota.message,
+          upgradeRequired: true,
+          current: quota.current,
+          limit: quota.limit,
+        },
+        { status: 402 }
+      );
+    }
+
+    // Find or verify project in caller's workspace
+    let projectId = body.projectId;
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, workspaceId: ctx.workspace.id },
+      });
+      if (!project) {
+        return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
+      }
+    } else {
+      // Default to the first project in workspace, or create one if none exist
+      let project = await prisma.project.findFirst({
+        where: { workspaceId: ctx.workspace.id },
+      });
+      if (!project) {
+        project = await prisma.project.create({
+          data: {
+            workspaceId: ctx.workspace.id,
+            name: body.name || "Default Project",
+            status: "active",
+          },
+        });
+      }
+      projectId = project.id;
+    }
+
+    // Ensure safe and unique slug
     let finalSlug = body.slug;
     const existing = await prisma.landingPage.findUnique({ where: { slug: finalSlug } });
     if (existing) {

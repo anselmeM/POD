@@ -15,7 +15,6 @@ import type { Project, ChannelAttribution } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SprintBanner } from "@/components/dashboard/sprint-banner";
 import { AIGeneratorModal } from "@/components/dashboard/ai-generator-modal";
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -63,7 +62,6 @@ export default function DashboardPage() {
   const [landingPages, setLandingPages] = useState<any[]>([]);
   const [attribution, setAttribution] = useState<ChannelAttribution[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [isSprintView, setIsSprintView] = useState(false);
 
   const fetchProjectData = useCallback(async () => {
     try {
@@ -109,15 +107,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchAllDashboardData();
   }, [fetchAllDashboardData]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("view") === "sprint") {
-        setIsSprintView(true);
-      }
-    }
-  }, []);
 
   const handleLoadDemoData = async () => {
     setLoadingDemo(true);
@@ -253,16 +242,7 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Sprint Banner (when active sprint is running) */}
-      {safeExperiments.some((e) => (e.status as string) === "running" || (e.status as string) === "active") && (
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-          <SprintBanner
-            experiments={safeExperiments}
-            confidence={project?.confidence}
-            initialExpanded={isSprintView}
-          />
-        </motion.div>
-      )}
+
 
       {/* ========================================================================= */}
       {/* SECTION 1: WILLINGNESS-TO-PAY (WTP) HERO COMMAND CENTER */}

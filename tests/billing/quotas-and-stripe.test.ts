@@ -4,6 +4,9 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/workspace", () => ({
   getAuthenticatedWorkspace: vi.fn(),
 }));
+vi.mock("@/lib/webhooks", () => ({
+  dispatchAdWebhooks: vi.fn().mockResolvedValue({ dispatched: 1 }),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
@@ -16,8 +19,16 @@ vi.mock("@/lib/prisma", () => ({
     },
     workspaceMember: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), count: vi.fn() },
     project: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
-    experiment: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
-    landingPage: { count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
+    experiment: { findMany: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn() },
+    landingPage: {
+      count: vi.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+    lead: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     activityLog: { create: vi.fn() },
     notification: { create: vi.fn() },
   },
@@ -269,6 +280,57 @@ describe("Option 3: Stripe Monetization & Plan Quotas", () => {
         expect.objectContaining({
           where: { id: "ws-001" },
           data: { plan: "trial", stripeSubscriptionId: null },
+        })
+      );
+    });
+
+    it("processes preorder_reservation checkout.session.completed, creates lead and dispatches ad webhooks", async () => {
+      (prisma.landingPage.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: "lp-99",
+        slug: "ai-crm",
+        name: "AI CRM",
+        experimentId: "exp-99",
+        project: { workspaceId: "ws-001" },
+      });
+      (prisma.lead.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (prisma.lead.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "lead-new" });
+      (prisma.landingPage.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+      (prisma.experiment.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+      (prisma.notification.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+      const req = {
+        text: async () =>
+          JSON.stringify({
+            type: "checkout.session.completed",
+            data: {
+              object: {
+                id: "cs_test_preorder_123",
+                amount_total: 1000,
+                customer_details: { email: "backer@example.com", name: "Backer Bob" },
+                metadata: {
+                  type: "preorder_reservation",
+                  slug: "ai-crm",
+                  landingPageId: "lp-99",
+                  depositAmount: "1000",
+                  utm_source: "meta",
+                  fbclid: "fb_123",
+                },
+              },
+            },
+          }),
+        headers: new Headers(),
+      } as never;
+
+      const res = await webhookPost(req);
+      expect(res.status).toBe(200);
+      expect(prisma.lead.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: "backer@example.com",
+            isPreorder: true,
+            depositAmount: 1000,
+            stripeSessionId: "cs_test_preorder_123",
+          }),
         })
       );
     });

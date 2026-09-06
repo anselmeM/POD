@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertCircle, RefreshCw, ArrowLeft, ArrowRight, Beaker, Layout, BarChart3, ExternalLink, Copy, Check, Megaphone, Share2, Sparkles, Globe } from "lucide-react";
+import { AlertCircle, RefreshCw, ArrowLeft, ArrowRight, Beaker, Layout, BarChart3, ExternalLink, Copy, Check, Megaphone, Share2, Sparkles, Globe, CreditCard } from "lucide-react";
 
 
 import type { Experiment, AIInsight, FunnelStage } from "@/lib/types";
@@ -143,6 +143,13 @@ export default function ExperimentDetailPage() {
     ? safeVariants.reduce((best, v, i, arr) => (v?.conversionRate || 0) > (arr[best]?.conversionRate || 0) ? i : best, 0)
     : 0;
   const safeFunnel = Array.isArray(funnel) ? funnel : [];
+  const safeLeads = Array.isArray((experiment as any)?.leads) ? (experiment as any).leads : [];
+  const payingLeads = safeLeads.filter((l: any) => l.isPreorder || (l.depositAmount && l.depositAmount > 0));
+  const waitlistLeads = safeLeads.filter((l: any) => !l.isPreorder && (!l.depositAmount || l.depositAmount === 0));
+  const preorderRevenueCents = payingLeads.reduce((sum: number, l: any) => sum + (l.depositAmount || 0), 0);
+  const preorderRevenueDollars = (preorderRevenueCents / 100).toFixed(2);
+  const totalBackers = safeLeads.length;
+  const wtpRatio = totalBackers > 0 ? Math.round((payingLeads.length / totalBackers) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -156,22 +163,23 @@ export default function ExperimentDetailPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Traffic", value: experiment.traffic.toLocaleString() },
-          { label: "Conversions", value: experiment.conversions.toString() },
-          { label: "CVR", value: `${experiment.conversionRate}%` },
-          { label: "High Intent", value: experiment.highIntentActions.toString() },
-          { label: "Cost/Action", value: `$${experiment.costPerAction.toFixed(2)}` },
+          { label: "Total Traffic", value: experiment.traffic.toLocaleString(), sub: "Unique Page Views" },
+          { label: "Skin-In-The-Game", value: `$${preorderRevenueDollars}`, sub: `${payingLeads.length} Paid Deposits`, highlight: true },
+          { label: "Conversion Rate", value: `${experiment.conversionRate}%`, sub: `${experiment.conversions} Total Signups` },
+          { label: "WTP Conviction", value: `${wtpRatio}%`, sub: `${payingLeads.length} Paid / ${waitlistLeads.length} Free` },
+          { label: "High Intent", value: experiment.highIntentActions.toString(), sub: "Pricing & Checkout Clicks" },
         ].map((m) => (
-          <Card key={m.label}>
+          <Card key={m.label} className={m.highlight ? "border-emerald-500/30 bg-emerald-500/5" : ""}>
             <CardContent className="p-4 text-center">
               <p className="text-xs text-text-tertiary">{m.label}</p>
-              <p className="text-2xl font-bold font-mono">{m.value}</p>
+              <p className={`text-2xl font-bold font-mono ${m.highlight ? "text-emerald-400" : ""}`}>{m.value}</p>
+              <p className="text-[10px] text-text-tertiary mt-0.5">{m.sub}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Pillar 2: View Switcher (Performance vs Smoke Pages) */}
+      {/* Pillar 2: View Switcher (Performance vs Smoke Pages vs Traffic) */}
       <div className="flex items-center gap-2 p-1 rounded-xl bg-surface-elevated/40 border border-border/60 w-fit">
         <button
           type="button"
@@ -211,7 +219,7 @@ export default function ExperimentDetailPage() {
         </button>
       </div>
 
-      {activeTab === "performance" ? (
+      {activeTab === "performance" && (
         <>
           <Card>
             <CardHeader><CardTitle>Variant Performance</CardTitle></CardHeader>
@@ -338,10 +346,56 @@ export default function ExperimentDetailPage() {
           </CardContent>
         </Card>
       </div>
-    </>
-  ) : (
 
-        <div className="space-y-6">
+      {safeLeads.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-400" />
+                <span>Verified Backers & Inbound Demand ({safeLeads.length})</span>
+              </CardTitle>
+              <Badge variant="green" className="text-[10px]">
+                ${preorderRevenueDollars} Captured
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/60">
+                {safeLeads.slice(0, 8).map((lead: any) => (
+                  <div key={lead.id} className="p-3 sm:px-4 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-2 h-2 rounded-full ${lead.isPreorder ? "bg-emerald-400 animate-pulse" : "bg-blue"}`} />
+                      <div className="truncate">
+                        <p className="font-semibold text-text-primary truncate">{lead.name || "Anonymous Backer"}</p>
+                        <p className="text-[11px] text-text-tertiary truncate">{lead.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 text-right">
+                      {lead.source && (
+                        <Badge variant="default" className="text-[10px] hidden sm:inline-flex">
+                          {lead.source.replace("/p/", "")}
+                        </Badge>
+                      )}
+                      {lead.isPreorder ? (
+                        <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          ${((lead.depositAmount || 100) / 100).toFixed(2)} Hold
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-text-tertiary bg-surface-elevated px-2 py-0.5 rounded border border-border">
+                          Waitlist
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </>
+    )}
+
+    {activeTab === "variants" && (
+      <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-surface-elevated/40 border border-border/60">
             <div>
               <h3 className="text-sm sm:text-base font-bold text-[var(--dash-text-primary)]">

@@ -18,7 +18,15 @@ export async function GET(
   try {
     const experiment = await prisma.experiment.findUnique({
       where: { id },
-      include: { variants: true, project: true },
+      include: {
+        variants: true,
+        project: true,
+        landingPages: true,
+        leads: {
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        },
+      },
     });
 
     if (!experiment || experiment.project.workspaceId !== ctx.workspace.id) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { dispatchAdWebhooks } from "@/lib/webhooks";
 import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -32,6 +33,155 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // 1. Check if this is a Solo Founder Smoke-Test Pre-Order Reservation
+        if (session.metadata?.type === "preorder_reservation") {
+          const {
+            slug,
+            landingPageId,
+            experimentId,
+            backerName,
+            backerEmail,
+            backerCompany,
+            backerRole,
+            depositAmount: depositStr,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            utm_content,
+            utm_term,
+            gclid,
+            fbclid,
+            li_fat_id,
+          } = session.metadata;
+
+          const depositAmount =
+            parseInt(depositStr || "0", 10) || session.amount_total || 0;
+          const email = backerEmail || session.customer_details?.email || "";
+          const name = backerName || session.customer_details?.name || "Founding Backer";
+
+          // Find the landing page and workspace
+          const page = await prisma.landingPage.findFirst({
+            where: landingPageId ? { id: landingPageId } : { slug: slug || "" },
+            include: {
+              project: { select: { id: true, workspaceId: true } },
+              experiment: true,
+            },
+          });
+
+          const wsId =
+            session.metadata.workspaceId || page?.project?.workspaceId || null;
+
+          // Check if a Lead already exists for this session or email + page
+          const existingLead = await prisma.lead.findFirst({
+            where: {
+              OR: [
+                { stripeSessionId: session.id },
+                ...(email && page ? [{ email, variantId: page.id }] : []),
+              ],
+            },
+          });
+
+          let leadId = existingLead?.id;
+
+          if (existingLead) {
+            await prisma.lead.update({
+              where: { id: existingLead.id },
+              data: {
+                isPreorder: true,
+                depositAmount,
+                stripeSessionId: session.id,
+                intentScore: 98,
+                status: "preorder_placed",
+              },
+            });
+          } else if (page) {
+            leadId = "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+            await prisma.lead.create({
+              data: {
+                id: leadId,
+                email,
+                name,
+                company: backerCompany || "",
+                role: backerRole || "",
+                source: utm_source || `/p/${page.slug}`,
+                variantId: page.id,
+                experimentId: experimentId || page.experimentId || "exp-default",
+                intentScore: 98,
+                pricingInteraction: true,
+                isPreorder: true,
+                depositAmount,
+                stripeSessionId: session.id,
+                status: "preorder_placed",
+              },
+            });
+
+            // Increment conversions
+            await prisma.landingPage.update({
+              where: { id: page.id },
+              data: {
+                conversions: { increment: 1 },
+              },
+            });
+
+            if (page.experimentId) {
+              await prisma.experiment.update({
+                where: { id: page.experimentId },
+                data: {
+                  conversions: { increment: 1 },
+                  highIntentActions: { increment: 3 },
+                },
+              });
+            }
+          }
+
+          // Create notification for the founder
+          if (wsId) {
+            await prisma.notification.create({
+              data: {
+                workspaceId: wsId,
+                title: "💳 Verified Pre-Order Payment Received!",
+                message: `${name} (${email}) completed a $${(depositAmount / 100).toFixed(
+                  2
+                )} founding pre-order reservation on "${page?.name || slug}".`,
+                type: "preorder",
+              },
+            });
+          }
+
+          // Dispatch outbound conversion webhooks (Meta CAPI, Google Ads, LinkedIn, Zapier)
+          await dispatchAdWebhooks(wsId, {
+            leadId: leadId || session.id,
+            email,
+            name,
+            company: backerCompany || "",
+            role: backerRole || "",
+            source: utm_source || "stripe_preorder",
+            intentScore: 98,
+            isPreorder: true,
+            depositAmount,
+            stripeSessionId: session.id,
+            landingPageName: page?.name || "Smoke Test",
+            landingPageSlug: page?.slug || slug || "",
+            landingPageUrl: `https://pod.app/p/${page?.slug || slug}`,
+            experimentId: experimentId || page?.experimentId || undefined,
+            utmSource: utm_source || undefined,
+            utmMedium: utm_medium || undefined,
+            utmCampaign: utm_campaign || undefined,
+            utmContent: utm_content || undefined,
+            utmTerm: utm_term || undefined,
+            gclid: gclid || undefined,
+            fbclid: fbclid || undefined,
+            liFatId: li_fat_id || undefined,
+            timestamp: Date.now(),
+          }).catch((err) => {
+            console.warn("Ad webhook dispatch error in Stripe webhook:", err);
+          });
+
+          break;
+        }
+
+        // 2. Standard Workspace SaaS Subscription Upgrade
         const workspaceId =
           session.client_reference_id ||
           session.metadata?.workspaceId ||

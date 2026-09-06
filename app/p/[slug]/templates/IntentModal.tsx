@@ -107,6 +107,9 @@ export function IntentModal({ page, isOpen, onClose }: IntentModalProps) {
             slug: page.slug,
             email,
             name: name || "Founding Backer",
+            company,
+            role,
+            trackingParams,
           }),
         });
         const preorderData = await preorderRes.json();

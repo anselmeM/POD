@@ -5,7 +5,14 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { slug, email, name = "Founding Backer" } = body;
+    const {
+      slug,
+      email,
+      name = "Founding Backer",
+      company = "",
+      role = "",
+      trackingParams = {},
+    } = body;
 
     if (!slug) {
       return NextResponse.json({ error: "Landing page slug is required" }, { status: 400 });
@@ -17,7 +24,15 @@ export async function POST(request: NextRequest) {
 
     const page = await prisma.landingPage.findUnique({
       where: { slug },
-      include: { experiment: true },
+      include: {
+        experiment: true,
+        project: {
+          select: {
+            id: true,
+            workspaceId: true,
+          },
+        },
+      },
     });
 
     if (!page) {
@@ -60,10 +75,21 @@ export async function POST(request: NextRequest) {
             type: "preorder_reservation",
             slug: page.slug,
             landingPageId: page.id,
+            workspaceId: page.project?.workspaceId || "",
             experimentId: page.experimentId || "",
             backerName: name,
             backerEmail: email,
+            backerCompany: company || "",
+            backerRole: role || "",
             depositAmount: String(depositAmount),
+            utm_source: String(trackingParams?.utm_source || ""),
+            utm_medium: String(trackingParams?.utm_medium || ""),
+            utm_campaign: String(trackingParams?.utm_campaign || ""),
+            utm_content: String(trackingParams?.utm_content || ""),
+            utm_term: String(trackingParams?.utm_term || ""),
+            gclid: String(trackingParams?.gclid || ""),
+            fbclid: String(trackingParams?.fbclid || ""),
+            li_fat_id: String(trackingParams?.li_fat_id || ""),
           },
           success_url: `${origin}/p/${slug}?preorder_success=1&session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(
             email

@@ -213,22 +213,25 @@ export default function PublicLandingPage() {
       )}
 
       {/* Google Ads / Analytics Tag */}
-      {pixels?.googleAdsId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${pixels.googleAdsId}`}
-            strategy="afterInteractive"
-          />
-          <Script id="google-tag" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${pixels.googleAdsId}');
-            `}
-          </Script>
-        </>
-      )}
+      {pixels?.googleAdsId && (() => {
+        const baseGoogleId = pixels.googleAdsId.split("/")[0].trim();
+        return (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${baseGoogleId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-tag" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${baseGoogleId}');
+              `}
+            </Script>
+          </>
+        );
+      })()}
 
       {/* LinkedIn Insight Tag */}
       {pixels?.linkedinPartnerId && (

@@ -196,6 +196,13 @@ export function IntentModal({ page, isOpen, onClose }: IntentModalProps) {
           }
           if (typeof w.gtag === "function") {
             w.gtag("event", isPreorder ? "begin_checkout" : "generate_lead", { event_label: page.slug });
+            if (page.trackingPixels?.googleAdsId) {
+              w.gtag("event", "conversion", {
+                send_to: page.trackingPixels.googleAdsId,
+                value: isPreorder ? (page.depositAmount ? page.depositAmount / 100 : 10) : 1,
+                currency: "USD",
+              });
+            }
           }
           if (typeof w.lintrk === "function") {
             w.lintrk("track");

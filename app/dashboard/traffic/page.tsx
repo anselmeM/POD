@@ -190,6 +190,9 @@ export default function TrafficCampaignPage() {
       case "google":
         setUtmSource("google");
         setUtmMedium("cpc");
+        setUtmCampaign("google_search_v1");
+        setUtmTerm("{keyword}");
+        setUtmContent("{creative}");
         break;
       case "twitter":
         setUtmSource("twitter");

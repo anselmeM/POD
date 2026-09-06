@@ -219,14 +219,16 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Pillar 1: Unified Sprint Status & Quota Progress */}
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <SprintBanner
-          experiments={safeExperiments}
-          confidence={project?.confidence}
-          initialExpanded={isSprintView}
-        />
-      </motion.div>
+      {/* Pillar 1: Unified Sprint Status & Quota Progress (only rendered when an active sprint is running) */}
+      {safeExperiments.some((e) => (e.status as string) === "running" || (e.status as string) === "active") && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <SprintBanner
+            experiments={safeExperiments}
+            confidence={project?.confidence}
+            initialExpanded={isSprintView}
+          />
+        </motion.div>
+      )}
 
 
 

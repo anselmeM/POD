@@ -29,6 +29,12 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
 
 
 
+  // If there is no active sprint running, do not render the banner to avoid redundancy
+  // with the dashboard greeting ("Here's what your current validation sprint is telling you" + "New Experiment").
+  if (!hasActiveSprint) {
+    return null;
+  }
+
   // Aggregate stats across running sprint experiments
   const totalTraffic = runningExperiments.reduce((sum, e) => sum + (e.traffic || 0), 0);
   const totalLeads = runningExperiments.reduce((sum, e) => sum + (e.highIntentActions || e.conversions || 0), 0);
@@ -40,7 +46,7 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
   const trafficProgress = Math.min(Math.round((totalTraffic / targetTraffic) * 100), 100);
 
   // Confidence level from project or fallback
-  const displayConfidence = confidence || (hasActiveSprint ? 95 : 0);
+  const displayConfidence = confidence || 95;
 
   return (
     <div className="w-full bg-gradient-to-r from-amber-500/10 via-surface-elevated to-blue/10 border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden transition-all duration-300">
@@ -59,81 +65,60 @@ export function SprintBanner({ experiments, confidence, initialExpanded = false 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-sm sm:text-base font-bold text-[var(--dash-text-primary)]">
-                {hasActiveSprint ? "Active 7-Day Validation Sprint" : "Validation Sprint Ready"}
+                Active 7-Day Validation Sprint
               </h3>
-              {hasActiveSprint ? (
-                <Badge variant="blue" className="bg-amber-500/15 text-amber-500 border border-amber-500/30 text-[10px] font-semibold py-0.5">
-                  Live Sprint
-                </Badge>
-              ) : (
-                <span className="text-xs text-[var(--dash-text-tertiary)]">No tests currently running</span>
-              )}
+              <Badge variant="blue" className="bg-amber-500/15 text-amber-500 border border-amber-500/30 text-[10px] font-semibold py-0.5">
+                Live Sprint
+              </Badge>
             </div>
             
             <div className="flex items-center gap-3 mt-1 text-xs text-[var(--dash-text-secondary)]">
-              {hasActiveSprint ? (
-                <>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    <span><strong>4 days</strong> remaining</span>
-                  </span>
-                  <span className="inline-block w-1 h-1 rounded-full bg-border" />
-                  <span className="flex items-center gap-1">
-                    <Target className="w-3.5 h-3.5 text-blue" />
-                    <span><strong>{totalLeads}</strong> / {targetLeads} target leads ({leadProgress}%)</span>
-                  </span>
-                </>
-              ) : (
-                <span>Set a 7-day quota to validate demand before building.</span>
-              )}
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                <span><strong>4 days</strong> remaining</span>
+              </span>
+              <span className="inline-block w-1 h-1 rounded-full bg-border" />
+              <span className="flex items-center gap-1">
+                <Target className="w-3.5 h-3.5 text-blue" />
+                <span><strong>{totalLeads}</strong> / {targetLeads} target leads ({leadProgress}%)</span>
+              </span>
             </div>
           </div>
         </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-          {hasActiveSprint ? (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setExpanded(!expanded)}
-                className="text-xs text-[var(--dash-text-secondary)] hover:text-[var(--dash-text-primary)] gap-1 px-2.5 h-8"
-              >
-                {expanded ? "Hide Details" : "View Quotas & Tests"}
-                {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </Button>
-              <Link href="/dashboard/ai-analyst">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 h-8 text-xs font-semibold border-amber-500/30 text-amber-500 hover:bg-amber-500/10 shadow-xs hidden sm:inline-flex"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Review AI Verdict</span>
-                </Button>
-              </Link>
-              <Link href="/dashboard/experiments/new">
-                <Button size="sm" className="gap-1.5 h-8 text-xs font-semibold shadow-xs">
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Test</span>
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <Link href="/dashboard/experiments/new">
-              <Button size="sm" className="gap-1.5 h-8 text-xs font-semibold shadow-xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Start 7-Day Sprint</span>
-              </Button>
-            </Link>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-[var(--dash-text-secondary)] hover:text-[var(--dash-text-primary)] gap-1 px-2.5 h-8"
+          >
+            {expanded ? "Hide Details" : "View Quotas & Tests"}
+            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </Button>
+          <Link href="/dashboard/ai-analyst">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 text-xs font-semibold border-amber-500/30 text-amber-500 hover:bg-amber-500/10 shadow-xs hidden sm:inline-flex"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Review AI Verdict</span>
+            </Button>
+          </Link>
+          <Link href="/dashboard/experiments/new">
+            <Button size="sm" className="gap-1.5 h-8 text-xs font-semibold shadow-xs">
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Test</span>
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Expandable Sprint Details */}
       <AnimatePresence>
-        {expanded && hasActiveSprint && (
+        {expanded && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}

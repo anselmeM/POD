@@ -55,6 +55,47 @@ export default function IntegrationsPage() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
+  // Webhook ping testing state
+  const [testingWebhookId, setTestingWebhookId] = useState<string | null>(null);
+  const [webhookPingNotice, setWebhookPingNotice] = useState<{ id: string; success: boolean; message: string; ms?: number } | null>(null);
+
+  const handleTestWebhookPing = async (targetUrl: string, whId: string) => {
+    setTestingWebhookId(whId);
+    setWebhookPingNotice(null);
+    try {
+      const res = await fetch("/api/webhooks/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl, isPreorder: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setWebhookPingNotice({
+          id: whId,
+          success: true,
+          message: `Test conversion payload received (HTTP ${data.statusCode})`,
+          ms: data.responseTimeMs,
+        });
+      } else {
+        setWebhookPingNotice({
+          id: whId,
+          success: false,
+          message: data.error || `HTTP ${data.statusCode || 500} delivery failed`,
+          ms: data.responseTimeMs,
+        });
+      }
+    } catch (err: any) {
+      setWebhookPingNotice({
+        id: whId,
+        success: false,
+        message: err.message || "Network error reaching endpoint",
+      });
+    } finally {
+      setTestingWebhookId(null);
+      setTimeout(() => setWebhookPingNotice(null), 7000);
+    }
+  };
+
   const fetchWebhooks = () =>
     fetch("/api/webhooks")
       .then((r) => (r.ok ? r.json() : { data: [] }))
@@ -497,43 +538,121 @@ export default function IntegrationsPage() {
         </CardContent>
       </Card>
 
-      {/* Webhooks Card */}
+      {/* Webhooks & Ad Network Conversion Endpoints Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Webhook className="w-4 h-4" /> Webhooks
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Webhook className="w-4 h-4 text-blue" /> Outbound Webhooks & Ad Network Endpoints
+            </CardTitle>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold uppercase tracking-wider">
+              Meta · Google · LinkedIn Ready
+            </span>
+          </div>
           <CardDescription>
-            Receive validation events at your external endpoint (e.g., Zapier, Make, custom HTTP server).
+            Whenever a visitor validates demand or pre-orders on your smoke test page, Proof of Demand dispatches server-side conversion payloads with SHA-256 hashed emails, first-party click IDs (<code>fbclid</code>, <code>gclid</code>, <code>li_fat_id</code>), and financial value to your endpoints (Zapier, Make, n8n, or custom server).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="https://api.yourdomain.com/webhook"
+              placeholder="https://hooks.zapier.com/hooks/catch/... or https://api.yourdomain.com/webhook"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="flex-1 font-mono text-xs"
+              className="flex-1 font-mono text-xs bg-surface-elevated"
             />
             <Button onClick={addWebhook} disabled={loadingWebhook || !url.trim()} size="sm">
-              <Plus className="w-4 h-4 mr-1" /> Add
+              <Plus className="w-4 h-4 mr-1" /> Add Endpoint
             </Button>
           </div>
+
+          <div className="flex items-center justify-between text-xs text-text-tertiary bg-surface-elevated/40 px-3 py-2 rounded-lg border border-border/50">
+            <span>Want to test ad conversions or inspect JSON schemas?</span>
+            <Link
+              href="/dashboard/traffic"
+              className="text-blue hover:underline flex items-center gap-1 font-medium"
+            >
+              Open Traffic & Ad Conversion Studio
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+
           {webhooks.length === 0 ? (
-            <p className="text-xs text-text-tertiary py-2">No webhooks configured yet.</p>
+            <p className="text-xs text-text-tertiary py-2">No webhook endpoints configured yet.</p>
           ) : (
             webhooks.map((wh) => (
               <div
                 key={wh.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-elevated"
+                className="space-y-2 p-3 rounded-lg border border-border bg-surface-elevated"
               >
-                <div>
-                  <p className="text-xs font-mono truncate max-w-[260px]">{wh.url}</p>
-                  <p className="text-[10px] text-text-tertiary">{wh.events.join(", ")}</p>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-3">
+                    <p className="text-xs font-mono text-text-primary truncate">{wh.url}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-text-tertiary font-medium">
+                        Dispatches:
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue/10 text-blue font-mono">
+                        Meta CAPI
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono">
+                        Google Ads
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-400 font-mono">
+                        LinkedIn
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestWebhookPing(wh.url, wh.id)}
+                      disabled={testingWebhookId === wh.id}
+                      className="text-xs h-7 px-2.5 flex items-center gap-1 text-text-secondary hover:text-text-primary"
+                    >
+                      {testingWebhookId === wh.id ? (
+                        <>
+                          <span className="w-2 h-2 rounded-full bg-blue animate-ping" />
+                          Pinging...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3 h-3 text-blue" />
+                          Test Ping
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeWebhook(wh.id)}>
+                      <Trash2 className="w-3.5 h-3.5 text-text-tertiary hover:text-red-400" />
+                    </Button>
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeWebhook(wh.id)}>
-                  <Trash2 className="w-4 h-4 text-text-tertiary hover:text-red-400" />
-                </Button>
+
+                {/* Test Ping Notice */}
+                {webhookPingNotice && webhookPingNotice.id === wh.id && (
+                  <div
+                    className={`text-[11px] p-2 rounded-md border flex items-center justify-between ${
+                      webhookPingNotice.success
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                        : "bg-red-500/10 border-red-500/30 text-red-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {webhookPingNotice.success ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      ) : (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      )}
+                      <span>{webhookPingNotice.message}</span>
+                    </div>
+                    {webhookPingNotice.ms && (
+                      <span className="font-mono text-[10px] opacity-80">
+                        {webhookPingNotice.ms}ms
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}

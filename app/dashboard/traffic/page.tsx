@@ -7,15 +7,17 @@ import {
   Megaphone, Target, Share2, Copy, Check, ExternalLink, RefreshCw,
   Sparkles, Globe, DollarSign, Calculator, Layers, ArrowRight,
   TrendingUp, Users, ShieldCheck, ChevronRight, QrCode, Filter,
-  Smartphone, Monitor, Search
+  Smartphone, Monitor, Search, Zap, CheckCircle2, AlertTriangle,
+  Code2, Send
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { AdCopyVariation, ChannelAttribution, AdPlatform } from "@/lib/types";
 
 export default function TrafficCampaignPage() {
-  const [activeTab, setActiveTab] = useState<"ad-copy" | "utm-builder" | "attribution">("ad-copy");
+  const [activeTab, setActiveTab] = useState<"ad-copy" | "utm-builder" | "attribution" | "ad-webhooks">("ad-copy");
   const [platformFilter, setPlatformFilter] = useState<"all" | AdPlatform>("all");
 
   // Selection & Context
@@ -23,6 +25,15 @@ export default function TrafficCampaignPage() {
   const [landingPages, setLandingPages] = useState<any[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const [selectedTitle, setSelectedTitle] = useState<string>("B2B Workflow Automation");
+
+  // Ad Webhooks & Real-time Ad Tracking State
+  const [webhookTestUrl, setWebhookTestUrl] = useState("");
+  const [testIsPreorder, setTestIsPreorder] = useState(true);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [webhookTestResult, setWebhookTestResult] = useState<any>(null);
+  const [registeredWebhooks, setRegisteredWebhooks] = useState<any[]>([]);
+  const [samplePayload, setSamplePayload] = useState<any>(null);
+  const [payloadTab, setPayloadTab] = useState<"full" | "meta" | "google" | "linkedin">("full");
 
   // Ad Copy State
   const [variations, setVariations] = useState<AdCopyVariation[]>([]);
@@ -178,6 +189,57 @@ export default function TrafficCampaignPage() {
     return variations.filter((v) => v.platform === platformFilter);
   }, [variations, platformFilter]);
 
+  // Fetch registered webhooks and sample payload for ad conversion verification
+  useEffect(() => {
+    fetch("/api/webhooks")
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => {
+        const list = j.data || [];
+        setRegisteredWebhooks(list);
+        if (list.length > 0) {
+          setWebhookTestUrl((prev) => prev || list[0].url);
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/webhooks/test")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.samplePayload) {
+          setSamplePayload(j.samplePayload);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleTestWebhook = async () => {
+    if (!webhookTestUrl) return;
+    setTestingWebhook(true);
+    setWebhookTestResult(null);
+    try {
+      const res = await fetch("/api/webhooks/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: webhookTestUrl,
+          isPreorder: testIsPreorder,
+        }),
+      });
+      const data = await res.json();
+      setWebhookTestResult(data);
+      if (data.payload) {
+        setSamplePayload(data.payload);
+      }
+    } catch (err: any) {
+      setWebhookTestResult({
+        success: false,
+        error: err?.message || "Failed to reach test server",
+      });
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
+
   // Preset quick channel helpers
   const applyPreset = (preset: "meta" | "linkedin" | "google" | "twitter" | "reddit" | "newsletter") => {
     switch (preset) {
@@ -234,7 +296,7 @@ export default function TrafficCampaignPage() {
             </Badge>
           </div>
           <p className="text-sm text-text-secondary">
-            Ready-to-copy ad variations, 1-click UTM tracking builder, and first-party channel attribution.
+            Ready-to-copy ad variations, 1-click UTM tracking builder, first-party attribution, and ad conversion webhooks.
           </p>
         </div>
 
@@ -263,10 +325,10 @@ export default function TrafficCampaignPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border">
+      <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
         <button
           onClick={() => setActiveTab("ad-copy")}
-          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === "ad-copy"
               ? "border-blue text-blue"
               : "border-transparent text-text-tertiary hover:text-text-primary"
@@ -277,7 +339,7 @@ export default function TrafficCampaignPage() {
         </button>
         <button
           onClick={() => setActiveTab("utm-builder")}
-          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === "utm-builder"
               ? "border-blue text-blue"
               : "border-transparent text-text-tertiary hover:text-text-primary"
@@ -288,7 +350,7 @@ export default function TrafficCampaignPage() {
         </button>
         <button
           onClick={() => setActiveTab("attribution")}
-          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === "attribution"
               ? "border-blue text-blue"
               : "border-transparent text-text-tertiary hover:text-text-primary"
@@ -296,6 +358,20 @@ export default function TrafficCampaignPage() {
         >
           <TrendingUp className="w-4 h-4" />
           <span>Channel Attribution & Budget</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("ad-webhooks")}
+          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${
+            activeTab === "ad-webhooks"
+              ? "border-blue text-blue"
+              : "border-transparent text-text-tertiary hover:text-text-primary"
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          <span>Ad Webhooks & Tracking</span>
+          <Badge variant="green" className="text-[9px] px-1.5 py-0 h-4">
+            Meta · Google · LinkedIn
+          </Badge>
         </button>
       </div>
 
@@ -968,6 +1044,306 @@ export default function TrafficCampaignPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: AD WEBHOOKS & SERVER-SIDE CONVERSION TRACKING */}
+      {/* ========================================================================= */}
+      {activeTab === "ad-webhooks" && (
+        <div className="space-y-6">
+          {/* Overview Banner */}
+          <div className="bg-gradient-to-r from-blue/10 via-purple-500/10 to-emerald-500/10 border border-border rounded-2xl p-6 relative overflow-hidden">
+            <div className="max-w-3xl space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="blue" className="text-[10px] font-mono uppercase tracking-wider">
+                  Solo Founder Ad Engine
+                </Badge>
+                <span className="text-xs text-text-tertiary">Direct Server-Side Dispatch</span>
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">
+                Multi-Network Ad Conversion Webhooks
+              </h2>
+              <p className="text-sm text-text-secondary leading-relaxed">
+                Connect your smoke-test landing pages directly to <strong className="text-text-primary">Meta CAPI</strong>, <strong className="text-text-primary">Google Ads</strong>, and <strong className="text-text-primary">LinkedIn Ads</strong>. When visitors click your ads and reserve slots or sign up, Proof of Demand captures first-party click IDs (<code className="text-blue bg-blue/10 px-1 py-0.5 rounded text-xs">fbclid</code>, <code className="text-blue bg-blue/10 px-1 py-0.5 rounded text-xs">gclid</code>, <code className="text-blue bg-blue/10 px-1 py-0.5 rounded text-xs">li_fat_id</code>), hashes customer PII with SHA-256, and dispatches normalized ad conversion events directly to your webhooks or automation pipelines (Zapier, Make, n8n).
+              </p>
+            </div>
+
+            {/* 3 Network Architecture Badges */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
+              <div className="p-3.5 rounded-xl bg-surface/80 border border-border space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue animate-pulse" />
+                    Meta Conversions API (CAPI)
+                  </span>
+                  <Badge variant="blue" className="text-[9px]">fbclid</Badge>
+                </div>
+                <p className="text-[11px] text-text-tertiary">
+                  Sends <code className="text-text-secondary">Purchase</code> for paid pre-orders and <code className="text-text-secondary">Lead</code> for waitlists with SHA-256 hashed email and deposit value.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-surface/80 border border-border space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Google Ads Offline Conversions
+                  </span>
+                  <Badge variant="green" className="text-[9px]">gclid</Badge>
+                </div>
+                <p className="text-[11px] text-text-tertiary">
+                  Matches clicks via <code className="text-text-secondary">gclid</code> with SHA-256 hashed emails and granular conversion value for smart bidding algorithms.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-surface/80 border border-border space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                    LinkedIn Ads Conversions
+                  </span>
+                  <Badge variant="purple" className="text-[9px]">li_fat_id</Badge>
+                </div>
+                <p className="text-[11px] text-text-tertiary">
+                  Tracks B2B decision-maker conversions with first-party <code className="text-text-secondary">li_fat_id</code> and SHA-256 hashed professional emails.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Webhook Tester & Live Diagnostic */}
+          <Card className="border border-border bg-surface shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    Live Ad Conversion Webhook Ping Tester
+                  </CardTitle>
+                  <p className="text-xs text-text-tertiary mt-0.5">
+                    Dispatch a verified test payload to your webhook receptor (Zapier, Make, n8n, or API proxy) to verify field mapping.
+                  </p>
+                </div>
+                <Link
+                  href="/dashboard/settings/integrations"
+                  className="text-xs text-blue hover:underline flex items-center gap-1 shrink-0"
+                >
+                  Manage Webhook Endpoints
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2 space-y-3">
+                  <label className="text-xs font-medium text-text-secondary flex items-center justify-between">
+                    <span>Webhook Receptor URL:</span>
+                    {registeredWebhooks.length > 0 && (
+                      <span className="text-[11px] text-text-tertiary">
+                        {registeredWebhooks.length} saved in Workspace
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="url"
+                      placeholder="https://hooks.zapier.com/hooks/catch/... or https://your-server.com/webhook"
+                      value={webhookTestUrl}
+                      onChange={(e) => setWebhookTestUrl(e.target.value)}
+                      className="font-mono text-xs bg-surface-elevated"
+                    />
+                    <Button
+                      onClick={handleTestWebhook}
+                      disabled={testingWebhook || !webhookTestUrl}
+                      className="bg-blue hover:bg-blue/90 text-white shrink-0 px-4 text-xs flex items-center gap-1.5"
+                    >
+                      {testingWebhook ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          Send Test Ping
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {registeredWebhooks.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      <span className="text-[11px] text-text-tertiary">Quick select:</span>
+                      {registeredWebhooks.map((wh) => (
+                        <button
+                          key={wh.id}
+                          type="button"
+                          onClick={() => setWebhookTestUrl(wh.url)}
+                          className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-blue transition-colors"
+                        >
+                          {wh.url.length > 40 ? wh.url.slice(0, 38) + "..." : wh.url}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Event Simulation Selector */}
+                <div className="space-y-3">
+                  <label className="text-xs font-medium text-text-secondary">
+                    Simulation Event Type:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTestIsPreorder(true)}
+                      className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                        testIsPreorder
+                          ? "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold"
+                          : "border-border bg-surface-elevated/50 text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      <div className="text-xs flex items-center gap-1">
+                        💳 $100 Pre-Order
+                      </div>
+                      <div className="text-[10px] text-text-tertiary mt-0.5">
+                        Purchase (High Intent)
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTestIsPreorder(false)}
+                      className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                        !testIsPreorder
+                          ? "border-blue bg-blue/10 text-blue font-semibold"
+                          : "border-border bg-surface-elevated/50 text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      <div className="text-xs flex items-center gap-1">
+                        ✉️ Waitlist Lead
+                      </div>
+                      <div className="text-[10px] text-text-tertiary mt-0.5">
+                        Lead (Soft Interest)
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Test Response Notice */}
+              {webhookTestResult && (
+                <div
+                  className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in duration-200 ${
+                    webhookTestResult.success
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-red-500/10 border-red-500/30 text-red-300"
+                  }`}
+                >
+                  {webhookTestResult.success ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  )}
+                  <div className="space-y-1 text-xs">
+                    <div className="font-semibold flex items-center gap-2">
+                      <span>
+                        {webhookTestResult.success
+                          ? `✅ Webhook ping successfully received (HTTP ${webhookTestResult.statusCode})`
+                          : `❌ Webhook delivery failed (${webhookTestResult.statusCode || "Network Error"})`}
+                      </span>
+                      {webhookTestResult.responseTimeMs && (
+                        <span className="text-[10px] font-mono border border-border px-1.5 py-0.5 rounded bg-surface">
+                          {webhookTestResult.responseTimeMs}ms
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-text-tertiary">
+                      {webhookTestResult.success
+                        ? "Your endpoint acknowledged the test conversion payload. Meta, Google, and LinkedIn parameters were validated."
+                        : webhookTestResult.error || "Endpoint rejected the payload or timed out."}
+                    </p>
+                    {webhookTestResult.responseSnippet && (
+                      <div className="text-[11px] font-mono bg-black/40 p-2 rounded border border-white/5 text-text-secondary mt-1">
+                        Server response: {webhookTestResult.responseSnippet}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Schema & Payload Inspector */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <div className="flex items-center gap-2">
+                    <Code2 className="w-4 h-4 text-blue" />
+                    <span className="text-xs font-bold text-text-primary">
+                      Ad Conversion Payload Inspector
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(["full", "meta", "google", "linkedin"] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setPayloadTab(tab)}
+                        className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors capitalize ${
+                          payloadTab === tab
+                            ? "bg-blue text-white"
+                            : "bg-surface-elevated text-text-tertiary hover:text-text-primary"
+                        }`}
+                      >
+                        {tab === "full" ? "Unified Payload" : tab === "meta" ? "Meta CAPI" : tab === "google" ? "Google Ads" : "LinkedIn"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <pre className="p-4 rounded-xl bg-surface-elevated border border-border text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-80 leading-relaxed">
+                    {JSON.stringify(
+                      payloadTab === "full"
+                        ? samplePayload || { message: "Loading sample..." }
+                        : payloadTab === "meta"
+                        ? samplePayload?.adNetworks?.meta_capi || { message: "Loading Meta schema..." }
+                        : payloadTab === "google"
+                        ? samplePayload?.adNetworks?.google_ads || { message: "Loading Google schema..." }
+                        : samplePayload?.adNetworks?.linkedin_ads || { message: "Loading LinkedIn schema..." },
+                      null,
+                      2
+                    )}
+                  </pre>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataToCopy =
+                        payloadTab === "full"
+                          ? samplePayload
+                          : payloadTab === "meta"
+                          ? samplePayload?.adNetworks?.meta_capi
+                          : payloadTab === "google"
+                          ? samplePayload?.adNetworks?.google_ads
+                          : samplePayload?.adNetworks?.linkedin_ads;
+                      copyToClipboard(JSON.stringify(dataToCopy, null, 2), "payload-json");
+                    }}
+                    className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-surface/90 border border-border text-xs text-text-secondary hover:text-text-primary hover:border-blue flex items-center gap-1 transition-all"
+                  >
+                    {copiedKey === "payload-json" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy JSON</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

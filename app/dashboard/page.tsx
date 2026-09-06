@@ -7,6 +7,7 @@ import {
   ArrowUpRight, TrendingUp, Users, MousePointerClick, Target,
   Plus, Activity,
   AlertCircle, RefreshCw, Sparkles,
+  Share2, Copy, Check, ExternalLink, CreditCard, Zap
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useExperimentStore } from "@/lib/store";
@@ -123,6 +124,9 @@ export default function DashboardPage() {
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [landingPages, setLandingPages] = useState<any[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const fetchProjectData = async () => {
     try {
@@ -144,6 +148,16 @@ export default function DashboardPage() {
       .then((r) => (r.ok ? r.json() : { data: [] }))
       .then((j) => setActivityLogs(Array.isArray(j.data) ? j.data.slice(0, 6) : []))
       .catch(() => setActivityLogs([]));
+
+    fetch("/api/leads")
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => setLeads(Array.isArray(j.data) ? j.data : []))
+      .catch(() => setLeads([]));
+
+    fetch("/api/landing-pages")
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => setLandingPages(Array.isArray(j.data) ? j.data : []))
+      .catch(() => setLandingPages([]));
   }, []);
 
   const handleLoadDemoData = async () => {
@@ -151,7 +165,12 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/demo/seed", { method: "POST" });
       if (res.ok) {
-        await Promise.all([fetchExperiments(), fetchProjectData()]);
+        await Promise.all([
+          fetchExperiments(),
+          fetchProjectData(),
+          fetch("/api/leads").then((r) => r.ok ? r.json() : { data: [] }).then((j) => setLeads(j.data || [])),
+          fetch("/api/landing-pages").then((r) => r.ok ? r.json() : { data: [] }).then((j) => setLandingPages(j.data || [])),
+        ]);
       }
     } catch (e) {
       console.error(e);
@@ -161,6 +180,26 @@ export default function DashboardPage() {
   };
 
   const safeExperiments = Array.isArray(experiments) ? experiments : [];
+
+  // Compute Solo Founder Willingness-To-Pay (WTP) metrics
+  const preorderLeads = leads.filter((l) => l.isPreorder);
+  const waitlistLeads = leads.filter((l) => !l.isPreorder);
+  const preorderCount = preorderLeads.length;
+  const waitlistCount = waitlistLeads.length;
+  const totalDepositDollars = Math.round(
+    preorderLeads.reduce((sum, l) => sum + (l.depositAmount || 0), 0) / 100
+  );
+  const primaryPage = landingPages[0] || null;
+  const primarySlug = primaryPage?.slug || "smoke-test";
+
+  const handleCopyLink = () => {
+    if (typeof window !== "undefined") {
+      const url = `${window.location.origin}/p/${primarySlug}`;
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   // Compute metrics from real data
   const totalTraffic = safeExperiments.reduce((sum, e) => sum + (e?.traffic || 0), 0);
@@ -251,6 +290,147 @@ export default function DashboardPage() {
 
 
 
+
+      {/* Solo Founder Willingness-to-Pay (WTP) Scorecard */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="rounded-2xl border border-border bg-gradient-to-br from-surface-elevated/90 via-surface to-surface-elevated/70 backdrop-blur-md p-6 relative overflow-hidden shadow-sm space-y-5"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue/10 text-blue font-bold uppercase tracking-wider">
+                Solo Founder WTP Command Center
+              </span>
+              <span className="text-xs text-text-tertiary">
+                Are people willing to pay for this?
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-text-primary flex items-center gap-2">
+                <span>The Core Question:</span>
+                <span className="text-blue">&ldquo;Are people willing to pay?&rdquo;</span>
+              </h2>
+              <p className="text-sm text-text-secondary leading-relaxed">
+                Empirical demand is validated through cold, hard financial commitment &mdash; comparing verified $100 pre-orders against polite waitlist signups.
+              </p>
+            </div>
+
+            {/* Empirical Verdict Banner */}
+            <div className="flex items-center gap-3 pt-1">
+              {preorderCount > 0 ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  STRONG PAYING DEMAND: ${totalDepositDollars.toLocaleString()} secured across {preorderCount} pre-orders
+                </div>
+              ) : waitlistCount > 0 ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  SOFT INTEREST ONLY: {waitlistCount} waitlist emails captured, $0 paid deposits
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue/15 border border-blue/30 text-blue text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-blue animate-pulse" />
+                  READY TO TEST: Share your link or run ads to measure willingness to pay
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick 60-Second Smoke Test & Share Link Card */}
+          <div className="p-4 rounded-xl bg-surface border border-border space-y-3 lg:w-96 shrink-0">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text-primary flex items-center gap-1.5">
+                <Share2 className="w-3.5 h-3.5 text-blue" />
+                Live Smoke-Test Page
+              </span>
+              <span className="text-[10px] text-text-tertiary font-mono">/p/{primarySlug}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-surface-elevated px-3 py-1.5 rounded-lg border border-border text-xs font-mono text-text-secondary truncate">
+                /p/{primarySlug}
+              </div>
+              <Button
+                size="sm"
+                onClick={handleCopyLink}
+                className="shrink-0 text-xs h-8 px-3 bg-blue hover:bg-blue-bright text-white cursor-pointer"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 mr-1" /> Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy Link
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[11px]">
+              <Link
+                href={`/p/${primarySlug}`}
+                target="_blank"
+                className="text-text-tertiary hover:text-text-primary flex items-center gap-1"
+              >
+                Preview Page <ExternalLink className="w-3 h-3" />
+              </Link>
+              <Link
+                href="/dashboard/traffic?tab=ad-webhooks"
+                className="text-blue hover:underline flex items-center gap-1 font-medium"
+              >
+                ⚡ Ad Webhooks <ArrowUpRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* 3 Hard vs Soft Intent Pillars */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-border/60">
+          <div className="p-3.5 rounded-xl bg-surface/60 border border-border space-y-1">
+            <div className="flex items-center justify-between text-xs text-text-tertiary">
+              <span>Hard Intent (Paying Backers)</span>
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="text-xl font-bold font-mono text-emerald-400">
+              ${totalDepositDollars.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-text-tertiary">
+              {preorderCount} confirmed Stripe card deposits (98 intent score)
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-surface/60 border border-border space-y-1">
+            <div className="flex items-center justify-between text-xs text-text-tertiary">
+              <span>Soft Intent (Free Interest)</span>
+              <Users className="w-3.5 h-3.5 text-blue" />
+            </div>
+            <div className="text-xl font-bold font-mono text-text-primary">
+              {waitlistCount} Leads
+            </div>
+            <p className="text-[11px] text-text-tertiary">
+              Waitlist signups collected without monetary friction (90 intent score)
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-surface/60 border border-border space-y-1">
+            <div className="flex items-center justify-between text-xs text-text-tertiary">
+              <span>Ad Network Conversion Engine</span>
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <div className="text-xs font-semibold text-text-primary pt-1">
+              Meta CAPI · Google · LinkedIn
+            </div>
+            <p className="text-[11px] text-text-tertiary">
+              Server-side conversion webhooks tracking first-party <code className="text-blue">fbclid</code> & <code className="text-blue">gclid</code>
+            </p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Bento Grid — Metric Cards */}
       <div className="bento-grid">

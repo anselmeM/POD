@@ -44,6 +44,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeSignalEvent, serializeLead } from "@/lib/serialize";
 import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { dispatchAdWebhooks } from "@/lib/webhooks";
 
 /**
  * Handles incoming tracking beacons from public landing pages.
@@ -99,7 +100,15 @@ export async function POST(request: NextRequest) {
 
     const page = await prisma.landingPage.findUnique({
       where: { slug },
-      include: { experiment: true },
+      include: {
+        experiment: true,
+        project: {
+          select: {
+            id: true,
+            workspaceId: true,
+          },
+        },
+      },
     });
 
     if (!page) {
@@ -338,54 +347,42 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Asynchronously dispatch outbound webhook to integrations (Zapier, Slack, Make)
+      // Asynchronously dispatch outbound conversion webhooks (Meta CAPI, Google Ads, LinkedIn Ads, Zapier, Make)
       try {
-        const webhooks = await prisma.webhook.findMany({
-          where: { active: true },
+        const workspaceId = page.project?.workspaceId || null;
+        const userAgent = request.headers.get("user-agent") || undefined;
+        const origin = request.headers.get("origin") || request.nextUrl.origin || "https://pod.app";
+
+        // Fans out formatted Meta CAPI, Google Ads, and LinkedIn conversion events to active webhooks
+        dispatchAdWebhooks(workspaceId, {
+          leadId,
+          email: leadData.email,
+          name: leadData.name,
+          company: leadData.company || "",
+          role: leadData.role || "",
+          source: effectiveSource,
+          intentScore,
+          isPreorder,
+          depositAmount,
+          stripeSessionId,
+          landingPageName: page.name,
+          landingPageSlug: page.slug,
+          landingPageUrl: `${origin}/p/${page.slug}`,
+          experimentId: expId,
+          utmSource,
+          utmMedium,
+          utmCampaign,
+          utmContent: metadata?.utm_content,
+          utmTerm: metadata?.utm_term,
+          gclid,
+          fbclid,
+          liFatId,
+          ipAddress: clientIp,
+          userAgent,
+          timestamp: Date.now(),
+        }).catch((err) => {
+          console.warn("Ad webhook dispatch error:", err);
         });
-
-        if (webhooks.length > 0) {
-          const webhookPayload = {
-            event: isPreorder ? "preorder.reserved" : "lead.captured",
-            timestamp: new Date().toISOString(),
-            data: {
-              id: leadId,
-              name:
-                leadData.name || (isPreorder ? "Founding Backer" : "Anonymous Lead"),
-              email: leadData.email,
-              company: leadData.company || "",
-              role: leadData.role || "",
-              source: effectiveSource,
-              intentScore,
-              isPreorder,
-              depositAmount,
-              stripeSessionId,
-              landingPage: {
-                id: page.id,
-                slug: page.slug,
-                name: page.name,
-                headline: page.headline,
-              },
-              experimentId: expId,
-              metadata: enrichedMetadata,
-            },
-          };
-
-          // Non-blocking fire-and-forget fanout with timeout tolerance
-          Promise.allSettled(
-            webhooks.map((wh) =>
-              fetch(wh.url, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-PoD-Event": isPreorder ? "preorder.reserved" : "lead.captured",
-                  ...(wh.secret ? { "X-PoD-Signature": wh.secret } : {}),
-                },
-                body: JSON.stringify(webhookPayload),
-              }).catch(() => {})
-            )
-          ).catch(() => {});
-        }
       } catch (whErr) {
         console.warn("Webhook dispatch error:", whErr);
       }

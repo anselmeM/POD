@@ -13,16 +13,15 @@ import { cn } from "@/lib/utils";
 interface CommandItem { label: string; href: string; icon: React.ElementType; section: string; keywords?: string[]; }
 
 const commands: CommandItem[] = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard, section: "Validation Pillars", keywords: ["home", "dashboard", "sprint", "summary"] },
-  { label: "Tests & Smoke Pages", href: "/dashboard/experiments", icon: FlaskConical, section: "Validation Pillars", keywords: ["test", "ab", "variant", "smoke", "pages", "landing"] },
-  { label: "Demand & Leads CRM", href: "/dashboard/leads", icon: Contact, section: "Validation Pillars", keywords: ["crm", "waitlist", "attribution", "telemetry", "traffic", "signals", "audiences", "preorder"] },
-  { label: "AI Verdict & Executive Brief", href: "/dashboard/ai-analyst", icon: Brain, section: "Validation Pillars", keywords: ["verdict", "go", "pivot", "kill", "pdf", "export", "report", "brief"] },
-  { label: "Studio Portfolio & Leaderboard", href: "/dashboard/portfolio", icon: Trophy, section: "Studio & Growth", keywords: ["portfolio", "leaderboard", "stage-gate", "studio", "incubator", "kill"] },
-  { label: "Traffic & Ad Campaign Kit", href: "/dashboard/traffic", icon: Megaphone, section: "Studio & Growth", keywords: ["traffic", "ads", "utm", "campaign", "meta", "linkedin", "google"] },
+  { label: "Overview & WTP Scorecard", href: "/dashboard", icon: LayoutDashboard, section: "Solo Validation", keywords: ["home", "dashboard", "sprint", "summary", "wtp", "paying"] },
+  { label: "Tests & Smoke Pages", href: "/dashboard/experiments", icon: FlaskConical, section: "Solo Validation", keywords: ["test", "ab", "variant", "smoke", "pages", "landing"] },
+  { label: "Demand & Backers CRM", href: "/dashboard/leads", icon: Contact, section: "Solo Validation", keywords: ["crm", "waitlist", "attribution", "telemetry", "traffic", "signals", "preorder", "paying"] },
+  { label: "AI Verdict & Executive Brief", href: "/dashboard/ai-analyst", icon: Brain, section: "Solo Validation", keywords: ["verdict", "go", "pivot", "kill", "pdf", "export", "report", "brief"] },
+  { label: "Traffic & Ad Webhooks Studio", href: "/dashboard/traffic", icon: Megaphone, section: "Solo Growth & Ads", keywords: ["traffic", "ads", "utm", "campaign", "meta", "capi", "linkedin", "google", "webhooks"] },
+  { label: "Ad Pixels & Outbound Webhooks", href: "/dashboard/settings/integrations", icon: Settings, section: "Operations", keywords: ["pixel", "meta", "google", "linkedin", "webhook", "zapier"] },
   { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard, section: "Operations", keywords: ["billing", "subscription", "plans", "stripe", "invoices"] },
-  { label: "Team & Permissions", href: "/dashboard/team", icon: Users, section: "Operations", keywords: ["members", "rbac", "collaborators", "roles"] },
   { label: "Audit & Activity Log", href: "/dashboard/history/activity", icon: Activity, section: "Operations", keywords: ["audit", "history", "logs", "events"] },
-  { label: "Workspace Settings", href: "/dashboard/settings", icon: Settings, section: "Operations", keywords: ["workspace", "billing", "keys"] },
+  { label: "Workspace Settings", href: "/dashboard/settings", icon: Settings, section: "Operations", keywords: ["workspace", "account", "keys"] },
   { label: "Help & Shortcuts", href: "/dashboard/help", icon: HelpCircle, section: "Operations", keywords: ["docs", "support", "keys"] },
 ];
 

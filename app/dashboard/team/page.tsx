@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,11 +22,17 @@ interface Member {
 export const dynamic = "force-dynamic";
 
 export default function TeamPage() {
+  const router = useRouter();
   const { user } = useUser();
   const [workspace, setWorkspace] = useState<any>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-forward to Settings (Solo Founder simplified structure)
+  useEffect(() => {
+    router.replace("/dashboard/settings");
+  }, [router]);
 
   // Invite state
   const [showInvite, setShowInvite] = useState(false);

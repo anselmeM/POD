@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy, ArrowUpRight, Sparkles, Filter, Download, Plus,
@@ -22,12 +23,18 @@ const verdictBadgeColors: Record<StageGateVerdict, "green" | "blue" | "red" | "a
 };
 
 export default function StudioPortfolioPage() {
+  const router = useRouter();
   const [concepts, setConcepts] = useState<StudioConcept[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterVerdict, setFilterVerdict] = useState<"ALL" | StageGateVerdict>("ALL");
   const [selectedConcept, setSelectedConcept] = useState<StudioConcept | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+
+  // Auto-forward to Tests (Solo Founder simplified structure)
+  useEffect(() => {
+    router.replace("/dashboard/experiments");
+  }, [router]);
 
   // Override modal state
   const [overrideVerdict, setOverrideVerdict] = useState<StageGateVerdict>("BUILD");

@@ -124,6 +124,37 @@ export async function POST(request: NextRequest) {
           },
         ],
       });
+
+      // Create Landing Page for Experiment
+      const lpSlug = exp.id === experimentsData[0].id ? "smoke-test" : `test-${exp.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+      const existingLp = await prisma.landingPage.findFirst({
+        where: { OR: [{ slug: lpSlug }, { experimentId: exp.id }] },
+      });
+
+      if (!existingLp) {
+        await prisma.landingPage.create({
+          data: {
+            projectId: project.id,
+            experimentId: exp.id,
+            name: `${exp.name} Live Page`,
+            template: "hero",
+            headline: "Automate 80% of Your Recurring Client Reporting",
+            subheadline: "Stop losing 10 hours every week to manual spreadsheets. Deliver branded, executive KPI summaries on autopilot.",
+            cta: "Reserve Founding Spot ($10)",
+            positioning: "Refundable Founder Deposit",
+            slug: lpSlug,
+            status: "live",
+            preorderEnabled: true,
+            depositAmount: 1000,
+            priceAnchor: 4900,
+            surveyEnabled: true,
+            surveyQuestions: JSON.stringify([
+              { id: "q1", question: "What is your biggest pain with client reporting today?", type: "text" },
+              { id: "q2", question: "What price would feel like an absolute no-brainer for this?", type: "text" },
+            ]),
+          },
+        });
+      }
     }
 
     // 3. Create Sample Leads

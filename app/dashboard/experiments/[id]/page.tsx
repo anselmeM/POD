@@ -54,7 +54,8 @@ export default function ExperimentDetailPage() {
 
   const copyUrl = (variantId: string) => {
     if (typeof window !== "undefined") {
-      const url = `${window.location.origin}/p/${id}`;
+      const primarySlug = (experiment as any)?.landingPages?.[0]?.slug || (experiment as any)?.slug || id;
+      const url = `${window.location.origin}/p/${primarySlug}`;
       navigator.clipboard.writeText(url);
       setCopiedId(variantId);
       setTimeout(() => setCopiedId(null), 2000);
@@ -151,14 +152,27 @@ export default function ExperimentDetailPage() {
   const totalBackers = safeLeads.length;
   const wtpRatio = totalBackers > 0 ? Math.round((payingLeads.length / totalBackers) * 100) : 0;
 
+  const primarySlug = (experiment as any)?.landingPages?.[0]?.slug || (experiment as any)?.slug || id;
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/experiments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
-          <ArrowLeft className="w-4 h-4" />Back
-        </Link>
-        <h1 className="text-2xl font-bold">{experiment.name}</h1>
-        <StatusBadge status={experiment.status} />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/experiments" className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-secondary transition-colors">
+            <ArrowLeft className="w-4 h-4" />Back
+          </Link>
+          <h1 className="text-2xl font-bold">{experiment.name}</h1>
+          <StatusBadge status={experiment.status} />
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href={`/p/${primarySlug}`} target="_blank">
+            <Button className="bg-blue hover:bg-blue/90 text-white font-semibold gap-2 shadow-sm text-xs cursor-pointer">
+              <Globe className="w-3.5 h-3.5" />
+              <span>View Live Landing Page</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -405,8 +419,8 @@ export default function ExperimentDetailPage() {
                 Review copy, value positioning, and test links for each variant in this experiment.
               </p>
             </div>
-            <Link href={`/p/${id}`} target="_blank">
-              <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto">
+            <Link href={`/p/${primarySlug}`} target="_blank">
+              <Button size="sm" variant="secondary" className="gap-1.5 text-xs w-full sm:w-auto cursor-pointer">
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>Open Live Test Page</span>
               </Button>

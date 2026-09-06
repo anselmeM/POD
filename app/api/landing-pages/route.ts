@@ -86,11 +86,33 @@ export async function POST(request: NextRequest) {
     projectId = project.id;
   }
 
-  // Check slug uniqueness
+  // Ensure safe and unique slug
   try {
-    const existing = await prisma.landingPage.findUnique({ where: { slug: body.slug } });
+    let finalSlug = body.slug;
+    const existing = await prisma.landingPage.findUnique({ where: { slug: finalSlug } });
     if (existing) {
-      return NextResponse.json({ error: `Slug "${body.slug}" already exists` }, { status: 409 });
+      if (body.experimentId && existing.experimentId === body.experimentId) {
+        const updated = await prisma.landingPage.update({
+          where: { id: existing.id },
+          data: {
+            name: body.name,
+            template: body.template,
+            headline: body.headline,
+            subheadline: body.subheadline,
+            cta: body.cta,
+            positioning: body.positioning || "",
+            status: body.status || "live",
+            preorderEnabled: Boolean(body.preorderEnabled),
+            depositAmount: typeof body.depositAmount === "number" ? body.depositAmount : 100,
+            priceAnchor: typeof body.priceAnchor === "number" ? body.priceAnchor : 4900,
+            surveyEnabled: body.surveyEnabled !== undefined ? Boolean(body.surveyEnabled) : true,
+            surveyQuestions: typeof body.surveyQuestions === "string" ? body.surveyQuestions : "[]",
+          },
+        });
+        return NextResponse.json({ data: updated }, { status: 200 });
+      }
+      // If belongs to another entity, append short unique identifier
+      finalSlug = `${body.slug}-${Math.random().toString(36).substring(2, 6)}`;
     }
 
     const data = await prisma.landingPage.create({
@@ -105,7 +127,7 @@ export async function POST(request: NextRequest) {
         positioning: body.positioning || "",
         status: body.status || "live",
         experimentId: body.experimentId || null,
-        slug: body.slug,
+        slug: finalSlug,
         preorderEnabled: Boolean(body.preorderEnabled),
         depositAmount: typeof body.depositAmount === "number" ? body.depositAmount : 100,
         priceAnchor: typeof body.priceAnchor === "number" ? body.priceAnchor : 4900,

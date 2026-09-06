@@ -6,7 +6,8 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, Sparkles, Zap, DollarSign, CheckCircle2,
-  Clock, Globe, Layers, Check, ExternalLink, ShieldCheck, HelpCircle
+  Clock, Globe, Layers, Check, ExternalLink, ShieldCheck, HelpCircle,
+  Copy, Megaphone, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,6 +65,21 @@ export default function NewExperimentPage() {
   const [error, setError] = useState("");
   const [quotaModalOpen, setQuotaModalOpen] = useState(false);
   const [quotaDetail, setQuotaDetail] = useState<{ current?: number; limit?: number; message?: string }>({});
+  const [launchSuccess, setLaunchSuccess] = useState<{
+    slug: string;
+    experimentId: string;
+    name: string;
+  } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyLink = () => {
+    if (launchSuccess && typeof window !== "undefined") {
+      const url = `${window.location.origin}/p/${launchSuccess.slug}`;
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
 
   // Computed slug
   const activeSlug = useMemo(() => {
@@ -225,14 +241,33 @@ export default function NewExperimentPage() {
         }),
       });
 
+      const lpJson = await lpRes.json();
       if (!lpRes.ok) {
-        const lpJson = await lpRes.json();
-        // If slug collision, we still redirect to experiment
-        console.warn("Landing page notice:", lpJson.error);
+        if (lpRes.status === 402 || lpJson.upgradeRequired) {
+          setQuotaDetail({ current: lpJson.current, limit: lpJson.limit, message: lpJson.error });
+          setQuotaModalOpen(true);
+          setLoading(false);
+          return;
+        }
+        throw new Error(lpJson.error || "Failed to create landing page");
       }
 
-      // Success! Route founder directly to their live test dashboard
-      router.push(`/dashboard/experiments/${experimentId}`);
+      const finalSlug = lpJson.data?.slug || activeSlug;
+
+      // Attempt to immediately launch the live page in a new browser tab
+      try {
+        if (typeof window !== "undefined") {
+          window.open(`/p/${finalSlug}`, "_blank");
+        }
+      } catch {}
+
+      // Reveal the launch celebration screen with direct actions
+      setLaunchSuccess({
+        slug: finalSlug,
+        experimentId,
+        name: productName.trim(),
+      });
+      setLoading(false);
     } catch (err) {
       setError((err as Error).message);
       setLoading(false);
@@ -304,8 +339,84 @@ export default function NewExperimentPage() {
         </div>
       )}
 
-      {/* Main Builder Grid: 2 Columns on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {launchSuccess ? (
+        <Card className="border-emerald-500/40 bg-gradient-to-b from-emerald-500/10 via-card to-card overflow-hidden shadow-2xl">
+          <CardContent className="p-8 sm:p-12 text-center space-y-6 max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+
+            <div className="space-y-2">
+              <Badge variant="green" className="text-xs px-3 py-1 uppercase tracking-wider font-bold">
+                🚀 Smoke Test Live & Deployed
+              </Badge>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+                {launchSuccess.name} is Live!
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Your public smoke-test landing page is published and ready to capture visitor intent and willingness-to-pay.
+              </p>
+            </div>
+
+            {/* Live Link Callout */}
+            <div className="p-4 rounded-2xl bg-muted/40 border border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Globe className="w-4 h-4 text-primary shrink-0" />
+                <div className="truncate font-mono text-xs text-foreground font-semibold">
+                  /p/{launchSuccess.slug}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleCopyLink}
+                  className="text-xs h-9 gap-1.5 flex-1 sm:flex-none cursor-pointer"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? "Copied" : "Copy Link"}</span>
+                </Button>
+                <Link
+                  href={`/p/${launchSuccess.slug}`}
+                  target="_blank"
+                  className="flex-1 sm:flex-none"
+                >
+                  <Button
+                    size="sm"
+                    className="bg-primary text-primary-foreground text-xs h-9 gap-1.5 w-full font-bold shadow-md cursor-pointer"
+                  >
+                    <span>Open Live Landing Page</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Next Steps Buttons */}
+            <div className="grid sm:grid-cols-2 gap-3 pt-4 border-t border-border/50">
+              <Link href="/dashboard/traffic">
+                <Button
+                  variant="secondary"
+                  className="w-full justify-center gap-2 text-xs py-5 cursor-pointer"
+                >
+                  <Megaphone className="w-4 h-4 text-primary" />
+                  <span>Start Google Ads Campaign</span>
+                </Button>
+              </Link>
+              <Link href={`/dashboard/experiments/${launchSuccess.experimentId}`}>
+                <Button
+                  className="w-full justify-center gap-2 text-xs py-5 bg-card hover:bg-muted border border-border text-foreground cursor-pointer"
+                >
+                  <span>View Experiment Analytics</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Main Builder Grid: 2 Columns on Desktop */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Express Form (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           <AnimatePresence mode="wait">
@@ -742,6 +853,7 @@ export default function NewExperimentPage() {
           </Card>
         </div>
       </div>
+    )}
 
       {/* Quota Limit Guard Modal */}
       <QuotaGuardModal

@@ -11,12 +11,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import { createSampleAdPayload } from "@/lib/webhooks";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const ctx = await getAuthenticatedWorkspace(req);
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -94,9 +94,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user?.email) {
+export async function GET(req?: NextRequest) {
+  const ctx = await getAuthenticatedWorkspace(req);
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

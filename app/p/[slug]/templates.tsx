@@ -9,6 +9,19 @@ import type { LandingPage } from "@/lib/types";
 const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
 const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
+function getStoredTrackingParams(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const sessionData = sessionStorage.getItem("pod_tracking_params");
+    if (sessionData) return JSON.parse(sessionData);
+    const localData = localStorage.getItem("pod_tracking_params");
+    if (localData) return JSON.parse(localData);
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 function IntentModal({
   page,
   isOpen,
@@ -93,13 +106,7 @@ function IntentModal({
       visitorId = `vis-${Math.random().toString(36).slice(2, 9)}`;
     }
 
-    const trackingParams = (() => {
-      try {
-        return JSON.parse(sessionStorage.getItem("pod_tracking_params") || "{}");
-      } catch {
-        return {};
-      }
-    })();
+    const trackingParams = getStoredTrackingParams();
 
     const leadSource = trackingParams.utm_source ? String(trackingParams.utm_source).toLowerCase() : "/p/" + page.slug;
 
@@ -603,7 +610,11 @@ export function HeroTemplate({ page }: { page: LandingPage }) {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: page.slug, eventType: "cta_click" }),
+      body: JSON.stringify({
+        slug: page.slug,
+        eventType: "cta_click",
+        metadata: getStoredTrackingParams(),
+      }),
     }).catch(() => {});
     setModalOpen(true);
   };
@@ -637,7 +648,11 @@ export function ProblemTemplate({ page }: { page: LandingPage }) {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: page.slug, eventType: "cta_click" }),
+      body: JSON.stringify({
+        slug: page.slug,
+        eventType: "cta_click",
+        metadata: getStoredTrackingParams(),
+      }),
     }).catch(() => {});
     setModalOpen(true);
   };
@@ -673,7 +688,11 @@ export function SocialProofTemplate({ page }: { page: LandingPage }) {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: page.slug, eventType: "cta_click" }),
+      body: JSON.stringify({
+        slug: page.slug,
+        eventType: "cta_click",
+        metadata: getStoredTrackingParams(),
+      }),
     }).catch(() => {});
     setModalOpen(true);
   };
@@ -707,7 +726,11 @@ export function PricingTemplate({ page }: { page: LandingPage }) {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: page.slug, eventType: "pricing_interaction", metadata: { tier: tierName } }),
+      body: JSON.stringify({
+        slug: page.slug,
+        eventType: "pricing_interaction",
+        metadata: { tier: tierName, ...getStoredTrackingParams() },
+      }),
     }).catch(() => {});
     setModalOpen(true);
   };
@@ -738,7 +761,11 @@ export function MinimalTemplate({ page }: { page: LandingPage }) {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: page.slug, eventType: "cta_click" }),
+      body: JSON.stringify({
+        slug: page.slug,
+        eventType: "cta_click",
+        metadata: getStoredTrackingParams(),
+      }),
     }).catch(() => {});
     setModalOpen(true);
   };

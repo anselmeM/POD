@@ -11,9 +11,12 @@ import {
   AdConversionData,
 } from "@/lib/webhooks";
 
-// Mock Auth
+// Mock Auth & Workspace
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
+}));
+vi.mock("@/lib/workspace", () => ({
+  getAuthenticatedWorkspace: vi.fn(),
 }));
 
 // Mock Prisma
@@ -28,6 +31,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { auth } from "@/lib/auth";
+import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import { prisma } from "@/lib/prisma";
 import { POST as testWebhookPost, GET as testWebhookGet } from "@/app/api/webhooks/test/route";
 
@@ -214,7 +218,7 @@ describe("Ad Network Conversion Webhooks Engine", () => {
 
   describe("API Route: /api/webhooks/test", () => {
     it("returns 401 when unauthorized", async () => {
-      (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/test", {
         method: "POST",
@@ -226,8 +230,9 @@ describe("Ad Network Conversion Webhooks Engine", () => {
     });
 
     it("returns sample schema when no URL is provided", async () => {
-      (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { email: "founder@pod.app" },
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: "usr-1", email: "founder@pod.app" },
+        workspace: { id: "ws-1", name: "Founder Workspace" },
       });
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/test", {
@@ -243,8 +248,9 @@ describe("Ad Network Conversion Webhooks Engine", () => {
     });
 
     it("rejects invalid URL format", async () => {
-      (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { email: "founder@pod.app" },
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: "usr-1", email: "founder@pod.app" },
+        workspace: { id: "ws-1", name: "Founder Workspace" },
       });
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/test", {
@@ -257,8 +263,9 @@ describe("Ad Network Conversion Webhooks Engine", () => {
     });
 
     it("dispatches live ping to destination URL and measures latency", async () => {
-      (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { email: "founder@pod.app" },
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: "usr-1", email: "founder@pod.app" },
+        workspace: { id: "ws-1", name: "Founder Workspace" },
       });
 
       const mockFetch = vi.fn().mockResolvedValue(new Response("OK", { status: 200 }));
@@ -280,8 +287,9 @@ describe("Ad Network Conversion Webhooks Engine", () => {
     });
 
     it("GET returns sample payload for documentation", async () => {
-      (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { email: "founder@pod.app" },
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: "usr-1", email: "founder@pod.app" },
+        workspace: { id: "ws-1", name: "Founder Workspace" },
       });
 
       const res = await testWebhookGet();

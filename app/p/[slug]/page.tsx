@@ -103,16 +103,21 @@ export default function PublicLandingPage() {
       li_fat_id: searchParams?.get("li_fat_id") || "",
     };
 
-    // Cache active campaign parameters into sessionStorage for multi-page session persistence
+    // Cache active campaign parameters into sessionStorage and localStorage for multi-page persistence
     if (urlTracking.utm_source || urlTracking.gclid || urlTracking.fbclid || urlTracking.li_fat_id) {
       try {
         sessionStorage.setItem("pod_tracking_params", JSON.stringify(urlTracking));
+        localStorage.setItem("pod_tracking_params", JSON.stringify(urlTracking));
       } catch {}
     }
 
     const savedTracking = (() => {
       try {
-        return JSON.parse(sessionStorage.getItem("pod_tracking_params") || "{}");
+        const sessionData = sessionStorage.getItem("pod_tracking_params");
+        if (sessionData) return JSON.parse(sessionData);
+        const localData = localStorage.getItem("pod_tracking_params");
+        if (localData) return JSON.parse(localData);
+        return {};
       } catch {
         return {};
       }

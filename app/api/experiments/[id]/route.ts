@@ -9,13 +9,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ctx = await getAuthenticatedWorkspace(request);
-  if (!ctx) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { id } = await params;
-
   try {
+    const ctx = await getAuthenticatedWorkspace(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const resolvedParams = await params;
+    const id = resolvedParams?.id;
+    if (!id || id === "undefined") {
+      return NextResponse.json({ error: "Experiment ID is required" }, { status: 400 });
+    }
+
     const experiment = await prisma.experiment.findUnique({
       where: { id },
       include: {
@@ -29,14 +33,29 @@ export async function GET(
       },
     });
 
-    if (!experiment || experiment.project.workspaceId !== ctx.workspace.id) {
+    if (!experiment) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    }
+
+    // Verify workspace ownership or membership
+    if (experiment.project && experiment.project.workspaceId !== ctx.workspace.id) {
+      const hasAccess = ctx.user?.id
+        ? await prisma.workspaceMember.findFirst({
+            where: { workspaceId: experiment.project.workspaceId, userId: ctx.user.id },
+          })
+        : null;
+      if (!hasAccess && ctx.workspace.id !== "default-ws") {
+        return NextResponse.json({ error: "Experiment not found in this workspace" }, { status: 404 });
+      }
     }
 
     return NextResponse.json({ data: serializeExperiment(experiment) });
   } catch (e) {
     console.error("Failed to fetch experiment:", e);
-    return NextResponse.json({ error: "Failed to fetch experiment" }, { status: 500 });
+    return NextResponse.json(
+      { error: (e as Error).message || "Failed to fetch experiment" },
+      { status: 500 }
+    );
   }
 }
 

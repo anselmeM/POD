@@ -63,52 +63,76 @@ export default function ExperimentDetailPage() {
   };
 
   const fetchData = async () => {
+    if (!id || id === "undefined") return;
     setLoading(true);
     setError(null);
     try {
-      const [expRes, insRes, funnelRes] = await Promise.all([
-        fetch(`/api/experiments/${id}`),
-        fetch(`/api/insights?experimentId=${id}`),
-        fetch(`/api/funnel?experimentId=${id}`),
-      ]);
+      // 1. Primary experiment record fetch
+      const expRes = await fetch(`/api/experiments/${id}`);
+      const expText = await expRes.text();
+      let expJson: any = null;
+      try {
+        expJson = expText ? JSON.parse(expText) : null;
+      } catch (err) {
+        console.error("Failed to parse experiment JSON:", err, expText);
+      }
 
       if (!expRes.ok) {
         if (expRes.status === 404) {
           setError("Experiment not found");
         } else {
-          const err = await expRes.json();
-          throw new Error(err.error || "Failed to fetch experiment");
+          setError(expJson?.error || "Failed to fetch experiment");
         }
         return;
       }
 
-      const expJson = await expRes.json();
-      setExperiment(expJson.data);
-
-      if (insRes.ok) {
-        const insJson = await insRes.json();
-        setInsights(insJson.data || []);
+      if (expJson?.data) {
+        setExperiment(expJson.data);
       }
 
-      if (funnelRes.ok) {
-        const funnelJson = await funnelRes.json();
-        const raw = funnelJson.data;
-        const list = Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw?.stages)
-          ? raw.stages
-          : [];
-        setFunnel(list);
-      }
+      // 2. Non-blocking secondary metrics (insights & funnel stages)
+      Promise.allSettled([
+        fetch(`/api/insights?experimentId=${id}`).then(async (res) => {
+          if (res.ok) {
+            const txt = await res.text();
+            return txt ? JSON.parse(txt) : null;
+          }
+          return null;
+        }),
+        fetch(`/api/funnel?experimentId=${id}`).then(async (res) => {
+          if (res.ok) {
+            const txt = await res.text();
+            return txt ? JSON.parse(txt) : null;
+          }
+          return null;
+        }),
+      ]).then(([insResult, funnelResult]) => {
+        if (insResult.status === "fulfilled" && insResult.value?.data) {
+          setInsights(insResult.value.data);
+        }
+        if (funnelResult.status === "fulfilled" && funnelResult.value?.data) {
+          const raw = funnelResult.value.data;
+          const list = Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.stages)
+            ? raw.stages
+            : [];
+          setFunnel(list);
+        }
+      }).catch((auxErr) => {
+        console.warn("Secondary metrics fetch error (non-fatal):", auxErr);
+      });
     } catch (e) {
-      setError((e as Error).message);
+      setError((e as Error).message || "Failed to fetch experiment");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (id) fetchData();
+    if (id && id !== "undefined") {
+      fetchData();
+    }
   }, [id]);
 
   if (loading) {

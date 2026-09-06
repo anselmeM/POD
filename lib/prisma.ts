@@ -41,8 +41,8 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
  * @returns {PrismaClient} Configured Prisma Client instance
  */
 function createPrismaClient(): PrismaClient {
-  const dbUrl = (process.env.DATABASE_URL || "file:./dev.db").trim();
-  const tursoToken = process.env.TURSO_AUTH_TOKEN?.trim();
+  const dbUrl = (process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || "file:./dev.db").trim();
+  const tursoToken = (process.env.TURSO_AUTH_TOKEN || process.env.TURSO_TOKEN)?.trim();
 
   // Mode A: Remote Turso or Edge LibSQL Database
   // Triggered when DATABASE_URL begins with libsql:// or https://, or TURSO_AUTH_TOKEN is provided.

@@ -42,9 +42,3 @@ vi.mock("@clerk/nextjs/server", () => ({
   createRouteMatcher: vi.fn(() => vi.fn()),
 }));
 
-vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null, status: "unauthenticated" }),
-  signIn: vi.fn(),
-  signOut: vi.fn(),
-  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
-}));

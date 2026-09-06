@@ -1,11 +1,5 @@
 {
   "buildCommand": "prisma generate && next build",
   "framework": "nextjs",
-  "installCommand": "npm install",
-  "crons": [
-    {
-      "path": "/api/cron/sprint-digest",
-      "schedule": "0 13 * * 1"
-    }
-  ]
+  "installCommand": "npm install"
 }

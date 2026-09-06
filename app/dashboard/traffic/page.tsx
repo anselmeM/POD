@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -63,6 +63,32 @@ export default function TrafficCampaignPage() {
   const [estimatedCpc, setEstimatedCpc] = useState(2.2);
   const [expectedCvr, setExpectedCvr] = useState(6.5);
 
+  const fetchAdVariations = useCallback(async (title: string, slug: string) => {
+    setAdLoading(true);
+    try {
+      const res = await fetch("/api/ai/ad-campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conceptTitle: title,
+          slug,
+          positioning: "Cut operational friction by 50% with automated workflow intelligence",
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.variations) {
+          setVariations(json.data.variations);
+          setTargetingBlueprint(json.data.targetingBlueprint);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to generate ad copy:", err);
+    } finally {
+      setAdLoading(false);
+    }
+  }, []);
+
   // Load experiments and initial context
   useEffect(() => {
     Promise.all([fetch("/api/experiments"), fetch("/api/landing-pages")])
@@ -97,33 +123,7 @@ export default function TrafficCampaignPage() {
         fetchAdVariations(defaultName, defaultSlug);
       })
       .catch(() => {});
-  }, []);
-
-  const fetchAdVariations = async (title: string, slug: string) => {
-    setAdLoading(true);
-    try {
-      const res = await fetch("/api/ai/ad-campaign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conceptTitle: title,
-          slug,
-          positioning: "Cut operational friction by 50% with automated workflow intelligence",
-        }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data?.variations) {
-          setVariations(json.data.variations);
-          setTargetingBlueprint(json.data.targetingBlueprint);
-        }
-      }
-    } catch (err) {
-      console.warn("Failed to generate ad copy:", err);
-    } finally {
-      setAdLoading(false);
-    }
-  };
+  }, [fetchAdVariations]);
 
   // Fetch Attribution Data
   useEffect(() => {

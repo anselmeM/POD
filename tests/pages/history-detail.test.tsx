@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import HistoryDetailPage from "@/app/dashboard/history/[id]/page";
-import { demoHistoryItems } from "@/lib/mock-data";
+import { testHistoryItems as demoHistoryItems } from "@/tests/fixtures/data";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({

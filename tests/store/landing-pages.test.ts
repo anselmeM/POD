@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useLandingPageStore } from "@/lib/store";
-import { demoLandingPages } from "@/lib/mock-data";
+import { testLandingPages as demoLandingPages } from "@/tests/fixtures/data";
 
 // Mock fetch globally — tests exercise the store's client-side state logic
 beforeEach(() => {

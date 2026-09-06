@@ -1,78 +1,77 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Plus, Trash2, Sparkles, Settings2,
-  CheckCircle2, ArrowRight, Zap, Target, DollarSign,
+  ArrowLeft, ArrowRight, Sparkles, Zap, DollarSign, CheckCircle2,
+  Clock, Globe, Layers, Check, ExternalLink, ShieldCheck, HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { Project } from "@/lib/types";
-import { EXPERIMENT_TEMPLATES } from "@/lib/experiment-templates";
 import { QuotaGuardModal } from "@/components/billing/quota-guard-modal";
 
-const CHANNELS = [
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "meta", label: "Meta" },
-  { id: "google", label: "Google" },
-  { id: "twitter", label: "Twitter" },
-] as const;
+type OfferType = "deposit" | "paid" | "waitlist";
+type TemplateType = "hero" | "problem" | "minimal" | "split";
 
-type DraftVariant = {
-  name: string;
-  headline: string;
-  cta: string;
-  positioning: string;
-  trafficAllocation: number;
-};
+const INSPIRATION_PITCHES = [
+  { label: "B2B SaaS", name: "DocuFlow AI", pitch: "Reconcile vendor invoices and receipts automatically in 15 seconds" },
+  { label: "Dev Tool", name: "QueryPulse", pitch: "Detect slow database queries and N+1 leaks before code hits production" },
+  { label: "Creator / Solo", name: "CourseFunnel", pitch: "Turn short-form video viewers into paying cohort members in 2 taps" },
+  { label: "Agency Ops", name: "ClientSync", pitch: "Automated weekly client status reports generated from your Slack and GitHub" },
+];
 
-function defaultVariant(idx: number): DraftVariant {
-  return {
-    name: `Variant ${String.fromCharCode(65 + idx)}`,
-    headline: "",
-    cta: "Learn More",
-    positioning: "",
-    trafficAllocation: idx === 0 ? 50 : 50,
-  };
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
 }
 
 export default function NewExperimentPage() {
   const router = useRouter();
+
+  // Current Step: 1 (Concept) -> 2 (Offer) -> 3 (Template & Launch)
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Step 1: Concept
+  const [productName, setProductName] = useState("");
+  const [oneLiner, setOneLiner] = useState("");
+  const [customSlug, setCustomSlug] = useState("");
+  const [slugModified, setSlugModified] = useState(false);
+
+  // Step 2: The Offer & WTP Model
+  const [offerType, setOfferType] = useState<OfferType>("deposit");
+  const [priceAnchor, setPriceAnchor] = useState("49");
+  const [depositAmount, setDepositAmount] = useState("20");
+  const [ctaText, setCtaText] = useState("Reserve Founder Spot ($20)");
+
+  // Step 3: Landing Page Template
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>("hero");
+
+  // Projects & Workspace context
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
 
-  // Quota & Tier Gating Modal
+  // Submitting & Quota State
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [quotaModalOpen, setQuotaModalOpen] = useState(false);
   const [quotaDetail, setQuotaDetail] = useState<{ current?: number; limit?: number; message?: string }>({});
 
-  // Mode: "guided" (AI Smoke Test Wizard) vs "custom" (Manual Configuration)
-  const [mode, setMode] = useState<"guided" | "custom">("guided");
+  // Computed slug
+  const activeSlug = useMemo(() => {
+    if (slugModified && customSlug.trim()) return slugify(customSlug);
+    return slugify(productName) || "my-product-test";
+  }, [productName, customSlug, slugModified]);
 
-  // Guided Mode States
-  const [guidedStep, setGuidedStep] = useState<1 | 2 | 3>(1);
-  const [productName, setProductName] = useState("");
-  const [oneLiner, setOneLiner] = useState("");
-  const [painPoint, setPainPoint] = useState("");
-  const [expectedPrice, setExpectedPrice] = useState("39");
-  const [angleA, setAngleA] = useState("Save 10 hours every month on tedious tasks");
-  const [angleB, setAngleB] = useState("Never worry about errors, audits, or lost revenue again");
-  const [ctaChoice, setCtaChoice] = useState("Join Early Access");
-
-  // Custom Mode States
-  const [name, setName] = useState("");
-  const [budget, setBudget] = useState("100");
-  const [channels, setChannels] = useState<string[]>(["linkedin", "meta"]);
-  const [variants, setVariants] = useState<DraftVariant[]>([defaultVariant(0), defaultVariant(1)]);
-
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-
+  // Load existing projects
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => (r.ok ? r.json() : { data: [] }))
@@ -81,573 +80,670 @@ export default function NewExperimentPage() {
         setProjects(list);
         if (list[0]) {
           setProjectId(list[0].id);
-          if (!productName) setProductName(list[0].name);
         }
       })
       .catch(() => {});
-  }, [productName]);
+  }, []);
 
-  const totalAllocation = variants.reduce((s, v) => s + (Number(v.trafficAllocation) || 0), 0);
-
-  const toggleChannel = (id: string) => {
-    setChannels((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  // Update default CTA when offer model changes
+  const handleOfferTypeChange = (type: OfferType) => {
+    setOfferType(type);
+    if (type === "deposit") {
+      setCtaText(`Reserve Founder Spot ($${depositAmount || "20"})`);
+    } else if (type === "paid") {
+      setCtaText(`Get Early Access ($${priceAnchor || "49"}/mo)`);
+    } else {
+      setCtaText("Request Founder Access");
+    }
   };
 
-  const updateVariant = (idx: number, patch: Partial<DraftVariant>) => {
-    setVariants((prev) => prev.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
+  const handleDepositChange = (amount: string) => {
+    setDepositAmount(amount);
+    if (offerType === "deposit") {
+      setCtaText(`Reserve Founder Spot ($${amount || "20"})`);
+    }
   };
 
-  const addVariant = () => {
-    if (variants.length >= 4) return;
-    const next = [...variants, defaultVariant(variants.length)];
-    const each = Math.floor(100 / next.length);
-    const remainder = 100 - each * next.length;
-    setVariants(next.map((v, i) => ({ ...v, trafficAllocation: each + (i === 0 ? remainder : 0) })));
+  const handlePriceChange = (price: string) => {
+    setPriceAnchor(price);
+    if (offerType === "paid") {
+      setCtaText(`Get Early Access ($${price || "49"}/mo)`);
+    }
   };
 
-  const removeVariant = (idx: number) => {
-    if (variants.length <= 1) return;
-    const next = variants.filter((_, i) => i !== idx);
-    const each = Math.floor(100 / next.length);
-    const remainder = 100 - each * next.length;
-    setVariants(next.map((v, i) => ({ ...v, trafficAllocation: each + (i === 0 ? remainder : 0) })));
+  const applyInspiration = (item: typeof INSPIRATION_PITCHES[0]) => {
+    setProductName(item.name);
+    setOneLiner(item.pitch);
+    setSlugModified(false);
   };
 
-  const applyTemplate = (id: string) => {
-    const tpl = EXPERIMENT_TEMPLATES.find((t) => t.id === id);
-    if (!tpl) return;
-    setBudget(String(tpl.budget));
-    setChannels(tpl.channel);
-    setVariants(tpl.variants.map((v) => ({ ...v })));
-    if (!name) setName(`${tpl.name} — ${new Date().toLocaleDateString()}`);
-  };
-
-  // Launch from Guided Wizard
-  const handleGuidedLaunch = async () => {
+  // Launch the 60-second test
+  const handleLaunch = async () => {
     setError("");
-    if (!projectId) { setError("Please select a project."); return; }
-    if (!productName.trim()) { setError("Product name is required."); return; }
+    if (!productName.trim()) {
+      setError("Please provide a product name.");
+      setStep(1);
+      return;
+    }
+    if (!oneLiner.trim()) {
+      setError("Please provide a one-line value proposition.");
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/experiments", {
+      // Step A: Ensure target project exists
+      let targetProjectId = projectId;
+      if (!targetProjectId) {
+        const projRes = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productName: productName.trim(),
+            description: oneLiner.trim(),
+          }),
+        });
+        const projJson = await projRes.json();
+        if (!projRes.ok) {
+          throw new Error(projJson.error || "Failed to create project");
+        }
+        targetProjectId = projJson.project.id;
+      }
+
+      // Step B: Create the 7-Day Sprint Experiment
+      const now = new Date();
+      const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      const expRes = await fetch("/api/experiments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: `${productName} Smoke Test — ${new Date().toLocaleDateString()}`,
-          projectId,
+          name: `${productName.trim()} Smoke Test`,
+          projectId: targetProjectId,
           budget: 100,
-          channel: ["linkedin", "meta"],
+          channel: ["meta", "linkedin", "google"],
           status: "running",
+          startDate: now.toISOString(),
+          endDate: in7Days.toISOString(),
           variants: [
             {
-              name: "Variant A (Efficiency / Time)",
-              headline: angleA || `Fast, automated ${productName}`,
-              cta: ctaChoice || "Join Early Access",
-              positioning: "Time-saving & speed focus",
+              name: "Variant A (Core Value)",
+              headline: oneLiner.trim(),
+              cta: ctaText.trim() || "Get Early Access",
+              positioning: offerType === "deposit" ? "Refundable Deposit Pre-order" : "Direct Value Focus",
               trafficAllocation: 50,
             },
             {
-              name: "Variant B (Risk / Assurance)",
-              headline: angleB || `100% Reliable ${productName}`,
-              cta: ctaChoice || "Join Early Access",
-              positioning: "Security, compliance & peace of mind",
+              name: "Variant B (Speed / ROI)",
+              headline: `Automate your workflow with ${productName.trim()}`,
+              cta: ctaText.trim() || "Get Early Access",
+              positioning: "Time-savings and outcome focus",
               trafficAllocation: 50,
             },
           ],
         }),
       });
 
-      const json = await res.json();
-      if (!res.ok) {
-        if (res.status === 402 || json.upgradeRequired) {
-          setQuotaDetail({ current: json.current, limit: json.limit, message: json.error });
+      const expJson = await expRes.json();
+      if (!expRes.ok) {
+        if (expRes.status === 402 || expJson.upgradeRequired) {
+          setQuotaDetail({ current: expJson.current, limit: expJson.limit, message: expJson.error });
           setQuotaModalOpen(true);
           setLoading(false);
           return;
         }
-        throw new Error(json.error || "Failed to create experiment");
+        throw new Error(expJson.error || "Failed to create experiment");
       }
-      router.push(`/dashboard/experiments/${json.data.id}`);
-    } catch (e) {
-      setError((e as Error).message);
-      setLoading(false);
-    }
-  };
 
-  // Launch from Custom Setup
-  const handleCustomCreate = async () => {
-    setError("");
-    if (!name.trim()) { setError("Experiment name is required."); return; }
-    if (!projectId) { setError("Please select a project."); return; }
-    if (variants.some((v) => !v.name.trim() || !v.headline.trim())) {
-      setError("Each variant needs a name and headline.");
-      return;
-    }
-    if (totalAllocation !== 100) {
-      setError(`Traffic allocation must sum to 100% (currently ${totalAllocation}%).`);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/experiments", {
+      const experimentId = expJson.data.id;
+
+      // Step C: Create the Public Landing Page
+      const lpRes = await fetch("/api/landing-pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
-          projectId,
-          budget: Number(budget) || 0,
-          channel: channels,
-          status: "draft",
-          variants: variants.map((v) => ({
-            name: v.name.trim(),
-            headline: v.headline.trim(),
-            cta: v.cta.trim() || "Learn More",
-            positioning: v.positioning.trim(),
-            trafficAllocation: Number(v.trafficAllocation) || 0,
-          })),
+          projectId: targetProjectId,
+          experimentId,
+          name: `${productName.trim()} — Smoke Test Page`,
+          template: selectedTemplate,
+          headline: oneLiner.trim(),
+          subheadline: `The automated solution built for modern founders and teams. Join early adopters testing ${productName.trim()}.`,
+          cta: ctaText.trim() || "Get Early Access",
+          positioning: offerType === "deposit" ? "Refundable Deposit" : offerType === "paid" ? "Paid Early Access" : "High-Intent Waitlist",
+          slug: activeSlug,
+          status: "live",
+          preorderEnabled: offerType === "deposit",
+          depositAmount: offerType === "deposit" ? Number(depositAmount) || 20 : 0,
+          priceAnchor: Number(priceAnchor) || 49,
+          surveyEnabled: true,
+          surveyQuestions: JSON.stringify([
+            { id: "q1", question: "What is your current role?", type: "text" },
+            { id: "q2", question: "What would make this tool an absolute no-brainer for you?", type: "text" },
+          ]),
         }),
       });
-      const json = await res.json();
-      if (!res.ok) {
-        if (res.status === 402 || json.upgradeRequired) {
-          setQuotaDetail({ current: json.current, limit: json.limit, message: json.error });
-          setQuotaModalOpen(true);
-          setLoading(false);
-          return;
-        }
-        throw new Error(json.error || "Failed to create experiment");
+
+      if (!lpRes.ok) {
+        const lpJson = await lpRes.json();
+        // If slug collision, we still redirect to experiment
+        console.warn("Landing page notice:", lpJson.error);
       }
-      router.push(`/dashboard/experiments/${json.data.id}`);
-    } catch (e) {
-      setError((e as Error).message);
+
+      // Success! Route founder directly to their live test dashboard
+      router.push(`/dashboard/experiments/${experimentId}`);
+    } catch (err) {
+      setError((err as Error).message);
       setLoading(false);
     }
   };
 
-
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard/experiments">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+    <div className="max-w-6xl mx-auto py-8 px-4 space-y-8">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
+        <div>
+          <Link
+            href="/dashboard/experiments"
+            className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-2 gap-1.5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Tests
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">New Experiment</h1>
-            <p className="text-sm text-text-secondary">Deploy a smoke test to validate market demand.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Launch Test in 60 Seconds
+            </h1>
+            <Badge variant="amber" className="text-xs font-mono">
+              <Clock className="w-3 h-3 mr-1" /> ~45 sec setup
+            </Badge>
           </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Build a smoke test, set your pricing offer, and get a live public link to measure real willingness to pay.
+          </p>
         </div>
 
-        {/* Mode Switcher */}
-        <div className="flex items-center p-1 rounded-xl bg-surface-elevated border border-border">
-          <button
-            type="button"
-            onClick={() => setMode("guided")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              mode === "guided"
-                ? "bg-blue text-white shadow-xs"
-                : "text-[var(--dash-text-secondary)] hover:text-[var(--dash-text-primary)]"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Guided AI Test</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("custom")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              mode === "custom"
-                ? "bg-blue text-white shadow-xs"
-                : "text-[var(--dash-text-secondary)] hover:text-[var(--dash-text-primary)]"
-            }`}
-          >
-            <Settings2 className="w-3.5 h-3.5" />
-            <span>Custom Setup</span>
-          </button>
+        {/* 3-Step Stepper Header */}
+        <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-xl border border-border/60 text-xs">
+          {[
+            { num: 1, label: "Concept" },
+            { num: 2, label: "Offer & Pricing" },
+            { num: 3, label: "Launch" },
+          ].map((s) => (
+            <button
+              key={s.num}
+              type="button"
+              onClick={() => setStep(s.num as 1 | 2 | 3)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+                step === s.num
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : step > s.num
+                  ? "text-foreground bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {step > s.num ? (
+                <Check className="w-3 h-3 text-primary" />
+              ) : (
+                <span className="w-4 h-4 rounded-full bg-background/30 flex items-center justify-center text-[10px]">
+                  {s.num}
+                </span>
+              )}
+              {s.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {error && (
-        <div className="p-3 bg-red/10 border border-red/20 rounded-xl text-xs text-red font-medium">
-          {error}
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" onClick={() => setError("")}>
+            Dismiss
+          </Button>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODE 1: GUIDED AI SMOKE TEST WIZARD */}
-      {/* ========================================================================= */}
-      {mode === "guided" && (
-        <div className="space-y-6">
-          {/* Step Pills */}
-          <div className="flex items-center justify-between gap-2 p-2 bg-surface-elevated/40 border border-border/60 rounded-xl">
-            {[
-              { num: 1, label: "Idea & Problem" },
-              { num: 2, label: "Angle & Pricing" },
-              { num: 3, label: "Review & Launch" },
-            ].map((s) => (
-              <button
-                key={s.num}
-                type="button"
-                onClick={() => setGuidedStep(s.num as 1 | 2 | 3)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  guidedStep === s.num
-                    ? "bg-surface-elevated text-blue shadow-xs border border-border"
-                    : "text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-secondary)]"
-                }`}
+      {/* Main Builder Grid: 2 Columns on Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Express Form (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          <AnimatePresence mode="wait">
+            {/* STEP 1: The Concept */}
+            {step === 1 && (
+              <motion.div
+                key="step-1"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="space-y-6"
               >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  guidedStep === s.num ? "bg-blue text-white" : "bg-border text-[var(--dash-text-secondary)]"
-                }`}>
-                  {s.num}
-                </span>
-                <span className="hidden sm:inline">{s.label}</span>
-              </button>
-            ))}
-          </div>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs flex items-center justify-center font-bold">1</span>
+                    What are you testing?
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Define the core idea you want to validate before writing any code.
+                  </p>
+                </div>
 
-          {/* Step 1: Idea & Problem */}
-          {guidedStep === 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Target className="w-4 h-4 text-blue" />
-                  <span>Step 1: Your Idea & Core Problem</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {projects.length > 1 && (
-                  <div>
-                    <label className="text-xs font-semibold text-[var(--dash-text-secondary)] block mb-1.5">
-                      Assign to Project
-                    </label>
-                    <select
-                      className="w-full h-10 px-3 rounded-lg border border-border bg-surface text-sm"
-                      value={projectId}
-                      onChange={(e) => setProjectId(e.target.value)}
-                    >
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                {/* Inspiration Quick Pills */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" /> Need inspiration? Pick a template:
                   </div>
-                )}
-
-                <div>
-                  <label className="text-xs font-semibold text-[var(--dash-text-secondary)] block mb-1.5">
-                    Product Name / Working Title
-                  </label>
-                  <Input
-                    placeholder="e.g. TaxSnap AI"
-                    value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
-                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {INSPIRATION_PITCHES.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => applyInspiration(item)}
+                        className="px-2.5 py-1 text-xs rounded-lg border border-border/60 bg-card hover:border-primary/50 text-muted-foreground hover:text-foreground transition-all"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-[var(--dash-text-secondary)] block mb-1.5">
-                    One-Liner (What does it do?)
-                  </label>
-                  <Input
-                    placeholder="e.g. Automated receipt tax prep for freelance creatives"
-                    value={oneLiner}
-                    onChange={(e) => setOneLiner(e.target.value)}
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      Product Name <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      placeholder="e.g. DocuFlow AI"
+                      value={productName}
+                      onChange={(e) => setProductName(e.target.value)}
+                      className="text-sm bg-card"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      One-Line Value Proposition (Your Hero Headline) <span className="text-destructive">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="e.g. Reconcile client invoices and receipts automatically in 15 seconds without spreadsheets."
+                      value={oneLiner}
+                      onChange={(e) => setOneLiner(e.target.value)}
+                      className="w-full text-sm rounded-md border border-input bg-card px-3 py-2 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      This will be the primary headline on your public landing page.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      Live URL Slug
+                    </label>
+                    <div className="flex items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs">
+                      <span className="text-muted-foreground select-none">/p/</span>
+                      <input
+                        type="text"
+                        value={slugModified ? customSlug : activeSlug}
+                        onChange={(e) => {
+                          setSlugModified(true);
+                          setCustomSlug(e.target.value);
+                        }}
+                        className="w-full bg-transparent text-foreground focus:outline-none pl-1 font-mono text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-[var(--dash-text-secondary)] block mb-1.5">
-                    Pain Point (What hurts without it?)
-                  </label>
-                  <Input
-                    placeholder="e.g. Losing receipts, wasting 15 hrs every tax season, fear of IRS audits"
-                    value={painPoint}
-                    onChange={(e) => setPainPoint(e.target.value)}
-                  />
-                </div>
-
-                <div className="pt-2 flex justify-end">
+                <div className="flex justify-end pt-4">
                   <Button
                     onClick={() => {
-                      if (!productName.trim()) { setError("Product name is required."); return; }
+                      if (!productName.trim()) {
+                        setError("Product name is required.");
+                        return;
+                      }
+                      if (!oneLiner.trim()) {
+                        setError("One-line value proposition is required.");
+                        return;
+                      }
                       setError("");
-                      setGuidedStep(2);
+                      setStep(2);
                     }}
                     className="gap-2"
                   >
-                    <span>Next: Value Angles</span>
-                    <ArrowRight className="w-4 h-4" />
+                    Next: Define the Offer <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </motion.div>
+            )}
 
-          {/* Step 2: Value Angles & Pricing */}
-          {guidedStep === 2 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-500" />
-                  <span>Step 2: Value Angles & Target Pricing</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-[var(--dash-text-secondary)] block mb-1.5">
-                    Target Subscription Price ($/month)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-text-tertiary">$</span>
-                    <Input
-                      type="number"
-                      value={expectedPrice}
-                      onChange={(e) => setExpectedPrice(e.target.value)}
-                      className="w-32"
-                    />
-                    <span className="text-xs text-text-secondary">/ month</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <p className="text-xs font-semibold text-[var(--dash-text-secondary)]">
-                    Two Competing Value Propositions to Test:
+            {/* STEP 2: The Offer & Willingness-to-Pay */}
+            {step === 2 && (
+              <motion.div
+                key="step-2"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="space-y-6"
+              >
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs flex items-center justify-center font-bold">2</span>
+                    What is your offer & commitment model?
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Real validation requires measuring skin-in-the-game. How will you test willingness to pay?
                   </p>
+                </div>
 
-                  <div className="p-3.5 rounded-xl border border-border bg-surface/50 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="blue">Variant A (Efficiency / Speed)</Badge>
-                      <span className="text-xs text-text-tertiary">50% Traffic</span>
+                {/* 3 Offer Models */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    {
+                      id: "deposit" as OfferType,
+                      title: "Refundable Deposit",
+                      badge: "Strongest Signal",
+                      badgeColor: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+                      desc: "Visitors pay a small deposit to lock founder pricing. 100% money-back guarantee.",
+                    },
+                    {
+                      id: "paid" as OfferType,
+                      title: "Paid Early Access",
+                      badge: "Direct Checkout",
+                      badgeColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+                      desc: "Display full monthly/annual price and capture checkout intent before building.",
+                    },
+                    {
+                      id: "waitlist" as OfferType,
+                      title: "High-Intent Waitlist",
+                      badge: "Low Friction",
+                      badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                      desc: "Collect verified work email + willingness-to-pay budget survey questions.",
+                    },
+                  ].map((o) => (
+                    <div
+                      key={o.id}
+                      onClick={() => handleOfferTypeChange(o.id)}
+                      className={`cursor-pointer rounded-xl p-4 border transition-all flex flex-col justify-between ${
+                        offerType === o.id
+                          ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                          : "border-border/60 bg-card hover:border-border"
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${o.badgeColor}`}>
+                          {o.badge}
+                        </span>
+                        <div className="font-semibold text-sm text-foreground">{o.title}</div>
+                        <p className="text-xs text-muted-foreground">{o.desc}</p>
+                      </div>
+                      <div className="mt-4 pt-2 border-t border-border/40 flex justify-end">
+                        {offerType === o.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                      </div>
                     </div>
-                    <Input
-                      value={angleA}
-                      onChange={(e) => setAngleA(e.target.value)}
-                      placeholder="e.g. Save 10 hours every month on bookkeeping"
-                    />
-                  </div>
-
-                  <div className="p-3.5 rounded-xl border border-border bg-surface/50 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="green">Variant B (Risk / Assurance)</Badge>
-                      <span className="text-xs text-text-tertiary">50% Traffic</span>
-                    </div>
-                    <Input
-                      value={angleB}
-                      onChange={(e) => setAngleB(e.target.value)}
-                      placeholder="e.g. 100% Audit-Proof Tax Prep Guaranteed"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[var(--dash-text-secondary)] block mb-1.5">
-                    Primary Conversion Call to Action (CTA)
-                  </label>
-                  <select
-                    className="w-full h-10 px-3 rounded-lg border border-border bg-surface text-sm"
-                    value={ctaChoice}
-                    onChange={(e) => setCtaChoice(e.target.value)}
-                  >
-                    <option value="Join Early Access">Join Early Access (Email Capture)</option>
-                    <option value="Reserve Spot ($1 Deposit)">Reserve Spot ($1 Refundable Deposit)</option>
-                    <option value="Start 14-Day Pilot">Start 14-Day Pilot</option>
-                    <option value="Request Demo">Request Discovery Demo</option>
-                  </select>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <Button variant="ghost" onClick={() => setGuidedStep(1)}>Back</Button>
-                  <Button onClick={() => setGuidedStep(3)} className="gap-2">
-                    <span>Next: Review & Deploy</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 3: Review & Launch */}
-          {guidedStep === 3 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span>Step 3: Confirm & Launch Smoke Test</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 space-y-1">
-                  <p className="font-bold">Ready to collect proof of demand!</p>
-                  <p>PoD will spin up two live landing page variants, initialize Bayesian significance tracking, and start your 7-day validation cycle.</p>
-                </div>
-
-                <div className="space-y-2 border border-border/80 rounded-xl p-3.5 bg-surface/40">
-                  <h4 className="text-xs font-bold text-[var(--dash-text-secondary)] uppercase">Experiment Summary</h4>
-                  <div className="text-xs space-y-1">
-                    <p><span className="text-text-tertiary">Product:</span> <strong>{productName}</strong></p>
-                    <p><span className="text-text-tertiary">Target Price:</span> <strong>${expectedPrice}/month</strong></p>
-                    <p><span className="text-text-tertiary">Variant A:</span> &quot;{angleA}&quot;</p>
-                    <p><span className="text-text-tertiary">Variant B:</span> &quot;{angleB}&quot;</p>
-                    <p><span className="text-text-tertiary">Primary CTA:</span> <strong>{ctaChoice}</strong></p>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <Button variant="ghost" onClick={() => setGuidedStep(2)}>Back</Button>
-                  <Button onClick={handleGuidedLaunch} disabled={loading} className="gap-2 bg-blue text-white shadow-lg">
-                    {loading ? "Deploying Smoke Test..." : "🚀 Launch Live Smoke Test"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODE 2: CUSTOM SETUP FORM (EXISTING POWER-USER CONFIG) */}
-      {/* ========================================================================= */}
-      {mode === "custom" && (
-        <>
-          {/* Template Quick Select */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-text-secondary">Start from a Template</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                {EXPERIMENT_TEMPLATES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => applyTemplate(t.id)}
-                    className="text-left p-3 rounded-lg border border-border hover:border-blue/50 hover:bg-surface-elevated transition-colors text-xs space-y-1"
-                  >
-                    <div className="font-semibold text-text-primary">{t.name}</div>
-                    <div className="text-text-tertiary line-clamp-1">{t.description}</div>
-                  </button>
-
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Experiment Details</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-text-secondary block mb-1">Project</label>
-                <select
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-surface text-sm"
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-secondary block mb-1">Experiment Name</label>
-                <Input placeholder="e.g. Value Prop Headline Test" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-text-secondary block mb-1">Budget ($)</label>
-                  <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} />
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-text-secondary block mb-1">Channels</label>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {CHANNELS.map((ch) => {
-                      const sel = channels.includes(ch.id);
-                      return (
-                        <button
-                          key={ch.id}
-                          type="button"
-                          onClick={() => toggleChannel(ch.id)}
-                          className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                            sel ? "bg-blue/15 border-blue text-blue" : "border-border text-text-secondary hover:border-border/80"
-                          }`}
-                        >
-                          {ch.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Variants */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Variants ({variants.length}/4)</CardTitle>
-                <p className="text-xs text-text-tertiary mt-0.5">Traffic allocated: {totalAllocation}%</p>
-              </div>
-              {variants.length < 4 && (
-                <Button size="sm" variant="secondary" onClick={addVariant}>
-                  <Plus className="w-3.5 h-3.5" /> Add Variant
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {variants.map((v, i) => (
-                <div key={i} className="p-4 rounded-lg border border-border space-y-3 bg-surface-elevated/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-blue">{v.name || `Variant ${i + 1}`}</span>
-                    {variants.length > 2 && (
-                      <button type="button" onClick={() => removeVariant(i)} className="text-text-tertiary hover:text-red">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-3">
+                {/* Offer Pricing Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/60">
+                  {offerType === "deposit" && (
                     <div>
-                      <label className="text-[11px] text-text-tertiary block mb-1">Variant Name</label>
-                      <Input value={v.name} onChange={(e) => updateVariant(i, { name: e.target.value })} placeholder="e.g. Variant A (Control)" />
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Deposit Amount ($ USD)
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="w-3.5 h-3.5 absolute left-3 top-3 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          value={depositAmount}
+                          onChange={(e) => handleDepositChange(e.target.value)}
+                          className="pl-8 text-sm bg-card"
+                          placeholder="20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-muted-foreground mt-1 block">
+                        Typical deposits: $10, $20, or $50
+                      </span>
                     </div>
-                    <div>
-                      <label className="text-[11px] text-text-tertiary block mb-1">Traffic %</label>
-                      <Input type="number" value={v.trafficAllocation} onChange={(e) => updateVariant(i, { trafficAllocation: Number(e.target.value) })} />
-                    </div>
-                  </div>
+                  )}
+
                   <div>
-                    <label className="text-[11px] text-text-tertiary block mb-1">Headline</label>
-                    <Input value={v.headline} onChange={(e) => updateVariant(i, { headline: e.target.value })} placeholder="e.g. The fastest way to validate demand." />
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      {offerType === "waitlist" ? "Expected Target Price ($/mo)" : "Target Retail Price ($/mo)"}
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="w-3.5 h-3.5 absolute left-3 top-3 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        value={priceAnchor}
+                        onChange={(e) => handlePriceChange(e.target.value)}
+                        className="pl-8 text-sm bg-card"
+                        placeholder="49"
+                      />
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      Shown on page as anchor price
+                    </span>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] text-text-tertiary block mb-1">Call to Action (CTA)</label>
-                      <Input value={v.cta} onChange={(e) => updateVariant(i, { cta: e.target.value })} placeholder="e.g. Join Waitlist" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-text-tertiary block mb-1">Positioning Angle</label>
-                      <Input value={v.positioning} onChange={(e) => updateVariant(i, { positioning: e.target.value })} placeholder="e.g. Speed / ROI" />
-                    </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      Button CTA Text
+                    </label>
+                    <Input
+                      value={ctaText}
+                      onChange={(e) => setCtaText(e.target.value)}
+                      className="text-sm bg-card"
+                      placeholder="Reserve Founder Spot"
+                    />
                   </div>
                 </div>
-              ))}
+
+                <div className="flex items-center justify-between pt-4">
+                  <Button variant="ghost" onClick={() => setStep(1)} className="gap-2">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </Button>
+                  <Button onClick={() => setStep(3)} className="gap-2">
+                    Next: Choose Template <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 3: Template & Launch */}
+            {step === 3 && (
+              <motion.div
+                key="step-3"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="space-y-6"
+              >
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs flex items-center justify-center font-bold">3</span>
+                    Pick a Template & Launch
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Select the public layout that best highlights your value proposition.
+                  </p>
+                </div>
+
+                {/* Template Selection Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    {
+                      id: "hero" as TemplateType,
+                      name: "Hero Direct",
+                      tag: "Recommended for SaaS",
+                      desc: "Clean centered layout focusing on the value proposition, social proof, and 1-click CTA.",
+                    },
+                    {
+                      id: "problem" as TemplateType,
+                      name: "Problem / Solution",
+                      tag: "Best for B2B Pain Points",
+                      desc: "Contrasts painful current workflows against your automated solution.",
+                    },
+                    {
+                      id: "minimal" as TemplateType,
+                      name: "Minimalist Focus",
+                      tag: "High Conversion",
+                      desc: "Ultra-fast loading, distraction-free hero with bulleted feature checklist.",
+                    },
+                    {
+                      id: "split" as TemplateType,
+                      name: "Interactive Split",
+                      tag: "Showcase / AI",
+                      desc: "Left-side persuasive copy with a right-side simulated product showcase card.",
+                    },
+                  ].map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedTemplate(t.id)}
+                      className={`cursor-pointer rounded-xl p-4 border transition-all ${
+                        selectedTemplate === t.id
+                          ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                          : "border-border/60 bg-card hover:border-border"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-semibold text-sm text-foreground">{t.name}</span>
+                        {selectedTemplate === t.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                      </div>
+                      <Badge variant="default" className="text-[10px] mb-2 font-mono">
+                        {t.tag}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">{t.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Automated 7-Day Sprint Defaults Info Box */}
+                <div className="bg-muted/30 border border-border/60 rounded-xl p-4 space-y-2 text-xs">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    Automated 7-Day Sprint Configuration
+                  </div>
+                  <ul className="text-muted-foreground space-y-1 pl-5 list-disc">
+                    <li>Experiment status set to <strong className="text-foreground">Running</strong> for 7 days.</li>
+                    <li>2 A/B variant angles automatically generated for attribution.</li>
+                    <li>Meta, Google Ads, and LinkedIn conversion webhooks ready to receive traffic.</li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-between pt-4">
+                  <Button variant="ghost" onClick={() => setStep(2)} className="gap-2">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </Button>
+                  <Button
+                    onClick={handleLaunch}
+                    disabled={loading}
+                    className="bg-primary text-primary-foreground gap-2 font-semibold shadow-md hover:shadow-lg transition-all"
+                  >
+                    {loading ? (
+                      "Launching Smoke Test..."
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+                        Launch 60-Second Smoke Test
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Right Column: Live Landing Page Preview Card (5 cols) */}
+        <div className="lg:col-span-5 sticky top-8">
+          <Card className="border-border/80 shadow-md bg-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/60 bg-muted/40 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
+                <span className="text-[11px] font-mono text-muted-foreground ml-2">Live Page Preview</span>
+              </div>
+              <Badge variant="green" className="text-[10px]">
+                Ready to Publish
+              </Badge>
+            </div>
+
+            <CardContent className="p-6 space-y-6">
+              {/* Browser Address Bar Preview */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40 text-xs font-mono text-muted-foreground">
+                <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="truncate">
+                  yourdomain.com/p/<span className="text-foreground font-semibold">{activeSlug}</span>
+                </span>
+              </div>
+
+              {/* Simulated Landing Page Hero */}
+              <div className="rounded-xl border border-border/60 bg-background/80 p-5 space-y-4 text-center">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium mx-auto">
+                  <Sparkles className="w-3 h-3" />
+                  {productName.trim() || "Your Product Name"}
+                </div>
+
+                <h3 className="text-base font-bold tracking-tight text-foreground leading-snug">
+                  {oneLiner.trim() || "Your irresistible one-line pitch will appear here."}
+                </h3>
+
+                <p className="text-xs text-muted-foreground">
+                  The fastest way to automate workflows, eliminate human error, and save 10+ hours every week.
+                </p>
+
+                {/* Offer Preview Banner */}
+                <div className="py-2 px-3 rounded-lg bg-muted/40 border border-border/40 text-xs">
+                  {offerType === "deposit" ? (
+                    <div className="text-foreground font-medium">
+                      🔒 <strong className="text-emerald-500">${depositAmount || "20"} Refundable Deposit</strong> to lock founder pricing ($49/mo retail)
+                    </div>
+                  ) : offerType === "paid" ? (
+                    <div className="text-foreground font-medium">
+                      💳 <strong className="text-blue-500">${priceAnchor || "49"}/month</strong> • Full Early Founder Access
+                    </div>
+                  ) : (
+                    <div className="text-foreground font-medium">
+                      📋 <strong>Free Founder Pilot</strong> • Verified Work Email Required
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2">
+                  <div className="w-full py-2.5 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5">
+                    {ctaText || "Get Early Access"}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-1.5 block">
+                    No credit card required for waitlist • Instant receipt
+                  </span>
+                </div>
+              </div>
+
+              {/* Founder Checklist Summary */}
+              <div className="space-y-2 pt-2 text-xs border-t border-border/40">
+                <div className="font-semibold text-foreground text-[11px]">Included with 1-Click Launch:</div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Custom public URL with UTM tracking</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Meta, Google & LinkedIn ad webhook ready</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Willingness-to-pay intent analytics</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-          <div className="flex justify-end gap-3">
-            <Link href="/dashboard/experiments"><Button variant="ghost">Cancel</Button></Link>
-            <Button onClick={handleCustomCreate} disabled={loading}>
-              {loading ? "Creating..." : "Create Experiment"}
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Plan Quota Tier Gating Modal */}
+      {/* Quota Limit Guard Modal */}
       <QuotaGuardModal
         open={quotaModalOpen}
         onClose={() => setQuotaModalOpen(false)}
@@ -659,4 +755,3 @@ export default function NewExperimentPage() {
     </div>
   );
 }
-

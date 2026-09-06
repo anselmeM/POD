@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { demoLandingPages } from "@/lib/mock-data";
+import { testLandingPages as demoLandingPages } from "@/tests/fixtures/data";
 import type { LandingPage } from "@/lib/types";
 
 // ---------------------------------------------------------------------------

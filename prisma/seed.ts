@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
 
@@ -6,14 +5,12 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Demo user + workspace (for auth)
-  const hashedPassword = await bcrypt.hash("demo12345", 10);
   const demoUser = await prisma.user.upsert({
     where: { email: "alex@example.com" },
-    update: { name: "Alex Morgan", password: hashedPassword },
+    update: { name: "Alex Morgan" },
     create: {
       name: "Alex Morgan",
       email: "alex@example.com",
-      password: hashedPassword,
     },
   });
   console.log(`  ✅ User: ${demoUser.email}`);

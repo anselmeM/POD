@@ -91,8 +91,12 @@ export default function NewExperimentPage() {
   useEffect(() => {
     fetch("/api/projects")
       .then(async (r) => {
-        const text = await r.text();
-        return text ? JSON.parse(text) : { data: [] };
+        try {
+          const text = await r.text();
+          return text?.trim() ? JSON.parse(text) : { data: [] };
+        } catch {
+          return { data: [] };
+        }
       })
       .then((j) => {
         const list: Project[] = j.data || [];

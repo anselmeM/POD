@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, Users, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import type { FunnelStage } from "@/lib/types";
 
@@ -20,10 +21,18 @@ const strengthLabels: Record<string, string> = {
 export const dynamic = "force-dynamic";
 
 export default function SignalsPage() {
+  const router = useRouter();
   const [funnel, setFunnel] = useState<FunnelStage[]>([]);
   const [signalEvents, setSignalEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/dashboard/leads?tab=signals");
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const fetchData = async () => {
     setLoading(true);

@@ -60,14 +60,12 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useUser, useClerk } from "@clerk/nextjs";
 
 /**
- * 5 Core Primary Navigation Pillars displayed directly in the desktop header.
+ * 3 Core Primary Validation Pillars displayed directly in the desktop header.
  */
 const PRIMARY_NAV = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },
+  { label: "Tests", href: "/dashboard/experiments", icon: FlaskConical },
   { label: "Demand", href: "/dashboard/leads", icon: Contact },
-  { label: "Portfolio", href: "/dashboard/portfolio", icon: Trophy },
-  { label: "AI Verdict", href: "/dashboard/ai-analyst", icon: Brain },
 ];
 
 /**
@@ -75,6 +73,8 @@ const PRIMARY_NAV = [
  */
 const ALL_MOBILE_NAV = [
   ...PRIMARY_NAV,
+  { label: "AI Verdict Brief", href: "/dashboard/ai-analyst", icon: Brain },
+  { label: "Studio Portfolio", href: "/dashboard/portfolio", icon: Trophy },
   { label: "Traffic & Ads", href: "/dashboard/traffic", icon: Megaphone },
   { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard },
   { label: "Team & Roles", href: "/dashboard/team", icon: Users },
@@ -491,6 +491,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-surface-elevated hover:text-[var(--dash-text-primary)] transition-colors"
                       >
                         <Settings className="w-4 h-4" /> Settings
+                      </Link>
+                      <Link
+                        href="/dashboard/portfolio"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-surface-elevated hover:text-[var(--dash-text-primary)] transition-colors"
+                      >
+                        <Trophy className="w-4 h-4 text-amber-500" /> Studio Portfolio
+                      </Link>
+                      <Link
+                        href="/dashboard/traffic"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--dash-text-secondary)] hover:bg-surface-elevated hover:text-[var(--dash-text-primary)] transition-colors"
+                      >
+                        <Megaphone className="w-4 h-4 text-pink-400" /> Traffic & Ads
                       </Link>
                       <Link
                         href="/dashboard/billing"

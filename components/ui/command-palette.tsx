@@ -6,19 +6,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, LayoutDashboard, FlaskConical, Activity, Users,
   Contact, Brain, Layout, FileText, Settings, HelpCircle,
-  ArrowRight, Command,
+  ArrowRight, Command, Trophy, Megaphone, CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CommandItem { label: string; href: string; icon: React.ElementType; section: string; keywords?: string[]; }
 
 const commands: CommandItem[] = [
-  { label: "Overview & Sprint", href: "/dashboard", icon: LayoutDashboard, section: "Validation Pillars", keywords: ["home", "dashboard", "sprint", "summary"] },
-  { label: "Experiments & Live Pages", href: "/dashboard/experiments", icon: FlaskConical, section: "Validation Pillars", keywords: ["test", "ab", "variant", "smoke", "pages"] },
-  { label: "Demand & Signals Hub", href: "/dashboard/leads", icon: Contact, section: "Validation Pillars", keywords: ["crm", "waitlist", "attribution", "telemetry", "traffic", "signals", "audiences"] },
-  { label: "AI Verdict & Executive Brief", href: "/dashboard/ai-analyst", icon: Brain, section: "Validation Pillars", keywords: ["verdict", "go", "pivot", "kill", "pdf", "export", "report"] },
-  { label: "Team & Permissions", href: "/dashboard/team", icon: Users, section: "Operations", keywords: ["members", "rbac", "collaborators"] },
-  { label: "Audit & Activity Log", href: "/dashboard/history/activity", icon: Activity, section: "Operations", keywords: ["audit", "history", "logs"] },
+  { label: "Overview", href: "/dashboard", icon: LayoutDashboard, section: "Validation Pillars", keywords: ["home", "dashboard", "sprint", "summary"] },
+  { label: "Tests & Smoke Pages", href: "/dashboard/experiments", icon: FlaskConical, section: "Validation Pillars", keywords: ["test", "ab", "variant", "smoke", "pages", "landing"] },
+  { label: "Demand & Leads CRM", href: "/dashboard/leads", icon: Contact, section: "Validation Pillars", keywords: ["crm", "waitlist", "attribution", "telemetry", "traffic", "signals", "audiences", "preorder"] },
+  { label: "AI Verdict & Executive Brief", href: "/dashboard/ai-analyst", icon: Brain, section: "Validation Pillars", keywords: ["verdict", "go", "pivot", "kill", "pdf", "export", "report", "brief"] },
+  { label: "Studio Portfolio & Leaderboard", href: "/dashboard/portfolio", icon: Trophy, section: "Studio & Growth", keywords: ["portfolio", "leaderboard", "stage-gate", "studio", "incubator", "kill"] },
+  { label: "Traffic & Ad Campaign Kit", href: "/dashboard/traffic", icon: Megaphone, section: "Studio & Growth", keywords: ["traffic", "ads", "utm", "campaign", "meta", "linkedin", "google"] },
+  { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard, section: "Operations", keywords: ["billing", "subscription", "plans", "stripe", "invoices"] },
+  { label: "Team & Permissions", href: "/dashboard/team", icon: Users, section: "Operations", keywords: ["members", "rbac", "collaborators", "roles"] },
+  { label: "Audit & Activity Log", href: "/dashboard/history/activity", icon: Activity, section: "Operations", keywords: ["audit", "history", "logs", "events"] },
   { label: "Workspace Settings", href: "/dashboard/settings", icon: Settings, section: "Operations", keywords: ["workspace", "billing", "keys"] },
   { label: "Help & Shortcuts", href: "/dashboard/help", icon: HelpCircle, section: "Operations", keywords: ["docs", "support", "keys"] },
 ];

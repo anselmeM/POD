@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLandingPageStore } from "@/lib/store";
 import type { LandingPageStatus } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 const statusMap: Record<string, { variant: "green" | "blue" | "amber" | "default"; label: string }> = {
   live: { variant: "green", label: "Live" },
@@ -33,10 +34,18 @@ const filterTabs: { label: string; value: LandingPageStatus | "all" }[] = [
 export const dynamic = "force-dynamic";
 
 export default function LandingPagesPage() {
+  const router = useRouter();
   const { landingPages, loading, fetchLandingPages, deleteLandingPage, updateLandingPageStatus } = useLandingPageStore();
   const [filter, setFilter] = useState<LandingPageStatus | "all">("all");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/dashboard/experiments?view=pages");
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   useEffect(() => { fetchLandingPages(); }, [fetchLandingPages]);
 

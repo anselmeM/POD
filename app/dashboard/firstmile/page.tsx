@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,17 @@ function getRecommendation(score: number): "Build" | "Iterate" | "Pause" | "Kill
 }
 
 export default function FirstMileDevsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/dashboard/portfolio");
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   useEffect(() => {
     fetch("/api/projects")

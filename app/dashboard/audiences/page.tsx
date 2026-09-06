@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Users, Target, TrendingUp, Globe, Building2, Briefcase, AlertCircle, RefreshCw, BarChart3, ArrowRight } from "lucide-react";
 
@@ -13,10 +14,18 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 export const dynamic = "force-dynamic";
 
 export default function AudiencesPage() {
+  const router = useRouter();
   const [audience, setAudience] = useState<any>(null);
   const [segments, setSegments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/dashboard/leads?tab=attribution");
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const fetchData = async () => {
     setLoading(true);

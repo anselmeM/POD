@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SprintBanner } from "@/components/dashboard/sprint-banner";
+import { AIGeneratorModal } from "@/components/dashboard/ai-generator-modal";
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -120,6 +121,8 @@ export default function DashboardPage() {
   const { experiments, error, fetchExperiments } = useExperimentStore();
   const [project, setProject] = useState<Project | null>(null);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
 
   const fetchProjectData = async () => {
     try {
@@ -135,6 +138,13 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchExperiments(); }, [fetchExperiments]);
   useEffect(() => { fetchProjectData(); }, []);
+
+  useEffect(() => {
+    fetch("/api/activity")
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => setActivityLogs(Array.isArray(j.data) ? j.data.slice(0, 6) : []))
+      .catch(() => setActivityLogs([]));
+  }, []);
 
   const handleLoadDemoData = async () => {
     setLoadingDemo(true);
@@ -202,11 +212,20 @@ export default function DashboardPage() {
             Here&apos;s what your current validation sprint is telling you.
           </p>
         </div>
-        <Link href="/dashboard/experiments/new">
-          <button className="flex items-center gap-2 bg-blue text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue/20 hover:shadow-blue/30 hover:scale-[1.02] transition-all">
-            <Plus className="w-4 h-4" /> New Experiment
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setAiModalOpen(true)}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:scale-[1.02] transition-all cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>⚡ AI Smoke Test</span>
           </button>
-        </Link>
+          <Link href="/dashboard/experiments/new">
+            <button className="flex items-center gap-2 bg-surface-elevated border border-border text-[var(--dash-text-primary)] hover:border-blue/50 px-4 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:scale-[1.02] transition-all cursor-pointer">
+              <Plus className="w-4 h-4" /> New Experiment
+            </button>
+          </Link>
+        </div>
       </motion.div>
 
       {error && (
@@ -307,8 +326,15 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[var(--dash-text-tertiary)]">/ 100</span>
                 </div>
               </div>
-              <Badge variant={verdict.color} className="mb-2">{verdict.label}</Badge>
-              <p className="text-[11px] text-[var(--dash-text-tertiary)] mt-1">Updated {timeAgo(project?.updatedAt)}</p>
+              <Link href="/dashboard/ai-analyst?export=ready" className="group flex flex-col items-center">
+                <Badge variant={verdict.color} className="mb-1.5 group-hover:scale-105 transition-transform cursor-pointer">
+                  {verdict.label}
+                </Badge>
+                <span className="text-[11px] text-blue hover:underline flex items-center justify-center gap-1 font-medium">
+                  View Full Verdict & Brief <ArrowUpRight className="w-3 h-3" />
+                </span>
+              </Link>
+              <p className="text-[10px] text-[var(--dash-text-tertiary)] mt-1.5">Updated {timeAgo(project?.updatedAt)}</p>
             </GlassCard>
           </SpotlightCard>
         </motion.div>
@@ -394,35 +420,62 @@ export default function DashboardPage() {
             <GlassCard className="p-5 h-full">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-bold text-[var(--dash-text-primary)]">Recent Activity</span>
-                <Link href="/dashboard/history">
-                  <button className="text-xs font-bold text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-primary)] transition-colors flex items-center gap-1">
+                <Link href="/dashboard/history/activity">
+                  <button className="text-xs font-bold text-[var(--dash-text-tertiary)] hover:text-[var(--dash-text-primary)] transition-colors flex items-center gap-1 cursor-pointer">
                     View All <ArrowUpRight className="w-3 h-3" />
                   </button>
                 </Link>
               </div>
               <div className="space-y-2">
-                {safeExperiments.slice(0, 6).map((exp, i) => (
-                  <motion.div key={exp.id}
-                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + i * 0.05 }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-elevated transition-colors">
-                    <div className="w-7 h-7 rounded-full bg-surface-elevated border border-border flex items-center justify-center shrink-0">
-                      <Activity className="w-3.5 h-3.5 text-[var(--dash-text-tertiary)]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{exp.name}</p>
-                      <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{exp.status} · {exp.traffic} visitors</p>
-                    </div>
-                    <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
-                      {timeAgo(exp.updatedAt)}
-                    </span>
-                  </motion.div>
-                ))}
+                {activityLogs.length > 0 ? (
+                  activityLogs.map((log, i) => (
+                    <motion.div key={log.id}
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + i * 0.05 }}
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-elevated transition-colors">
+                      <div className="w-7 h-7 rounded-full bg-blue/10 border border-blue/20 flex items-center justify-center shrink-0">
+                        <Activity className="w-3.5 h-3.5 text-blue" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{log.action}</p>
+                        <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{log.detail}</p>
+                      </div>
+                      <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
+                        {timeAgo(log.createdAt)}
+                      </span>
+                    </motion.div>
+                  ))
+                ) : (
+                  safeExperiments.slice(0, 6).map((exp, i) => (
+                    <motion.div key={exp.id}
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + i * 0.05 }}
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-elevated transition-colors">
+                      <div className="w-7 h-7 rounded-full bg-surface-elevated border border-border flex items-center justify-center shrink-0">
+                        <Activity className="w-3.5 h-3.5 text-[var(--dash-text-tertiary)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[var(--dash-text-primary)] truncate">{exp.name}</p>
+                        <p className="text-[11px] text-[var(--dash-text-tertiary)] truncate">{exp.status} · {exp.traffic} visitors</p>
+                      </div>
+                      <span className="text-[10px] text-[var(--dash-text-tertiary)] font-medium whitespace-nowrap">
+                        {timeAgo(exp.updatedAt)}
+                      </span>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </GlassCard>
           </SpotlightCard>
         </motion.div>
       </div>
+
+      {/* 15-Second Instant AI Smoke Test Generator Modal */}
+      <AIGeneratorModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onGenerated={fetchExperiments}
+      />
     </div>
   );
 }

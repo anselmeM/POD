@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Zap, Plus, AlertCircle, RefreshCw, ArrowRight, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useExperimentStore } from "@/lib/store";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
@@ -15,7 +16,15 @@ const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 export const dynamic = "force-dynamic";
 
 export default function SprintPage() {
+  const router = useRouter();
   const { experiments, loading, error, fetchExperiments } = useExperimentStore();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/dashboard?view=sprint");
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   useEffect(() => {
     fetchExperiments();

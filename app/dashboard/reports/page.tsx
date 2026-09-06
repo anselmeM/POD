@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, Download, ArrowRight, AlertCircle, RefreshCw, Brain } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,19 @@ const verdictTextColors: Record<string, string> = {
 export const dynamic = "force-dynamic";
 
 export default function ReportsPage() {
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [experiments, setExperiments] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/dashboard/ai-analyst?export=ready");
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const fetchData = async () => {
     setLoading(true);

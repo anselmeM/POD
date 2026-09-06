@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
           subheadline: String(v.subheadline || ""),
           cta: String(v.cta || "Get Started"),
           positioning: String(v.positioning || ""),
-          traffic: Number(v.traffic) || 0,
+          trafficAllocation: Number(v.trafficAllocation) || 50,
+          visitors: Number(v.visitors ?? v.traffic) || 0,
           conversions: Number(v.conversions) || 0,
           conversionRate: Number(v.conversionRate) || 0,
         })),
@@ -126,6 +127,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: serializeExperiment(created) }, { status: 201 });
   } catch (e) {
     console.error("Failed to create experiment:", e);
-    return NextResponse.json({ error: "Failed to create experiment" }, { status: 500 });
+    return NextResponse.json(
+      { error: (e as Error).message || "Failed to create experiment" },
+      { status: 500 }
+    );
   }
 }

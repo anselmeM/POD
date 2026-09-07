@@ -53,13 +53,12 @@ async function applyMigrations(url: string, authToken?: string) {
 }
 
 async function run() {
-  // Always apply to local database
-  await applyMigrations(localUrl);
-
-  // If Turso credentials provided, apply to Turso cloud database
-  if (tursoUrl && tursoToken) {
-    await applyMigrations(tursoUrl, tursoToken);
-  }
+  // Single effective target: an explicit Turso URL wins over DATABASE_URL, and
+  // the token is always attached when present. (Previously the DATABASE_URL
+  // pass ran without the token, so a Turso DATABASE_URL 401'd and aborted
+  // before the authenticated pass ever ran.)
+  const primary = tursoUrl || localUrl;
+  await applyMigrations(primary, tursoToken || undefined);
 }
 
 run().catch((err) => {

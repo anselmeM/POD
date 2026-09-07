@@ -89,9 +89,7 @@ describe("Phase 3: Production Hardening, Rate Limiting & Resilience", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.status).toBe("healthy");
-      expect(json.checks.database.status).toBe("connected");
-      expect(typeof json.checks.database.latencyMs).toBe("number");
-      expect(json.version).toBe("1.0.0");
+      expect(json.timestamp).toBeDefined();
     });
 
     it("returns 503 and degraded status when database ping fails", async () => {
@@ -103,8 +101,18 @@ describe("Phase 3: Production Hardening, Rate Limiting & Resilience", () => {
       expect(res.status).toBe(503);
       const json = await res.json();
       expect(json.status).toBe("degraded");
-      expect(json.checks.database.status).toBe("error");
-      expect(json.checks.database.error).toContain("Connection refused");
+    });
+
+    it("does not disclose config presence or raw database errors", async () => {
+      (prisma.$queryRawUnsafe as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("Connection refused to database")
+      );
+
+      const res = await healthGet();
+      const json = await res.json();
+      expect(JSON.stringify(json)).not.toContain("Connection refused");
+      expect(json.checks).toBeUndefined();
+      expect(json.version).toBeUndefined();
     });
   });
 

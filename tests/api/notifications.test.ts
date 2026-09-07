@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => ({
       count: vi.fn(),
       createMany: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
@@ -114,6 +115,9 @@ describe("Notifications API & Dispatcher", { timeout: 15000 }, () => {
       id: "notif-1",
       read: true,
     });
+    (prisma.notification.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "notif-1",
+    });
 
     const req = {
       json: async () => ({ id: "notif-1" }),
@@ -160,6 +164,9 @@ describe("Notifications API & Dispatcher", { timeout: 15000 }, () => {
     (prisma.notification.delete as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "notif-1",
     });
+    (prisma.notification.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "notif-1",
+    });
 
     const req = {
       url: "http://localhost/api/notifications?id=notif-1",
@@ -171,6 +178,25 @@ describe("Notifications API & Dispatcher", { timeout: 15000 }, () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.deleted).toBe("notif-1");
+  });
+
+  it("PATCH /api/notifications returns 404 for another user's notification", async () => {
+    (auth as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { email: "founder@example.com" },
+    });
+    (prisma.user.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "usr-founder",
+      email: "founder@example.com",
+    });
+    (prisma.notification.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const req = {
+      json: async () => ({ id: "notif-foreign" }),
+    } as never;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(404);
+    expect(prisma.notification.update).not.toHaveBeenCalled();
   });
 
   it("DELETE /api/notifications clears all notifications", async () => {

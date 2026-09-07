@@ -11,9 +11,7 @@ export async function GET() {
     }
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) {
-      return NextResponse.json({
-        data: [{ id: "default-ws", name: "My Workspace", plan: "trial", role: "owner" }],
-      });
+      return NextResponse.json({ data: [] });
     }
 
     const memberships = await prisma.workspaceMember.findMany({
@@ -30,12 +28,10 @@ export async function GET() {
       ...extraOwned.map((w) => ({ ...w, role: "owner" as const })),
     ];
 
-    return NextResponse.json({ data: data.length ? data : [{ id: "default-ws", name: "My Workspace", plan: "trial", role: "owner" }] });
+    return NextResponse.json({ data });
   } catch (e) {
     console.error("Failed to fetch workspaces:", e);
-    return NextResponse.json({
-      data: [{ id: "default-ws", name: "My Workspace", plan: "trial", role: "owner" }],
-    });
+    return NextResponse.json({ data: [] });
   }
 }
 

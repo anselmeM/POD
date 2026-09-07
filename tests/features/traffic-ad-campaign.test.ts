@@ -110,7 +110,7 @@ describe("Traffic & Multi-Channel Ad Campaign Kit", () => {
     });
 
     it("resolves context from database when landingPageId is passed", async () => {
-      (prisma.landingPage.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (prisma.landingPage.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: "lp-99",
         name: "DevOps Observability Tool",
         headline: "Real-Time K8s Cost Observability",
@@ -128,6 +128,18 @@ describe("Traffic & Multi-Channel Ad Campaign Kit", () => {
       const json = await res.json();
       expect(json.data.conceptTitle).toContain("DevOps Observability Tool");
     });
+
+    it("returns 403 when landingPageId belongs to another workspace", async () => {
+      (prisma.landingPage.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const req = new NextRequest("http://localhost:3000/api/ai/ad-campaign", {
+        method: "POST",
+        body: JSON.stringify({ landingPageId: "lp-foreign" }),
+      });
+
+      const res = await adCampaignPost(req);
+      expect(res.status).toBe(403);
+    });
   });
 
   describe("GET /api/traffic/attribution", () => {
@@ -137,6 +149,14 @@ describe("Traffic & Multi-Channel Ad Campaign Kit", () => {
       const req = new NextRequest("http://localhost:3000/api/traffic/attribution");
       const res = await attributionGet(req);
       expect(res.status).toBe(401);
+    });
+
+    it("returns 403 when experimentId belongs to another workspace", async () => {
+      (prisma.experiment.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const req = new NextRequest("http://localhost:3000/api/traffic/attribution?experimentId=exp-foreign");
+      const res = await attributionGet(req);
+      expect(res.status).toBe(403);
     });
 
     it("aggregates traffic, leads, and preorders by channel with conversion rates", async () => {

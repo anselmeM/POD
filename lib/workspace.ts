@@ -104,23 +104,12 @@ export async function getAuthenticatedWorkspace(
     console.error("Database user lookup failed in getAuthenticatedWorkspace:", dbErr);
   }
 
-  // Fallback for mocked test environments where User record is not in database
+  // Fail closed: a valid session without a database user is abnormal (auth()
+  // JIT-provisions users on sign-in). Never synthesize an owner context for a
+  // fake workspace — downstream ownership checks must see null, not a phantom
+  // tenant that bypasses authorization.
   if (!dbUser) {
-    return {
-      user: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        image: session.user.image,
-      },
-      workspace: {
-        id: "default-ws",
-        name: session.user.name ? `${session.user.name}'s Workspace` : "My Workspace",
-        plan: "trial",
-        ownerId: session.user.id,
-      },
-      role: "owner",
-    };
+    return null;
   }
 
   // Step 3: Extract membership list
@@ -158,38 +147,29 @@ export async function getAuthenticatedWorkspace(
 
   // Step 6: Auto-heal if user has no workspaces
   if (!membership) {
-    if (typeof prisma.workspace?.create === "function") {
-      const defaultName = dbUser.name ? `${dbUser.name}'s Workspace` : "My Workspace";
-      const workspace = await prisma.workspace.create({
-        data: {
-          name: defaultName,
-          plan: "trial",
-          ownerId: dbUser.id,
-        },
-      });
+    const defaultName = dbUser.name ? `${dbUser.name}'s Workspace` : "My Workspace";
+    const workspace = await prisma.workspace.create({
+      data: {
+        name: defaultName,
+        plan: "trial",
+        ownerId: dbUser.id,
+      },
+    });
 
-      const newMember = await prisma.workspaceMember.create({
-        data: {
-          workspaceId: workspace.id,
-          userId: dbUser.id,
-          role: "owner",
-        },
-        include: { workspace: true },
-      });
-
-      membership = newMember;
-    } else {
-      membership = {
-        workspaceId: "default-ws",
-        workspace: {
-          id: "default-ws",
-          name: dbUser.name ? `${dbUser.name}'s Workspace` : "My Workspace",
-          plan: "trial",
-          ownerId: dbUser.id,
-        },
+    const newMember = await prisma.workspaceMember.create({
+      data: {
+        workspaceId: workspace.id,
+        userId: dbUser.id,
         role: "owner",
-      };
-    }
+      },
+      include: { workspace: true },
+    });
+
+    membership = newMember;
+  }
+
+  if (!membership?.workspace && !membership?.workspaceId) {
+    return null;
   }
 
   return {
@@ -200,7 +180,7 @@ export async function getAuthenticatedWorkspace(
       image: dbUser.image,
     },
     workspace: membership.workspace || {
-      id: membership.workspaceId || "default-ws",
+      id: membership.workspaceId,
       name: "Default Workspace",
       plan: "trial",
       ownerId: dbUser.id,

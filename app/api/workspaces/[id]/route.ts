@@ -18,6 +18,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const workspace = await prisma.workspace.findUnique({ where: { id } });
   if (!workspace) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
 
+  // Caller must be a member — workspace names, plans, and billing ids are
+  // not enumerable by arbitrary authenticated users.
+  const membership = await prisma.workspaceMember.findFirst({
+    where: { workspaceId: id, userId: user.id },
+  });
+  if (!membership && workspace.ownerId !== user.id) {
+    return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+  }
+
   return NextResponse.json({ data: workspace });
 }
 

@@ -18,6 +18,7 @@ async function applyMigrations(url: string, authToken?: string) {
 
   console.log(`Applying ${folders.length} migrations...`);
 
+  const failed: string[] = [];
   for (const folder of folders) {
     const sqlFile = path.join(migrationsDir, folder, "migration.sql");
     if (fs.existsSync(sqlFile)) {
@@ -26,9 +27,26 @@ async function applyMigrations(url: string, authToken?: string) {
         await client.executeMultiple(sql);
         console.log(`  ✅ Applied: ${folder}`);
       } catch (err: any) {
-        console.warn(`  ⚠️ Note on ${folder}:`, err.message);
+        // Fail loudly on genuine errors: a silently skipped migration is how
+        // production drifts out of sync with the schema.
+        // Benign rerun cases are skipped: this script is intentionally
+        // re-runnable (Vercel build + container start), and old migrations
+        // use plain CREATE TABLE / ADD COLUMN, so "already exists" and
+        // "duplicate column" just mean the objects are already there
+        // (e.g. dev databases previously synced via `prisma db push`).
+        const msg = err.message || "";
+        if (/already exists|duplicate column/i.test(msg)) {
+          console.warn(`  ⚠️ Skipped (already applied): ${folder}:`, msg);
+          continue;
+        }
+        console.error(`  ❌ Failed: ${folder}:`, msg);
+        failed.push(folder);
       }
     }
+  }
+
+  if (failed.length > 0) {
+    throw new Error(`Migration failures in ${url}: ${failed.join(", ")}`);
   }
 
   console.log(`🎉 Migrations complete for: ${url}`);

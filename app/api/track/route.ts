@@ -278,10 +278,15 @@ export async function POST(request: NextRequest) {
         data: { conversions: updatedConversions, conversionRate: cvr },
       });
 
-      const expId =
-        page.experimentId ||
-        (await prisma.experiment.findFirst())?.id ||
-        "EXP-2048";
+      // Fail closed: a conversion must attribute to the page's own experiment —
+      // never to an unrelated one.
+      if (!page.experimentId) {
+        return NextResponse.json(
+          { error: "This page is not linked to an experiment" },
+          { status: 400 }
+        );
+      }
+      const expId = page.experimentId;
 
       const rawSource = leadData.source || utmSource;
       const effectiveSource = rawSource ? String(rawSource).trim() : "/p/" + slug;
@@ -332,9 +337,11 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Dispatch in-app notification to the dashboard notification drawer
+      // Dispatch in-app notification to the dashboard notification drawer,
+      // scoped to the page owner's workspace.
       await prisma.notification.create({
         data: {
+          ...(page.project?.workspaceId ? { workspaceId: page.project.workspaceId } : {}),
           title: isPreorder
             ? "💳 Confirmed Pre-Order Reservation Captured!"
             : "🔥 New Validated Lead Captured",

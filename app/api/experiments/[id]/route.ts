@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeExperiment } from "@/lib/serialize";
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
 import { hasRole, type WorkspaceRole } from "@/lib/rbac";
+import { checkWorkspaceLimit } from "@/lib/plan-limits";
 
 /** GET /api/experiments/[id] — get a single experiment with variants (requires auth & workspace check) */
 export async function GET(
@@ -44,7 +45,7 @@ export async function GET(
             where: { workspaceId: experiment.project.workspaceId, userId: ctx.user.id },
           })
         : null;
-      if (!hasAccess && ctx.workspace.id !== "default-ws") {
+      if (!hasAccess) {
         return NextResponse.json({ error: "Experiment not found in this workspace" }, { status: 404 });
       }
     }
@@ -79,6 +80,27 @@ export async function PATCH(
 
     if (!existing || existing.project.workspaceId !== ctx.workspace.id) {
       return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
+    }
+
+    // Enforce plan limit when promoting to an active state (closes the
+    // create-as-draft-then-promote bypass around POST /api/experiments).
+    const promotingToActive =
+      (body.status === "active" || body.status === "testing") &&
+      existing.status !== "active" &&
+      existing.status !== "testing";
+    if (promotingToActive) {
+      const quota = await checkWorkspaceLimit(ctx.workspace.id, "activeExperiments");
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error: quota.message,
+            upgradeRequired: true,
+            current: quota.current,
+            limit: quota.limit,
+          },
+          { status: 402 }
+        );
+      }
     }
 
     const data: Record<string, unknown> = {};

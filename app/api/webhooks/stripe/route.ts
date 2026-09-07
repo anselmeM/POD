@@ -13,20 +13,18 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
 
-  if (stripe && webhookSecret && signature) {
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-    } catch (err: any) {
-      console.error(`⚠️ Stripe webhook signature verification failed:`, err.message);
-      return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-    }
-  } else {
-    // If testing or webhook secret is unconfigured, parse payload directly
-    try {
-      event = JSON.parse(rawBody);
-    } catch (e) {
-      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
-    }
+  if (!stripe || !webhookSecret || !signature) {
+    return NextResponse.json(
+      { error: "Webhook signature verification unavailable — request rejected" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+  } catch (err: any) {
+    console.error(`⚠️ Stripe webhook signature verification failed:`, err.message);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
   try {

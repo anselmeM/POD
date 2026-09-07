@@ -21,14 +21,27 @@ export async function POST(request: NextRequest) {
 
     const page = await prisma.landingPage.findUnique({
       where: { slug },
-      include: { experiment: true },
+      include: {
+        experiment: true,
+        project: { select: { workspaceId: true } },
+      },
     });
 
     if (!page) {
       return NextResponse.json({ error: "Landing page not found" }, { status: 404 });
     }
 
-    const expId = page.experimentId || (await prisma.experiment.findFirst())?.id || "EXP-2048";
+    // Fail closed: never attribute a public response to an unrelated experiment.
+    if (!page.experimentId) {
+      return NextResponse.json(
+        { error: "This page is not linked to an experiment" },
+        { status: 400 }
+      );
+    }
+    const expId = page.experimentId;
+    // projectId is NOT NULL on LandingPage, so the workspace is always known
+    // in production (the fallback only covers mocked unit tests).
+    const pageWorkspaceId: string | null = (page as any).project?.workspaceId ?? null;
     const eventId = "evt-survey-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
 
     const surveyData = {
@@ -84,18 +97,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Send in-app notification
+    // 3. Send in-app notification scoped to the page owner's workspace so it
+    // never leaks into other tenants' feeds.
     await prisma.notification.create({
       data: {
+        ...(pageWorkspaceId ? { workspaceId: pageWorkspaceId } : {}),
         title: "📋 New Micro-Survey Insight Captured",
         message: `Prospect feedback on "${page.name}": "${problem || 'Friction response'}" (WTP: ${willingPrice || 'N/A'})`,
         type: "signal",
       },
     });
 
-    // 4. Outbound Webhook dispatch
+    // 4. Outbound Webhook dispatch scoped to the page owner's workspace so
+    // respondent PII is never fanned out to other tenants' endpoints.
     try {
-      const webhooks = await prisma.webhook.findMany({ where: { active: true } });
+      const webhooks = await prisma.webhook.findMany({
+        where: { active: true, ...(pageWorkspaceId ? { workspaceId: pageWorkspaceId } : {}) },
+      });
       if (webhooks.length > 0) {
         const webhookPayload = {
           event: "survey.completed",
@@ -142,22 +160,34 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const ctx = await getAuthenticatedWorkspace(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const experimentId = searchParams.get("experimentId");
 
     const where: Record<string, unknown> = {
       eventType: "survey_response",
-    };
-
-    if (ctx) {
-      where.experiment = {
+      experiment: {
         project: {
           workspaceId: ctx.workspace.id,
         },
-      };
-    }
+      },
+    };
 
     if (experimentId) {
+      // Verify the requested experiment belongs to the caller — an
+      // experimentId must narrow the scope, never widen it.
+      const owned = await prisma.experiment.findFirst({
+        where: { id: experimentId, project: { workspaceId: ctx.workspace.id } },
+        select: { id: true },
+      });
+      if (!owned) {
+        return NextResponse.json(
+          { error: "Experiment not found in your workspace" },
+          { status: 403 }
+        );
+      }
       where.experimentId = experimentId;
     }
 

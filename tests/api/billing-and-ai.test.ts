@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/stripe", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/stripe")>();
+  return { ...actual, getStripe: vi.fn() };
+});
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
@@ -17,6 +21,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getStripe } from "@/lib/stripe";
 import { checkWorkspaceLimit, getPlanLimits } from "@/lib/plan-limits";
 import { POST as checkoutPost } from "@/app/api/stripe/checkout/route";
 import { POST as webhookPost } from "@/app/api/webhooks/stripe/route";
@@ -127,6 +132,32 @@ describe("Phase 2: Commercial Monetization, Plan Limits & AI Gateway", { timeout
   });
 
   describe("Stripe Webhook Processing", () => {
+    const signedReq = (payload: unknown) => {
+      (
+        getStripe as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue({
+        webhooks: { constructEvent: (raw: string) => JSON.parse(raw) },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+      return {
+        text: async () => JSON.stringify(payload),
+        headers: new Headers({ "stripe-signature": "t_test_sig" }),
+      } as never;
+    };
+
+    it("rejects unsigned webhook payloads with 400", async () => {
+      (
+        getStripe as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue(null);
+      const req = {
+        text: async () => JSON.stringify({ type: "checkout.session.completed" }),
+        headers: new Headers(),
+      } as never;
+      const res = await webhookPost(req);
+      expect(res.status).toBe(400);
+      expect(prisma.workspace.update).not.toHaveBeenCalled();
+    });
+
     it("handles checkout.session.completed and upgrades workspace plan", async () => {
       (prisma.workspace.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: "ws-001",
@@ -151,10 +182,7 @@ describe("Phase 2: Commercial Monetization, Plan Limits & AI Gateway", { timeout
         },
       };
 
-      const req = {
-        text: async () => JSON.stringify(eventPayload),
-        headers: new Headers(),
-      } as never;
+      const req = signedReq(eventPayload);
 
       const res = await webhookPost(req);
       expect(res.status).toBe(200);
@@ -188,10 +216,7 @@ describe("Phase 2: Commercial Monetization, Plan Limits & AI Gateway", { timeout
         },
       };
 
-      const req = {
-        text: async () => JSON.stringify(eventPayload),
-        headers: new Headers(),
-      } as never;
+      const req = signedReq(eventPayload);
 
       const res = await webhookPost(req);
       expect(res.status).toBe(200);

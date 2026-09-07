@@ -270,29 +270,39 @@ export async function POST(request: NextRequest) {
     let targetAudience = body.targetAudience || "";
     let slug = body.slug || "";
 
-    // If an experimentId or landingPageId was supplied, fetch context from database
+    // If an experimentId or landingPageId was supplied, fetch context from
+    // database — verified against the caller's workspace so one tenant can't
+    // mine another tenant's positioning as a generation oracle.
     if (landingPageId) {
-      const page = await prisma.landingPage.findUnique({
-        where: { id: landingPageId },
+      const page = await prisma.landingPage.findFirst({
+        where: { id: landingPageId, project: { workspaceId: ctx.workspace.id } },
         include: { experiment: true },
       });
-      if (page) {
-        conceptTitle = conceptTitle || page.name || page.headline;
-        positioning = positioning || page.positioning;
-        slug = slug || page.slug;
+      if (!page) {
+        return NextResponse.json(
+          { error: "Landing page not found in your workspace" },
+          { status: 403 }
+        );
       }
+      conceptTitle = conceptTitle || page.name || page.headline;
+      positioning = positioning || page.positioning;
+      slug = slug || page.slug;
     } else if (experimentId) {
-      const exp = await prisma.experiment.findUnique({
-        where: { id: experimentId },
+      const exp = await prisma.experiment.findFirst({
+        where: { id: experimentId, project: { workspaceId: ctx.workspace.id } },
         include: { landingPages: true },
       });
-      if (exp) {
-        conceptTitle = conceptTitle || exp.name;
-        targetAudience = targetAudience || (exp as any).targetPersona || "";
-        if (exp.landingPages?.length > 0) {
-          slug = slug || exp.landingPages[0].slug;
-          positioning = positioning || exp.landingPages[0].positioning;
-        }
+      if (!exp) {
+        return NextResponse.json(
+          { error: "Experiment not found in your workspace" },
+          { status: 403 }
+        );
+      }
+      conceptTitle = conceptTitle || exp.name;
+      targetAudience = targetAudience || (exp as any).targetPersona || "";
+      if (exp.landingPages?.length > 0) {
+        slug = slug || exp.landingPages[0].slug;
+        positioning = positioning || exp.landingPages[0].positioning;
       }
     }
 

@@ -55,6 +55,16 @@ function createPrismaClient(): PrismaClient {
   }
 
   // Mode B: Local SQLite Database (Default for local development & automated Vitest runs)
+  // Fail loudly in production: a local file on serverless is either read-only
+  // (crash) or ephemeral (silent data loss). Production must use Turso/LibSQL.
+  // Self-hosting with a persistent volume? Opt in explicitly via ALLOW_LOCAL_DB=1.
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_LOCAL_DB !== "1") {
+    throw new Error(
+      "No remote database configured: set TURSO_DATABASE_URL (+TURSO_AUTH_TOKEN) for production. " +
+        "Refusing to boot against ephemeral local SQLite (file:./dev.db). " +
+        "Self-hosting with a persistent volume? Set ALLOW_LOCAL_DB=1."
+    );
+  }
   const adapter = new PrismaBetterSqlite3({ url: dbUrl });
   return new PrismaClient({ adapter });
 }

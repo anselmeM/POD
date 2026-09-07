@@ -45,6 +45,14 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
+  const owned = await prisma.webhook.findFirst({
+    where: { id, workspaceId: ctx.workspace.id },
+    select: { id: true },
+  });
+  if (!owned) {
+    return NextResponse.json({ error: "Webhook not found in your workspace" }, { status: 404 });
+  }
+
   await prisma.webhook.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

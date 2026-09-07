@@ -124,6 +124,9 @@ async function generateWithLLM(prompt: string): Promise<SmokeTestGenerated | nul
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
+      // Bound upstream latency so a hung LLM can't hold a serverless function
+      // until platform timeout; callers fall back to the heuristic synthesizer.
+      signal: AbortSignal.timeout(15000),
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         response_format: { type: "json_object" },
@@ -202,26 +205,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Resolve authenticated workspace context
+    // Step 1: Resolve authenticated workspace context (fail closed — never
+    // fall back to another workspace, otherwise unauthenticated callers could
+    // write experiments into someone else's tenant).
     const ctx = await getAuthenticatedWorkspace(request);
-    let workspaceId = ctx?.workspace?.id;
-
-    if (!workspaceId) {
-      const defaultWs = await prisma.workspace.findFirst({
-        orderBy: { createdAt: "asc" },
-      });
-      workspaceId = defaultWs?.id;
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const workspaceId = ctx.workspace.id;
 
-    if (!workspaceId) {
-      return NextResponse.json(
-        { error: "Workspace context could not be resolved" },
-        { status: 400 }
-      );
-    }
-
-    // Step 2: Resolve or auto-create project container
+    // Step 2: Resolve or auto-create project container (an explicitly passed
+    // projectId must belong to the caller's workspace).
     let projectId = explicitProjectId;
+    if (projectId) {
+      const owned = await prisma.project.findFirst({
+        where: { id: projectId, workspaceId },
+        select: { id: true },
+      });
+      if (!owned) {
+        return NextResponse.json(
+          { error: "Project not found in your workspace" },
+          { status: 403 }
+        );
+      }
+    }
     if (!projectId) {
       const existingProject = await prisma.project.findFirst({
         where: { workspaceId },

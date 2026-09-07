@@ -200,6 +200,18 @@ describe("Flagship Features: Stripe Pre-Order Reservations & Instant AI Smoke Te
       expect(res.status).toBe(400);
     });
 
+    it("returns 401 when unauthenticated and never falls back to another workspace", async () => {
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      const req = new NextRequest("http://localhost:3000/api/ai/smoke-test", {
+        method: "POST",
+        body: JSON.stringify({ prompt: "Loom for code reviews" }),
+      });
+      const res = await aiSmokeTestPost(req);
+      expect(res.status).toBe(401);
+      expect(prisma.workspace.findFirst).not.toHaveBeenCalled();
+      expect(prisma.experiment.create).not.toHaveBeenCalled();
+    });
+
     it("synthesizes target persona, contrasting angles, experiment, and landing page", async () => {
       (prisma.workspace.findFirst as any).mockResolvedValue({ id: "ws-test" });
       (prisma.project.findFirst as any).mockResolvedValue({ id: "proj-001", workspaceId: "ws-test" });

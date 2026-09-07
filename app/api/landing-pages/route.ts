@@ -52,22 +52,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Enforce landing pages plan limit
-    try {
-      const quota = await checkWorkspaceLimit(ctx.workspace.id, "landingPages");
-      if (!quota.allowed) {
-        return NextResponse.json(
-          {
-            error: quota.message,
-            upgradeRequired: true,
-            current: quota.current,
-            limit: quota.limit,
-          },
-          { status: 402 }
-        );
-      }
-    } catch (quotaErr) {
-      console.warn("Workspace limit check warning in POST /api/landing-pages:", quotaErr);
+    // Enforce landing pages plan limit (fail closed — a quota-check error
+    // must not become a free pass to exceed the plan).
+    const quota = await checkWorkspaceLimit(ctx.workspace.id, "landingPages");
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: quota.message,
+          upgradeRequired: true,
+          current: quota.current,
+          limit: quota.limit,
+        },
+        { status: 402 }
+      );
     }
 
     // Find or verify project in caller's workspace or membership
@@ -83,7 +80,7 @@ export async function POST(request: NextRequest) {
                 where: { workspaceId: project.workspaceId, userId: ctx.user.id },
               })
             : null;
-          if (!hasAccess && ctx.workspace.id !== "default-ws") {
+          if (!hasAccess) {
             return NextResponse.json({ error: "Project not found in your workspace" }, { status: 403 });
           }
         }

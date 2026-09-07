@@ -184,7 +184,24 @@ describe("High-Intent Micro-Surveys on Fake-Door Clicks & Price Elasticity", () 
   });
 
   describe("GET /api/signals/survey", () => {
+    it("returns 401 when unauthenticated", async () => {
+      (getAuthenticatedWorkspace as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      const req = new NextRequest("http://localhost:3000/api/signals/survey");
+      const res = await surveyGet(req);
+      expect(res.status).toBe(401);
+      expect(prisma.signalEvent.findMany).not.toHaveBeenCalled();
+    });
+
+    it("returns 403 when the requested experiment belongs to another workspace", async () => {
+      (prisma.experiment.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      const req = new NextRequest("http://localhost:3000/api/signals/survey?experimentId=exp-foreign");
+      const res = await surveyGet(req);
+      expect(res.status).toBe(403);
+      expect(prisma.signalEvent.findMany).not.toHaveBeenCalled();
+    });
+
     it("returns aggregated problem distribution, price elasticity curve, and average acceptable price", async () => {
+      (prisma.experiment.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "exp-001" });
       const mockEvents = [
         {
           id: "e1",

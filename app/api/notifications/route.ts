@@ -111,6 +111,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, count: "all" });
     }
     if (body.id) {
+      const owned = await prisma.notification.findFirst({
+        where: { id: String(body.id), userId: user.id },
+        select: { id: true },
+      });
+      if (!owned) {
+        return NextResponse.json({ error: "Notification not found" }, { status: 404 });
+      }
       await prisma.notification.update({
         where: { id: String(body.id) },
         data: { read: true },
@@ -148,6 +155,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (targetId) {
+      const owned = await prisma.notification.findFirst({
+        where: { id: String(targetId), userId: user.id },
+        select: { id: true },
+      });
+      if (!owned) {
+        return NextResponse.json({ error: "Notification not found" }, { status: 404 });
+      }
       await prisma.notification.delete({
         where: { id: String(targetId) },
       });

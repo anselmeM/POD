@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/stripe", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/stripe")>();
+  return { ...actual, getStripe: vi.fn() };
+});
 vi.mock("@/lib/workspace", () => ({
   getAuthenticatedWorkspace: vi.fn(),
 }));
@@ -35,6 +39,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { getAuthenticatedWorkspace } from "@/lib/workspace";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import {
   getPlanLimits,
@@ -215,6 +220,32 @@ describe("Option 3: Stripe Monetization & Plan Quotas", () => {
   });
 
   describe("Stripe Webhook Plan Lifecycle", () => {
+    const signedReq = (payload: unknown) => {
+      (
+        getStripe as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue({
+        webhooks: { constructEvent: (raw: string) => JSON.parse(raw) },
+      });
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+      return {
+        text: async () => JSON.stringify(payload),
+        headers: new Headers({ "stripe-signature": "t_test_sig" }),
+      } as never;
+    };
+
+    it("rejects unsigned webhook payloads with 400", async () => {
+      (
+        getStripe as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue(null);
+      const req = {
+        text: async () => JSON.stringify({ type: "checkout.session.completed" }),
+        headers: new Headers(),
+      } as never;
+      const res = await webhookPost(req);
+      expect(res.status).toBe(400);
+      expect(prisma.workspace.update).not.toHaveBeenCalled();
+    });
+
     it("upgrades workspace plan upon checkout.session.completed", async () => {
       (prisma.workspace.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: "ws-001",
@@ -222,23 +253,19 @@ describe("Option 3: Stripe Monetization & Plan Quotas", () => {
       });
       (prisma.activityLog.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
-      const req = {
-        text: async () =>
-          JSON.stringify({
-            type: "checkout.session.completed",
-            data: {
-              object: {
-                client_reference_id: "ws-001",
-                subscription: "sub_live_999",
-                customer: "cus_live_999",
-                metadata: { planKey: "self-serve", workspaceId: "ws-001" },
-                amount_total: 9900,
-                currency: "usd",
-              },
-            },
-          }),
-        headers: new Headers(),
-      } as never;
+      const req = signedReq({
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            client_reference_id: "ws-001",
+            subscription: "sub_live_999",
+            customer: "cus_live_999",
+            metadata: { planKey: "self-serve", workspaceId: "ws-001" },
+            amount_total: 9900,
+            currency: "usd",
+          },
+        },
+      });
 
       const res = await webhookPost(req);
       expect(res.status).toBe(200);
@@ -260,19 +287,15 @@ describe("Option 3: Stripe Monetization & Plan Quotas", () => {
       });
       (prisma.activityLog.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
-      const req = {
-        text: async () =>
-          JSON.stringify({
-            type: "customer.subscription.deleted",
-            data: {
-              object: {
-                id: "sub_live_999",
-                metadata: { workspaceId: "ws-001" },
-              },
-            },
-          }),
-        headers: new Headers(),
-      } as never;
+      const req = signedReq({
+        type: "customer.subscription.deleted",
+        data: {
+          object: {
+            id: "sub_live_999",
+            metadata: { workspaceId: "ws-001" },
+          },
+        },
+      });
 
       const res = await webhookPost(req);
       expect(res.status).toBe(200);
@@ -298,28 +321,24 @@ describe("Option 3: Stripe Monetization & Plan Quotas", () => {
       (prisma.experiment.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
       (prisma.notification.create as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
-      const req = {
-        text: async () =>
-          JSON.stringify({
-            type: "checkout.session.completed",
-            data: {
-              object: {
-                id: "cs_test_preorder_123",
-                amount_total: 1000,
-                customer_details: { email: "backer@example.com", name: "Backer Bob" },
-                metadata: {
-                  type: "preorder_reservation",
-                  slug: "ai-crm",
-                  landingPageId: "lp-99",
-                  depositAmount: "1000",
-                  utm_source: "meta",
-                  fbclid: "fb_123",
-                },
-              },
+      const req = signedReq({
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_test_preorder_123",
+            amount_total: 1000,
+            customer_details: { email: "backer@example.com", name: "Backer Bob" },
+            metadata: {
+              type: "preorder_reservation",
+              slug: "ai-crm",
+              landingPageId: "lp-99",
+              depositAmount: "1000",
+              utm_source: "meta",
+              fbclid: "fb_123",
             },
-          }),
-        headers: new Headers(),
-      } as never;
+          },
+        },
+      });
 
       const res = await webhookPost(req);
       expect(res.status).toBe(200);

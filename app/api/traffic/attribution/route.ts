@@ -82,24 +82,32 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const experimentId = searchParams.get("experimentId");
 
-    // Build event where clause scoped to workspace
-    const eventWhere: Record<string, unknown> = {};
-    const leadWhere: Record<string, unknown> = {};
+    // Build event where clause scoped to workspace. An explicit experimentId
+    // narrows the scope but must itself be verified against the workspace —
+    // it must never widen the query to another tenant.
+    const workspaceScope = {
+      experiment: {
+        project: {
+          workspaceId: ctx.workspace.id,
+        },
+      },
+    };
+    const eventWhere: Record<string, unknown> = { ...workspaceScope };
+    const leadWhere: Record<string, unknown> = { ...workspaceScope };
 
     if (experimentId) {
+      const owned = await prisma.experiment.findFirst({
+        where: { id: experimentId, project: { workspaceId: ctx.workspace.id } },
+        select: { id: true },
+      });
+      if (!owned) {
+        return NextResponse.json(
+          { error: "Experiment not found in your workspace" },
+          { status: 403 }
+        );
+      }
       eventWhere.experimentId = experimentId;
       leadWhere.experimentId = experimentId;
-    } else {
-      eventWhere.experiment = {
-        project: {
-          workspaceId: ctx.workspace.id,
-        },
-      };
-      leadWhere.experiment = {
-        project: {
-          workspaceId: ctx.workspace.id,
-        },
-      };
     }
 
     // Fetch signal events and leads in parallel

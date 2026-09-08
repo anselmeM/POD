@@ -101,15 +101,14 @@ Elevate validation from soft intent (email submissions) to hard intent (financia
 
 ---
 
-## Feature 4: Traffic & Multi-Channel Ad Campaign Kit
+## Feature 4: Traffic & Attribution (Ad Copy Studio removed)
+
+> **Status: Ad Copy Studio removed** — the AI ad-copy generator (`/api/ai/ad-campaign`, Ad Copy Studio tab) was cut: commodity functionality, fabricated CPC estimates next to real spend, and unneeded surface. The traffic page keeps UTM builder, attribution, and webhooks.
 
 ### Overview
 Solve the #1 barrier founders face during validation: driving qualified, targeted traffic to their experiment.
 
 ### Capabilities
-- **Ad Creative & Copy Generator**:
-  - Generates 3 targeted ad copy variations per audience segment for Meta Ads, LinkedIn Ads, and Google Search.
-  - Produces headline (30 chars), description (90 chars), and primary text tailored to the experiment's positioning.
 - **Smart UTM Link Builder**:
   - 1-click generation of tracked links:
     `https://pod.engine/p/legal-ai?utm_source=linkedin&utm_medium=cpc&utm_campaign=beta_v1`
@@ -167,7 +166,7 @@ Keep founders, product managers, and team members motivated and informed through
 | **Stripe Pre-Order & Card Reservation** | High | Medium | **✅ Shipped** |
 | **Functional Notification System** | High | Low | **✅ Shipped** |
 | **High-Intent Micro-Surveys** | High | Low | **✅ Shipped** |
-| **Traffic & Ad Campaign Kit** | High | Medium | **✅ Shipped** |
+| **Traffic & Attribution (Ad Copy Studio removed)** | High | Medium | **✅ Shipped** |
 | **Studio Portfolio & Leaderboard** | Medium | Medium | **✅ Shipped** |
 | **Slack / Email Sprint Digests** | Medium | Low | **✅ Shipped** |
 

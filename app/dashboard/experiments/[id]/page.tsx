@@ -545,16 +545,16 @@ export default function ExperimentDetailPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <Megaphone className="w-4 h-4 text-blue" />
                   <h3 className="text-base font-bold text-text-primary">
-                    Traffic & Multi-Channel Campaign Kit
+                    Traffic & Attribution
                   </h3>
                 </div>
                 <p className="text-xs text-text-secondary max-w-xl leading-relaxed">
-                  Generate platform-tailored ad variations for Meta, LinkedIn, and Google, or use the 1-click UTM builder to track inbound traffic and measure conversion channels.
+                  Use the 1-click UTM builder to track inbound traffic and measure conversion channels.
                 </p>
               </div>
               <Link href="/dashboard/traffic">
                 <Button className="bg-blue hover:bg-blue/90 text-white flex items-center gap-1.5 cursor-pointer">
-                  <span>Open Full Ad Studio</span>
+                  <span>Open Traffic & Attribution</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
               </Link>

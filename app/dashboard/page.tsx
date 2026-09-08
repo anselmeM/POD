@@ -341,7 +341,7 @@ export default function DashboardPage() {
                 href="/dashboard/traffic"
                 className="text-blue hover:underline flex items-center gap-1 font-medium"
               >
-                Ad Campaign Kit <ArrowUpRight className="w-3 h-3" />
+                Traffic & Attribution <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
           </div>

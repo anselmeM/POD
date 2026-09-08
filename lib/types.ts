@@ -12,9 +12,9 @@
  *    Models startup ideas, target ICP (Ideal Customer Profile), problem statements,
  *    and pricing assumptions (`Project`, `Hypothesis`, `AudienceConfig`).
  *
- * 2. Pillar 2 — Smoke Test Experiments & Multi-Channel Copy:
- *    Models variant splits, fake-door landing pages, Meta/LinkedIn/Google ad variations,
- *    and UTM tracking (`Experiment`, `Variant`, `LandingPage`, `AdCopyVariation`).
+ * 2. Pillar 2 — Smoke Test Experiments & Traffic Tracking:
+ *    Models variant splits, fake-door landing pages and UTM tracking
+ *    (`Experiment`, `Variant`, `LandingPage`).
  *
  * 3. Pillar 3 — Behavioral Telemetry & Intent Capture:
  *    Models fake-door clicks, micro-surveys, qualified leads, and Stripe card reservations
@@ -371,28 +371,8 @@ export interface HistoryItem {
 }
 
 // ============================================================================
-// 8. Traffic & Multi-Channel Ad Campaign Kit
+// 8. Traffic attribution & UTM tracking
 // ============================================================================
-
-export type AdPlatform = "meta" | "linkedin" | "google" | "twitter";
-
-/**
- * Platform-compliant ad creative tailored for Meta, LinkedIn, Google Search, or Twitter.
- */
-export interface AdCopyVariation {
-  id: string;
-  platform: AdPlatform;
-  angle: string;
-  headline: string;
-  description: string;
-  primaryText?: string;
-  displayPath?: string;
-  headlines?: string[];
-  descriptions?: string[];
-  callToAction: string;
-  recommendedAudience: string;
-  estimatedCpc: number;
-}
 
 export interface UtmCampaignPreset {
   platform: string;

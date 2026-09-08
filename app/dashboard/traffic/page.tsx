@@ -1,18 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Megaphone, Target, Share2, TrendingUp } from "lucide-react";
+import { Target, Share2, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { AdCopyVariation, ChannelAttribution as ChannelAttributionType, AdPlatform } from "@/lib/types";
+import type { ChannelAttribution as ChannelAttributionType } from "@/lib/types";
 
-import { AdCopyStudio } from "./components/AdCopyStudio";
 import { UtmLinkGenerator } from "./components/UtmLinkGenerator";
 import { ChannelAttribution } from "./components/ChannelAttribution";
 import { AdWebhookDispatcher } from "./components/AdWebhookDispatcher";
 
 export default function TrafficCampaignPage() {
-  const [activeTab, setActiveTab] = useState<"ad-copy" | "utm-builder" | "attribution" | "ad-webhooks">("ad-copy");
-  const [platformFilter, setPlatformFilter] = useState<"all" | AdPlatform>("all");
+  const [activeTab, setActiveTab] = useState<"utm-builder" | "attribution" | "ad-webhooks">("utm-builder");
 
   // Selection & Context
   const [, setExperiments] = useState<any[]>([]);
@@ -20,11 +18,6 @@ export default function TrafficCampaignPage() {
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const [selectedTitle, setSelectedTitle] = useState<string>("B2B Workflow Automation");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  // Ad Copy State
-  const [variations, setVariations] = useState<AdCopyVariation[]>([]);
-  const [targetingBlueprint, setTargetingBlueprint] = useState<any>(null);
-  const [adLoading, setAdLoading] = useState(false);
 
   // UTM Builder State
   const [baseUrl, setBaseUrl] = useState("");
@@ -64,32 +57,6 @@ export default function TrafficCampaignPage() {
     }
   }, []);
 
-  const fetchAdVariations = useCallback(async (title: string, slug: string) => {
-    setAdLoading(true);
-    try {
-      const res = await fetch("/api/ai/ad-campaign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conceptTitle: title,
-          slug,
-          positioning: "Cut operational friction by 50% with automated workflow intelligence",
-        }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data?.variations) {
-          setVariations(json.data.variations);
-          setTargetingBlueprint(json.data.targetingBlueprint);
-        }
-      }
-    } catch (err) {
-      console.warn("Failed to generate ad copy:", err);
-    } finally {
-      setAdLoading(false);
-    }
-  }, []);
-
   const fetchWebhooks = useCallback(() => {
     fetch("/api/webhooks")
       .then((r) => (r.ok ? r.json() : null))
@@ -108,14 +75,12 @@ export default function TrafficCampaignPage() {
     Promise.all([fetch("/api/experiments"), fetch("/api/landing-pages")])
       .then(async ([expRes, pageRes]) => {
         let defaultSlug = "smoke-test";
-        let defaultName = "B2B Workflow Automation";
 
         if (expRes.ok) {
           const expData = await expRes.json();
           const list = Array.isArray(expData.data) ? expData.data : [];
           setExperiments(list);
           if (list.length > 0) {
-            defaultName = list[0].name;
             setSelectedTitle(list[0].name);
           }
         }
@@ -132,8 +97,6 @@ export default function TrafficCampaignPage() {
         if (typeof window !== "undefined") {
           setBaseUrl(`${window.location.origin}/p/${defaultSlug}`);
         }
-
-        fetchAdVariations(defaultName, defaultSlug);
       })
       .catch(() => {});
 
@@ -147,7 +110,7 @@ export default function TrafficCampaignPage() {
         }
       })
       .catch(() => {});
-  }, [fetchAdVariations, fetchWebhooks]);
+  }, [fetchWebhooks]);
 
   // Attribution lazy fetch
   useEffect(() => {
@@ -174,7 +137,6 @@ export default function TrafficCampaignPage() {
     if (typeof window !== "undefined") {
       setBaseUrl(`${window.location.origin}/p/${slug}`);
     }
-    fetchAdVariations(name, slug);
   };
 
   const applyPreset = (preset: "meta" | "linkedin" | "google" | "twitter" | "reddit" | "newsletter") => {
@@ -273,14 +235,14 @@ export default function TrafficCampaignPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold tracking-tight text-text-primary">
-              Traffic & Multi-Channel Ad Campaign Kit
+              Traffic & Attribution
             </h1>
             <Badge variant="blue" className="text-[10px] font-mono">
-              Validation AdKit
+              Validation Traffic
             </Badge>
           </div>
           <p className="text-sm text-text-secondary">
-            Ready-to-copy ad variations, 1-click UTM tracking builder, first-party attribution, and ad conversion webhooks.
+            1-click UTM tracking builder, first-party attribution, and ad conversion webhooks.
           </p>
         </div>
 
@@ -310,17 +272,6 @@ export default function TrafficCampaignPage() {
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("ad-copy")}
-          className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${
-            activeTab === "ad-copy"
-              ? "border-blue text-blue"
-              : "border-transparent text-text-tertiary hover:text-text-primary"
-          }`}
-        >
-          <Megaphone className="w-4 h-4" />
-          <span>Ad Copy Studio</span>
-        </button>
         <button
           onClick={() => setActiveTab("utm-builder")}
           className={`pb-3 px-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${
@@ -360,21 +311,6 @@ export default function TrafficCampaignPage() {
       </div>
 
       {/* Tab Panels */}
-      {activeTab === "ad-copy" && (
-        <AdCopyStudio
-          selectedSlug={selectedSlug}
-          selectedTitle={selectedTitle}
-          variations={variations}
-          targetingBlueprint={targetingBlueprint}
-          adLoading={adLoading}
-          platformFilter={platformFilter}
-          onFilterChange={setPlatformFilter}
-          onRegenerate={() => fetchAdVariations(selectedTitle, selectedSlug)}
-          copiedKey={copiedKey}
-          onCopy={copyToClipboard}
-        />
-      )}
-
       {activeTab === "utm-builder" && (
         <UtmLinkGenerator
           baseUrl={baseUrl}

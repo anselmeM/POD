@@ -73,7 +73,7 @@ const PRIMARY_NAV = [
  */
 const ALL_MOBILE_NAV = [
   ...PRIMARY_NAV,
-  { label: "Traffic & Ads", href: "/dashboard/traffic", icon: Megaphone },
+  { label: "Traffic & Attribution", href: "/dashboard/traffic", icon: Megaphone },
   { label: "AI Verdict Brief", href: "/dashboard/ai-analyst", icon: Brain },
   { label: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },

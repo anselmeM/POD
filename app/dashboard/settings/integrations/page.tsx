@@ -192,7 +192,7 @@ export default function IntegrationsPage() {
               href="/dashboard/traffic?tab=ad-webhooks"
               className="text-blue hover:underline flex items-center gap-1 font-medium"
             >
-              Open Traffic & Ad Conversion Studio
+              Open Traffic & Attribution
               <ExternalLink className="w-3 h-3" />
             </Link>
           </div>

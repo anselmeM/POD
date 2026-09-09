@@ -121,7 +121,9 @@ Solve the #1 barrier founders face during validation: driving qualified, targete
 
 ---
 
-## Feature 5: Startup Studio Portfolio & Idea Leaderboard
+## Feature 5: Startup Studio Portfolio & Idea Leaderboard (removed)
+
+> **Status: removed** — the portfolio UI was already redirect stubs to Experiments, and the aggregation API (`/api/studio/portfolio`) had no callers. Cut to keep the app focused on the single-founder validation loop. Rebuild on attribution data if studios become the ICP. (Unrelated: the "Startup Studio" billing plan tier is unchanged.)
 
 ### Overview
 A centralized command center designed for Startup Studios, Venture Builders, and Incubators running 10+ concurrent validation sprints.
@@ -167,7 +169,7 @@ Keep founders, product managers, and team members motivated and informed through
 | **Functional Notification System** | High | Low | **✅ Shipped** |
 | **High-Intent Micro-Surveys** | High | Low | **✅ Shipped** |
 | **Traffic & Attribution (Ad Copy Studio removed)** | High | Medium | **✅ Shipped** |
-| **Studio Portfolio & Leaderboard** | Medium | Medium | **✅ Shipped** |
+| **Studio Portfolio & Leaderboard** | Medium | Medium | **❌ Removed** |
 | **Slack / Email Sprint Digests** | Medium | Low | **✅ Shipped** |
 
 ---
